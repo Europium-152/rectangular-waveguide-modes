@@ -62,34 +62,34 @@ def list_propagating_modes(f_max: float, a: float, b: float, mu: float, epsilon:
     # Search TE modes
     m = 0
     while True:
-        stop_search = True
-        n = 1
+        found_mode = False
+        n = 1 if m == 0 else 0  # TE00 mode does not exist
         while True:
             cutoff = calculate_te_cutoff(m, n, a, b, mu, epsilon)
             if cutoff < f_max:
                 modes.append((f"TE{m}{n}", m, n, cutoff))
-                stop_search = False
+                found_mode = True
             else:
                 break
             n += 1
-        if stop_search and m > 0:  # Stop if no new modes are found for both m > 0
+        if not found_mode and m > 0:  # Stop if no new modes are found for m > 0
             break
         m += 1
 
     # Search TM modes
     m = 1
     while True:
-        stop_search = True
+        found_mode = False
         n = 1
         while True:
             cutoff = calculate_tm_cutoff(m, n, a, b, mu, epsilon)
             if cutoff < f_max:
                 modes.append((f"TM{m}{n}", m, n, cutoff))
-                stop_search = False
+                found_mode = True
             else:
                 break
             n += 1
-        if stop_search:  # Stop if no new modes are found
+        if not found_mode:  # Stop if no new modes are found
             break
         m += 1
 
@@ -109,7 +109,7 @@ def main(f_max: float, a: float, b: float, mu: float = mu_0, epsilon: float = ep
     modes = list_propagating_modes(f_max, a, b, mu, epsilon)
     typer.echo("\nPropagating Modes Below f_max:")
     for mode in modes:
-        typer.echo(f"{mode[0]}: Cutoff Frequency = {mode[3]:.2f} Hz")
+        typer.echo(f"{mode[0]}: Cutoff Frequency = {mode[3]*1e-9:.3f} GHz")
 
 if __name__ == "__main__":
     typer.run(main)
