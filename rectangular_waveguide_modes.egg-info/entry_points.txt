@@ -1,0 +1,2 @@
+[console_scripts]
+waveguide-modes = rectangular_waveguide_modes:main
