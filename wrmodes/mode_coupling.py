@@ -113,7 +113,7 @@ def coupling_coefficient(mode_p, mode_q, sign, f, a, b):
 
 
 
-def solve_mode_coupling(f, a, b, mode_in, length, curvature_radius, resolution=1000, coupled_modes=None, maximum_modes=None, verbose=False, **kwargs):
+def solve_mode_coupling(f, a, b, mode_in, length, curvature, resolution=1000, coupled_modes=None, maximum_modes=None, verbose=False, **kwargs):
     """"
     Solve the mode coupling problem in a rectangular waveguide with arbitrary curvature.
     
@@ -129,10 +129,10 @@ def solve_mode_coupling(f, a, b, mode_in, length, curvature_radius, resolution=1
         Input mode in the format (type, m, n). For example, ('TE', 1, 0) for TE10.
     length: float
         Length of the waveguide (meters).
-    curvature_radius: function(ndarray) -> ndarray
-        Curvature function that returns the curvature radius (in meters) at a given positions in the waveguide. The function is evaluated between 0 and `length`.
-    resolution: int, optional
-        Number of points to evaluate the curvature function and solve the boundary-value problem. Default is 1000.
+    curvature: function(ndarray) -> ndarray
+        Curvature function that returns the local curvature (in meters^-1) at a given positions in the waveguide. The function is evaluated between 0 and `length`.
+    resolution: int or str, optional
+        Number of points to evaluate the curvature function and solve the boundary-value problem. Default is 1000. If 'auto', the number of points is automatically determined based on frequency.
     coupled_modes: list, optional
         List of tuples representing the coupled modes. If None, all propagating modes are considered. Default is None.
     maximum_modes: int, optional
@@ -182,7 +182,7 @@ def solve_mode_coupling(f, a, b, mode_in, length, curvature_radius, resolution=1
     excited_mode_index = [mode[0] for mode in coupled_modes].index(mode_in[0])
 
     def c(z):
-        return 1/curvature_radius(z)
+        return curvature(z)
     
 
     def dP_j_dl(z, P):
@@ -251,14 +251,22 @@ def solve_mode_coupling(f, a, b, mode_in, length, curvature_radius, resolution=1
         return_values[excited_mode_index] -= 1
         return return_values
 
-    n_points = resolution
-    z = np.linspace(0, length, n_points)
-
     chi_in = cst.pi * ((m_in / a) ** 2 + (n_in / b) ** 2) ** 0.5
 
     k = 2 * cst.pi * f / cst.c
 
     beta_in = (k ** 2 - chi_in ** 2) ** 0.5
+
+    lowest_chi = cst.pi / max(a, b)
+    highest_beta = (k ** 2 - lowest_chi ** 2) ** 0.5
+    lowest_lambda = 2 * cst.pi / highest_beta
+
+    if resolution == 'auto':
+        resolution = max(10, int(np.ceil(10 * length / lowest_lambda)))
+        print(f"Resolution set to {resolution} points based on the lowest wavelength {lowest_lambda:.2e} m.")
+
+    n_points = resolution
+    z = np.linspace(0, length, n_points)
 
     initial_guess = np.zeros((len(coupled_modes) * 2, n_points))
     initial_guess = initial_guess.astype(complex)
