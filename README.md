@@ -1,2 +1,3 @@
-# rectangular-waveguide-modes
-Convenience tool to list all rectangular modes below a given frequency and for a given waveguide size
+# Rectangular Waveguide Modes
+Calculate all rectangular modes below a given frequency and for a given waveguide size.
+Calculate mode-conversion losses in curved rectangular waveguides.
