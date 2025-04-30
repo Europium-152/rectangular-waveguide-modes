@@ -1,3 +1,2 @@
 from .main import list_propagating_modes
 from .mode_coupling import solve_mode_coupling
-from .initial_value_problem import solve_initial_value_problem
