@@ -9,7 +9,7 @@ dependencies = [
   "scipy",
 ]
 name = "wrmodes"
-version = "0.0.4"
+version = "0.0.5"
 authors = [
   { name="Daniel Hachmeister", email="daniel.hachmeister@tecnico.ulisboa.pt" },
 ]
