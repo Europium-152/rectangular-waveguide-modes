@@ -1,6 +1,7 @@
 import wrmodes as wr
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 
 a = 44e-3
@@ -46,5 +47,10 @@ plt.ylim(0, 0.4)
 plt.tight_layout()
 plt.xlim(30, 250)
 plt.legend(loc=(0.8, 1), frameon=False)
+
+plt.savefig("test2_te10_te20_s21_vs_curvature_radius.png", dpi=300)
+
+# Tell user where the figure was saved
+print(f"Figure saved in: {os.getcwd()}/test2_te10_te20_s21_vs_curvature_radius.png")
 
 plt.show()
