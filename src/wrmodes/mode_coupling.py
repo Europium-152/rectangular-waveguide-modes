@@ -173,7 +173,8 @@ def solve_mode_coupling(f, a, b, mode_in, length, curvature, resolution=1000, co
                 coupled_modes.append((mode_name, m, n, cutoff))
 
         if verbose:
-            print(f"Modes with same n as {mode_in[0]}:\n{'\n'.join(str(mode) for mode in coupled_modes)}")
+            modes_string = '\n'.join(str(mode) for mode in coupled_modes)
+            print(f"Modes with same n as {mode_in[0]}:\n{modes_string}")
 
     if maximum_modes is not None:
         if len(coupled_modes) > maximum_modes:
