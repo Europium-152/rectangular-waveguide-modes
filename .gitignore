@@ -172,3 +172,12 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+# macOS
+.DS_Store
+
+# Generated benchmark outputs (reproducible from the scripts)
+benchmarks/*.pdf
+benchmarks/*.png
+benchmarks/*.npz
+benchmarks/*.txt
+benchmarks/**/results/

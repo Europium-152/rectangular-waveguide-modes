@@ -1,0 +1,10 @@
+% Model:              hyperbolic_secant_E_bend_60_deg_lowfreq_parametric.mph
+% Version:            COMSOL 6.2.0.415
+% Date:               Apr 17 2025, 14:37
+% Dimension:          3
+% Nodes:              1
+% Expressions:        22
+% Description:        S21
+% Length unit:        m
+% X                       Y                        Z                        emw.S21dB (1) @ freq=18  emw.S21dB (1) @ freq=20  emw.S21dB (1) @ freq=22  emw.S21dB (1) @ freq=24  emw.S21dB (1) @ freq=26  emw.S21dB (1) @ freq=28  emw.S21dB (1) @ freq=30  emw.S21dB (1) @ freq=32  emw.S21dB (1) @ freq=34  emw.S21dB (1) @ freq=36  emw.S21dB (1) @ freq=38  emw.S21dB (1) @ freq=40  emw.S21dB (1) @ freq=42  emw.S21dB (1) @ freq=44  emw.S21dB (1) @ freq=46  emw.S21dB (1) @ freq=48  emw.S21dB (1) @ freq=50  emw.S21dB (1) @ freq=52  emw.S21dB (1) @ freq=54  emw.S21dB (1) @ freq=56  emw.S21dB (1) @ freq=58  emw.S21dB (1) @ freq=60
+0                         0                        0                        -2.2761138867357012E-4   -2.967125372676719E-4    -0.009593131420279294    -0.03378005006920666     -0.0627287516473008      -0.09012344104987108     -0.11496649338472684     -0.13643204891019875     -0.1521258298289704      -0.1589428117091807      -0.1537835286249302      -0.13578319022854085     -0.10675429360839887     -0.07126718252843409     -0.03628027074014004     -0.010234620670938503    -0.0013162581932969013   -0.017629629315205758    -0.06591736913338828     -0.15060010314886482     -0.27513692835761916     -0.4397569223771825

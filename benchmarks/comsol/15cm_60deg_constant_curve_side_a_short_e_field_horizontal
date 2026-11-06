@@ -1,0 +1,10 @@
+% Model:              constant_E_bend_60_deg_lowfreq_15cm.mph
+% Version:            COMSOL 6.2.0.415
+% Date:               Apr 17 2025, 15:08
+% Dimension:          3
+% Nodes:              1
+% Expressions:        22
+% Description:        S21
+% Length unit:        m
+% X                       Y                        Z                        emw.S21dB (1) @ freq=18  emw.S21dB (1) @ freq=20  emw.S21dB (1) @ freq=22  emw.S21dB (1) @ freq=24  emw.S21dB (1) @ freq=26  emw.S21dB (1) @ freq=28  emw.S21dB (1) @ freq=30  emw.S21dB (1) @ freq=32  emw.S21dB (1) @ freq=34  emw.S21dB (1) @ freq=36  emw.S21dB (1) @ freq=38  emw.S21dB (1) @ freq=40  emw.S21dB (1) @ freq=42  emw.S21dB (1) @ freq=44  emw.S21dB (1) @ freq=46  emw.S21dB (1) @ freq=48  emw.S21dB (1) @ freq=50  emw.S21dB (1) @ freq=52  emw.S21dB (1) @ freq=54  emw.S21dB (1) @ freq=56  emw.S21dB (1) @ freq=58  emw.S21dB (1) @ freq=60
+0.14                      0.01                     0.01                     -0.02780387611694283     -0.0505196679072198      -0.0026312589466362495   -0.08409656640492816     -0.19032368310395034     -0.12796783719786878     -0.021752962653980558    -0.01090429463981486     -0.13247148058616767     -0.3633733338089755      -0.6633809699781207      -0.9967217747425705      -1.3382248794299003      -1.674466127128234       -2.0041453272959826      -2.32914754886759        -2.656887766560473       -2.9991185150027215      -3.365460873418198       -3.7617869212664794      -4.188077093590177       -4.6399482745068905
