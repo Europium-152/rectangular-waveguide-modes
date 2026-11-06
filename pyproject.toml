@@ -9,7 +9,7 @@ dependencies = [
   "scipy",
 ]
 name = "wrmodes"
-version = "0.0.5"
+version = "0.1.0"
 authors = [
   { name="Daniel Hachmeister", email="daniel.hachmeister@tecnico.ulisboa.pt" },
 ]
@@ -22,6 +22,9 @@ classifiers = [
 ]
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
+
+[project.optional-dependencies]
+test = ["pytest"]
 
 [project.urls]
 Homepage = "https://github.com/Europium-152/rectangular-waveguide-modes"

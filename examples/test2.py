@@ -24,7 +24,7 @@ for R0 in radii:
 
     mode_in = ('TE', 1, 0)
 
-    coupled_modes, result = wr.solve_mode_coupling(f, a, b, mode_in, length=LB, curvature=c_radius, verbose=False, maximum_modes=11, resolution='auto', tol=1e-1)
+    coupled_modes, result = wr.solve_mode_coupling(f, a, b, mode_in, length=LB, curvature=c_radius, verbose=False, maximum_modes=11)
 
     # Calculate S21
     i = [m[0] for m in coupled_modes].index(f"TE1,0")

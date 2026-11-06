@@ -3,6 +3,7 @@ from scipy.integrate import solve_bvp
 import scipy.constants as cst
 import numpy as np
 from functools import lru_cache
+import warnings
 
 
 # Auxiliary functions
@@ -113,9 +114,18 @@ def coupling_coefficient(mode_p, mode_q, sign, f, a, b):
 
 
 
-def solve_mode_coupling(f, a, b, mode_in, length, curvature, resolution=1000, coupled_modes=None, maximum_modes=None, verbose=False, **kwargs):
-    """"
+def solve_mode_coupling(f, a, b, mode_in, length, curvature, resolution=None, coupled_modes=None, maximum_modes=None, verbose=False, method='transfer-matrix', **kwargs):
+    """
     Solve the mode coupling problem in a rectangular waveguide with arbitrary curvature.
+
+    Two numerical methods are available (``method``):
+
+    * ``'transfer-matrix'`` (default): fourth-order Magnus integration of the transfer matrix with adaptive
+      slicing, see :func:`wrmodes.transfer_matrix.solve_transfer_matrix`. Fast and accurate (target
+      absolute accuracy ``atol``, default 1e-6 on the mode amplitudes). Extra keyword arguments: ``atol``,
+      ``initial_slices``, ``max_slices``, ``z_eval``, ``profile``. ``resolution`` is not used.
+    * ``'bvp'``: collocation with scipy.integrate.solve_bvp (the method of wrmodes <= 0.0.5). Extra keyword
+      arguments are passed to solve_bvp (e.g. ``tol``, ``max_nodes``).
     
     Parameters
     ----------
@@ -132,24 +142,41 @@ def solve_mode_coupling(f, a, b, mode_in, length, curvature, resolution=1000, co
     curvature: function(ndarray) -> ndarray
         Curvature function that returns the local curvature (in meters^-1) at a given positions in the waveguide. The function is evaluated between 0 and `length`.
     resolution: int or str, optional
-        Number of points to evaluate the curvature function and solve the boundary-value problem. Default is 1000. If 'auto', the number of points is automatically determined based on frequency.
+        Only for method='bvp'. Number of points to evaluate the curvature function and solve the boundary-value problem. Default is 1000. If 'auto', the number of points is automatically determined based on frequency.
     coupled_modes: list, optional
         List of tuples representing the coupled modes. If None, all propagating modes are considered. Default is None.
     maximum_modes: int, optional
         Maximum number of modes to consider. Default is all propagating modes.
     verbose: bool, optional
         Print additional information. Default is False.
+    method: str, optional
+        'transfer-matrix' (default) or 'bvp'.
     kwargs: dict
-        Additional arguments to pass to scipy.integrate.solve_bvp.
+        Additional arguments for the chosen method (see above).
 
     Returns
     -------
     modes: list (N,)
         List of tuples representing the propagating modes used in the calculation.
     results: object
-        Object containing the solution of the boundary-value problem. See scipy.integrate.solve_bvp https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_bvp.html
-        The attribute results.y contains the complex amplitudes of the forward and backward modes at each point in the waveguide.
+        For method='bvp', the solve_bvp result (https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_bvp.html).
+        For method='transfer-matrix', a TransferMatrixResult with the same x, y, status, success and message
+        attributes, plus the transmission and reflection matrices T and R of the bend.
+        In both cases results.y[p, -1] is the output amplitude of forward mode p and results.y[N + p, 0] the
+        reflected amplitude of mode p at the input, for a unit-amplitude input mode.
     """
+    if method in ('transfer-matrix', 'transfer_matrix', 'magnus'):
+        from .transfer_matrix import solve_transfer_matrix
+        bvp_only = {k: kwargs.pop(k) for k in list(kwargs) if k in ('tol', 'max_nodes', 'bc_tol', 'fun_jac', 'bc_jac', 'S', 'p')}
+        if bvp_only or resolution is not None:
+            warnings.warn(f"solve_mode_coupling: {sorted(bvp_only) + (['resolution'] if resolution is not None else [])} "
+                          "only apply to method='bvp' and are ignored by the transfer-matrix method", UserWarning)
+        return solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes=coupled_modes,
+                                     maximum_modes=maximum_modes, verbose=verbose, **kwargs)
+    elif method != 'bvp':
+        raise ValueError(f"unknown method {method!r}; use 'transfer-matrix' or 'bvp'")
+    if resolution is None:
+        resolution = 1000
 
 
     modes = list_propagating_modes(f, a, b)
