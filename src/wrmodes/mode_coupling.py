@@ -123,7 +123,7 @@ def solve_mode_coupling(f, a, b, mode_in, length, curvature, resolution=None, co
     * ``'transfer-matrix'`` (default): fourth-order Magnus integration of the transfer matrix with adaptive
       slicing, see :func:`wrmodes.transfer_matrix.solve_transfer_matrix`. Fast and accurate (target
       absolute accuracy ``atol``, default 1e-6 on the mode amplitudes). Extra keyword arguments: ``atol``,
-      ``initial_slices``, ``max_slices``, ``z_eval``, ``profile``. ``resolution`` is not used.
+      ``error_control``, ``breakpoints``, ``initial_slices``, ``max_slices``, ``z_eval``, ``profile``. ``resolution`` is not used.
     * ``'bvp'``: collocation with scipy.integrate.solve_bvp (the method of wrmodes <= 0.0.5). Extra keyword
       arguments are passed to solve_bvp (e.g. ``tol``, ``max_nodes``).
     

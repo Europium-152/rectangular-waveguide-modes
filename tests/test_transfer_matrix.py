@@ -162,3 +162,19 @@ def test_agreement_with_comsol_within_0p01_dB():
         ours = [loss_db(wr.solve_transfer_matrix(f, a, b, mode_in, length, kappa, profile=False)[1].T[0, 0])
                 for f in freqs]
         assert np.max(np.abs(np.array(ours) - comsol)) < 0.01
+
+
+def test_breakpoints_restore_fast_convergence_for_discontinuous_curvature():
+    L, th = 0.6, np.radians(90)
+    k1, k2 = 0.5 * th / L, 1.25 * th / L                      # step at L/3, total angle 90 deg
+    kappa = lambda z: np.where(np.asarray(z) < L / 3, k1, k2)
+    f, a, b = 70e9, WR90_BROAD, WR90_NARROW
+    modes, res = wr.solve_transfer_matrix(f, a, b, ('TE', 1, 0), L, kappa, breakpoints=[L / 3])
+    D, K, beta = coupled_mode_matrices(f, a, b, modes)
+    exact = expm((D + k2 * K) * (2 * L / 3)) @ expm((D + k1 * K) * (L / 3))   # piecewise constant: exact
+    N = len(modes)
+    R = -np.linalg.solve(exact[N:, N:], exact[N:, :N]); T = exact[:N, :N] + exact[:N, N:] @ R
+    assert res.success and res.n_slices <= 1024
+    _, res_nobp = wr.solve_transfer_matrix(f, a, b, ('TE', 1, 0), L, kappa, max_slices=1024)
+    assert res_nobp.n_slices >= res.n_slices
+    assert np.allclose(np.abs(res.T[:, 0]) ** 2, np.abs(T[:, 0]) ** 2, atol=1e-8)

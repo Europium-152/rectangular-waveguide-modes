@@ -1,16 +1,22 @@
 """Shared definitions for the JINST paper benchmarks (D. Hachmeister et al., JINST 2026).
 
-All calculations use `wrmodes.solve_mode_coupling` with the settings of the paper:
-  * all propagating modes of the coupled family are retained (maximum_modes=50 is never reached),
-  * grid of 10 points per guided wavelength of the fastest mode (resolution='auto'),
-  * tol=0.5, i.e. no adaptive mesh refinement (see Section 6.1 of the paper).
+All calculations use `wrmodes.solve_mode_coupling` with the settings of the paper: all propagating modes of
+the coupled family, and the transfer-matrix solver with its default accuracy (power of every output mode to
+1e-6 of the input power, i.e. about 4e-6 dB on the loss).
+
+The previous collocation solver (wrmodes <= 0.0.5) can be selected with the environment variable
+WRMODES_METHOD=bvp; it then uses the settings of the first version of the paper (10 grid points per guide
+wavelength, tol = 0.5).
 """
+import os
 import numpy as np
 import wrmodes as wr
 
 WR90_BROAD = 0.9 * 0.0254   # m
 WR90_NARROW = 0.4 * 0.0254  # m
-PAPER_SETTINGS = dict(maximum_modes=50, max_nodes=1_000_000, resolution='auto', tol=5e-1)
+METHOD = os.environ.get('WRMODES_METHOD', 'transfer-matrix')
+BVP_SETTINGS = dict(method='bvp', maximum_modes=50, max_nodes=1_000_000, resolution='auto', tol=5e-1)
+PAPER_SETTINGS = BVP_SETTINGS if METHOD == 'bvp' else dict(method='transfer-matrix')
 
 # Orientations in the convention of Section 5 of the paper: a = side in the bend plane, b = side perpendicular to it.
 # (name, a, b, input mode)

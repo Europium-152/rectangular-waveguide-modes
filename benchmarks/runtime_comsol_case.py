@@ -8,11 +8,13 @@ Case (identical to the COMSOL parameters):
     gamma = 4 atan(tanh(S/2)) / (theta r0) = 53.27 1/m and a bend length L = 2 S / gamma = 0.15017 m
     (the COMSOL geometry runs from z = -S/gamma to +S/gamma).
   * Frequencies 18 to 60 GHz in 2 GHz steps (22 points).
-  * Solver settings of the paper: all propagating modes of the coupled family, 10 grid points per guided
-    wavelength, tol = 0.5 (no adaptive mesh refinement).
+  * Solver: wrmodes transfer-matrix method with default settings (all propagating modes of the coupled
+    family, power of every output mode to 1e-6). With --method bvp, the previous collocation solver with the
+    settings of the first version of the paper (10 grid points per guide wavelength, tol = 0.5).
 
-Run:   python runtime_comsol_case.py            (one timed sweep)
-       python runtime_comsol_case.py --repeat 5 (best / mean of 5 sweeps)
+Run:   python runtime_comsol_case.py                         (one timed sweep)
+       python runtime_comsol_case.py --repeat 5              (best / mean of 5 sweeps)
+       python runtime_comsol_case.py --repeat 5 --method bvp (previous collocation solver)
 Compare the printed wall-clock time with the COMSOL run time on the same machine.
 """
 import sys, os, time, platform, argparse
@@ -30,7 +32,8 @@ S = 4.0                        # COMSOL: S = 4
 GAMMA = 4 / THETA / R0 * np.arctan(np.tanh(S / 2))   # COMSOL: beta = 4/theta/r0*atan(tanh(S/2))
 LENGTH = 2 * S / GAMMA                                # bend runs from -S/beta to +S/beta
 FREQS = np.arange(18e9, 60e9 + 1, 2e9)                # COMSOL: range(18,2,60) GHz
-SETTINGS = dict(maximum_modes=50, max_nodes=1_000_000, resolution='auto', tol=5e-1)
+SETTINGS = {'transfer-matrix': dict(method='transfer-matrix', profile=False),
+            'bvp': dict(method='bvp', maximum_modes=50, max_nodes=1_000_000, resolution='auto', tol=5e-1)}
 
 
 def curvature(z):
@@ -38,19 +41,19 @@ def curvature(z):
     return 1 / (R0 * np.cosh(GAMMA * (z - LENGTH / 2)))
 
 
-def sweep(verbose=True):
+def sweep(verbose=True, method='transfer-matrix'):
     """One frequency sweep. Returns (losses in dB, per-point times, number of modes)."""
     losses, times, nmodes = [], [], []
     name_in = f"{MODE_IN[0]}{MODE_IN[1]},{MODE_IN[2]}"
     for f in FREQS:
         t0 = time.perf_counter()
-        modes, res = wr.solve_mode_coupling(f, SIDE_A, SIDE_B, MODE_IN, length=LENGTH, curvature=curvature, **SETTINGS)
+        modes, res = wr.solve_mode_coupling(f, SIDE_A, SIDE_B, MODE_IN, length=LENGTH, curvature=curvature, **SETTINGS[method])
         dt = time.perf_counter() - t0
         j = [m[0] for m in modes].index(name_in)
         loss = -20 * np.log10(np.abs(res.y[j, -1]))
         losses.append(loss); times.append(dt); nmodes.append(len(modes))
         if verbose:
-            print(f"  {f/1e9:5.1f} GHz  {len(modes):2d} modes  {len(res.x):5d} grid points  loss = {loss:8.4f} dB  "
+            print(f"  {f/1e9:5.1f} GHz  {len(modes):2d} modes  {getattr(res, 'n_slices', len(res.x)):5d} {'slices' if hasattr(res, 'n_slices') else 'grid points'}  loss = {loss:8.4f} dB  "
                   f"({dt*1e3:7.1f} ms, solver status {res.status})", flush=True)
     return np.array(losses), np.array(times), np.array(nmodes)
 
@@ -66,6 +69,7 @@ def read_comsol(path):
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('--repeat', type=int, default=1, help='number of timed sweeps (best and mean are reported)')
+    ap.add_argument('--method', default='transfer-matrix', choices=['transfer-matrix', 'bvp'], help='solver')
     args = ap.parse_args()
 
     print(f"wrmodes runtime benchmark -- COMSOL case of Figure 6")
@@ -74,6 +78,7 @@ if __name__ == '__main__':
     print(f"  bend    : 60 deg hyperbolic secant, r0 = {R0*100:.2f} cm, S = {S:g}, gamma = {GAMMA:.3f} 1/m, "
           f"L = {LENGTH*100:.3f} cm")
     print(f"  guide   : a = {SIDE_A*1e3:.2f} mm (in bend plane), b = {SIDE_B*1e3:.2f} mm, input {MODE_IN}")
+    print(f"  solver  : wrmodes {wr.__version__ if hasattr(wr, '__version__') else '<= 0.0.5'}, method {args.method}")
     print(f"  sweep   : {len(FREQS)} points, {FREQS[0]/1e9:.0f}-{FREQS[-1]/1e9:.0f} GHz, step {(FREQS[1]-FREQS[0])/1e9:.0f} GHz")
 
     # The library caches the coupling coefficients (lru_cache); the first sweep includes that cost, as COMSOL's
@@ -84,7 +89,7 @@ if __name__ == '__main__':
         coupling_coefficient.cache_clear()
         print(f"\nsweep {k+1}/{args.repeat}:")
         t0 = time.perf_counter()
-        losses, times, nmodes = sweep(verbose=(k == 0))
+        losses, times, nmodes = sweep(verbose=(k == 0), method=args.method)
         total = time.perf_counter() - t0
         totals.append(total)
         print(f"  total wall-clock time: {total:.2f} s  (slowest point {times.max()*1e3:.0f} ms at "

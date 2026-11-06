@@ -14,10 +14,11 @@ fourth-order Magnus integrator with two Gauss-Legendre points per slice:
     Omega_k = h/2 (M1 + M2) + sqrt(3)/12 h^2 [M2, M1],     Phi = exp(Omega_n) ... exp(Omega_1).
 
 Because the exponential propagates the fast phase exp(-i beta z) of every mode exactly, the slices only
-have to resolve the variation of the curvature kappa(z), not the guide wavelength. For a constant
-curvature a single slice is exact. The number of slices is chosen adaptively: it is doubled until two
-successive results differ by less than the requested tolerance (Richardson estimate of the error of a
-fourth-order method).
+have to resolve the variation of the curvature kappa(z) and the beat lengths 2 pi / |beta_p - beta_q| of the
+pairs of modes that exchange power, not the guide wavelength. For a constant curvature the result is exact
+for any number of slices. The number of slices is chosen adaptively: starting from a minimum set by the beat
+lengths, it is doubled until the Richardson estimate of the error of the fourth-order method is below the
+requested tolerance, with a check that the convergence is in its asymptotic regime.
 
 Once Phi is known, the boundary conditions (prescribed incident forward amplitudes at z = 0, no
 backward wave incident at z = L) are imposed algebraically, which gives the forward transmission
@@ -123,6 +124,12 @@ def _slice_exponentials(D, K, curvature, edges):
     return expm(omega)
 
 
+def _slice_edges(length, base_counts, points, level):
+    """Slice boundaries: each segment [points[i], points[i+1]] is split uniformly into base_counts[i] * 2**level."""
+    parts = [np.linspace(z0, z1, c * 2 ** level + 1)[:-1] for z0, z1, c in zip(points[:-1], points[1:], base_counts)]
+    return np.concatenate(parts + [np.array([length])])
+
+
 def _product(exps):
     """exps[n-1] @ ... @ exps[0], by pairwise (tree) multiplication."""
     mats = exps
@@ -192,8 +199,8 @@ class TransferMatrixResult:
 
 # ----------------------------------------------------------------------------------------- solver
 def solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes=None, maximum_modes=None,
-                          atol=1e-6, error_control='input', initial_slices=8, max_slices=4096, z_eval=None,
-                          profile=True, verbose=False):
+                          atol=1e-6, error_control='input', initial_slices=8, max_slices=4096, breakpoints=None,
+                          max_phase_per_slice=4.0, z_eval=None, profile=True, verbose=False):
     """Solve the coupled-mode equations of a bent rectangular waveguide with the transfer-matrix method.
 
     Parameters
@@ -225,6 +232,17 @@ def solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes=Non
         forward-backward coupling oscillates with beta_p + beta_q; they are only error-controlled with 'full'.
     initial_slices, max_slices : int
         Number of slices of the first Magnus evaluation, and upper limit of the adaptive doubling.
+    breakpoints : array_like, optional
+        Positions (m) inside the bend where the curvature is discontinuous (e.g. a step in curvature, or the
+        junction of the two halves of an S-bend). Slice boundaries are placed on them, which keeps the
+        fourth-order convergence. A discontinuity inside a slice degrades the convergence to first order: the
+        result is still correct, but many more slices are needed (and a warning is issued if max_slices is
+        reached).
+    max_phase_per_slice : float
+        Upper limit (rad) of the relative phase |beta_p - beta_q| h accumulated over one slice by any pair of
+        coupled modes that can exchange a relevant amount of power. It sets the minimum number of slices, so that
+        the error estimate operates in the asymptotic (fourth-order) regime. The default 4.0 was chosen from a
+        validation over 1536 test cases (benchmarks/validation); None disables the rule.
     z_eval : array_like, optional
         Positions (m) at which to return the amplitude profile. By default, the slice boundaries.
     profile : bool
@@ -255,24 +273,57 @@ def solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes=Non
 
     # Adaptive doubling of the number of slices. The error of the finer result is estimated from the difference
     # of two successive results (Richardson estimate for a 4th-order method: |X_2n - X_n| / 15). The estimate is
-    # only accepted once the differences decrease at the asymptotic rate (successive ratio >= 8, i.e. at least
-    # half of the theoretical 16), which protects against two inaccurate pre-asymptotic results agreeing by chance.
+    # only accepted once two successive ratios of differences show (at least) fourth-order convergence (>= 8,
+    # theoretical value 16), which protects against inaccurate pre-asymptotic results that agree by chance (a single
+    # large ratio followed by a small one). Results whose differences are close to round-off, where the ratios are
+    # erratic, are accepted without the ratio test when two successive differences are both below atol * 1e-3
+    # (three successive results agree); a single small difference is not enough, because two pre-asymptotic results
+    # can agree by chance.
     def measure(T, R):
         if error_control == 'input':
             return np.abs(T[:, j]) ** 2, R[:, j]    # output power of every mode for the given input
         return T, R
 
-    n = max(1, int(initial_slices))
-    edges = np.linspace(0.0, length, n + 1)
+    points = [0.0] + sorted(float(p) for p in np.atleast_1d(breakpoints if breakpoints is not None else [])
+                            if 0.0 < p < length) + [float(length)]
+    seg = np.diff(points)
+    base_counts = [max(1, int(np.ceil(initial_slices * s_ / length))) for s_ in seg]
+    # Minimum number of slices: the fourth-order (asymptotic) error behaviour, on which the error estimate relies,
+    # only sets in when the relative phase accumulated over one slice by every pair of coupled modes is small,
+    # |beta_p - beta_q| h <= max_phase_per_slice (forward-forward coupling; with error_control='full' also
+    # (beta_p + beta_q) h for the forward-backward coupling that produces the reflections).
+    # Only pairs that can exchange a relevant amount of power are considered: a pair with phase mismatch dbeta and
+    # coupling rate kappa_max |K_pq| exchanges an amplitude of order kappa_max |K_pq| / dbeta (a power of order its
+    # square), so pairs for which this is below atol (amplitude, error_control='full') or whose square is below atol
+    # (power, error_control='input') cannot produce errors above atol (this excludes e.g. strongly mismatched
+    # near-cutoff modes). At most an eighth of max_slices is used, to leave room for the error estimate.
+    br = beta.real
+    zz = np.linspace(0.0, length, 513)
+    kmax = float(np.max(np.abs(_curvature_at(curvature, zz))))
+    def max_relevant(phase, Kblock):
+        rate = kmax * np.abs(Kblock)
+        size = rate / np.maximum(phase, 1e-300)
+        rel = (rate > 0) & ((size if error_control == 'full' else size ** 2) >= atol)
+        return float(np.max(phase[rel])) if np.any(rel) else 0.0
+    dphase = max_relevant(np.abs(br[:, None] - br[None, :]), K[:N, :N])
+    if error_control == 'full':
+        dphase = max(dphase, max_relevant(br[:, None] + br[None, :], K[:N, N:]))
+    n_min = int(np.ceil(dphase * length / max_phase_per_slice)) if max_phase_per_slice else 0
+    level = 0
+    while sum(base_counts) * 2 ** level < min(n_min, max_slices // 8) and sum(base_counts) * 2 ** (level + 1) <= max_slices:
+        level += 1
+    edges = _slice_edges(length, base_counts, points, level)
+    n = len(edges) - 1
     exps = _slice_exponentials(D, K, curvature, edges)
     phi = _product(exps)
     T, R = _scattering_from_transfer(phi, N)
-    status, err, err_R, diff_prev = 1, np.inf, np.inf, None
+    status, err, err_R, diff_prev, ratio_prev, small_prev = 1, np.inf, np.inf, None, None, False
     history = []
     while 2 * n <= max_slices:
         T_prev, R_prev = measure(T, R)
-        n *= 2
-        edges = np.linspace(0.0, length, n + 1)
+        level += 1
+        edges = _slice_edges(length, base_counts, points, level)
+        n = len(edges) - 1
         exps = _slice_exponentials(D, K, curvature, edges)
         phi = _product(exps)
         T, R = _scattering_from_transfer(phi, N)
@@ -281,17 +332,24 @@ def solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes=Non
         diff = max(diff_T, np.max(np.abs(Rm - R_prev))) if error_control == 'full' else diff_T
         err = diff / 15.0
         err_R = np.max(np.abs(Rm - R_prev)) / 15.0     # reflection amplitudes (reported, not controlled)
-        asymptotic = diff_prev is not None and (diff == 0 or diff_prev / diff >= 8.0)
+        ratio = np.inf if diff == 0 else (diff_prev / diff if diff_prev is not None else None)
+        asymptotic = diff == 0 or (ratio is not None and ratio >= 8.0 and ratio_prev is not None
+                                   and ratio_prev >= 8.0)
+        ratio_prev = ratio
         history.append((n, err))
         if verbose:
             print(f"  {n:5d} slices: error estimate {err:.2e}" + ("" if asymptotic else "  (pre-asymptotic)"))
-        if err <= atol and (asymptotic or err <= atol * 1e-3):
+        small = err <= atol * 1e-3
+        if err <= atol and (asymptotic or (small and small_prev)):
             status = 0
             break
+        small_prev = small
         diff_prev = diff
     if status != 0:
         warnings.warn(f"transfer-matrix solver: tolerance {atol:g} not reached with {n} slices "
-                      f"(error estimate {err:.1e}) at {f/1e9:.3f} GHz", RuntimeWarning)
+                      f"(error estimate {err:.1e}) at {f/1e9:.3f} GHz. If the curvature is discontinuous inside "
+                      f"the bend, pass the positions of the discontinuities with breakpoints=[...]; otherwise "
+                      f"increase max_slices.", RuntimeWarning)
 
     # amplitude profile for the input mode
     y0 = np.zeros(2 * N, dtype=complex)
