@@ -178,3 +178,12 @@ def test_breakpoints_restore_fast_convergence_for_discontinuous_curvature():
     _, res_nobp = wr.solve_transfer_matrix(f, a, b, ('TE', 1, 0), L, kappa, max_slices=1024)
     assert res_nobp.n_slices >= res.n_slices
     assert np.allclose(np.abs(res.T[:, 0]) ** 2, np.abs(T[:, 0]) ** 2, atol=1e-8)
+
+
+def test_blas_threads_option_gives_identical_results():
+    import wrmodes as wr
+    a, b = 0.4 * 0.0254, 0.9 * 0.0254
+    kappa = lambda z: np.full_like(np.asarray(z, float), 1 / 0.2)
+    _, r1 = wr.solve_transfer_matrix(40e9, a, b, ('TE', 0, 1), 0.1, kappa, profile=False, blas_threads=1)
+    _, r0 = wr.solve_transfer_matrix(40e9, a, b, ('TE', 0, 1), 0.1, kappa, profile=False, blas_threads=None)
+    assert np.allclose(r1.T, r0.T, atol=1e-12) and r1.n_slices == r0.n_slices

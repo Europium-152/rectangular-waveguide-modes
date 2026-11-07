@@ -48,6 +48,12 @@ usual TE10 mode of a guide whose short side lies in the bend plane (E-plane bend
 * **`'bvp'`.** Collocation with `scipy.integrate.solve_bvp`, the method of `wrmodes <= 0.0.5`. Extra keyword
   arguments (`tol`, `max_nodes`, ...) are passed to `solve_bvp`; `resolution` sets the initial grid.
 
+The transfer-matrix solver works with many small matrices, for which a multithreaded BLAS only adds overhead
+(several times slower on machines with many cores). It therefore limits BLAS to one thread while it runs
+(`blas_threads=1`, through `threadpoolctl`; `blas_threads=None` leaves the threading unchanged). To use several
+cores, solve different frequencies in parallel processes. `benchmarks/diagnose_runtime.py` shows the effect on
+a given machine.
+
 For both methods, `result.y[p, -1]` is the output amplitude of forward mode `p` and `result.y[N + p, 0]` the
 reflected amplitude at the input, for a unit-amplitude input mode.
 

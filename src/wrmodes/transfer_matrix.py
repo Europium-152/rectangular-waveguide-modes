@@ -29,6 +29,7 @@ matrix T and the reflection matrix R of the bend for every input mode at once:
 This approach is well conditioned because only propagating modes are retained (all solutions
 oscillate); it must not be used with evanescent modes in the expansion.
 """
+import contextlib
 import warnings
 import numpy as np
 import scipy.constants as cst
@@ -46,6 +47,24 @@ _MAGNUS_C = np.sqrt(3.0) / 12.0
 def _mode_name(mode):
     """('TE', 1, 0) -> 'TE1,0' (the naming used by list_propagating_modes)."""
     return f"{mode[0]}{int(mode[1])},{int(mode[2])}"
+
+
+
+_THREADPOOL_CONTROLLER = None
+
+
+def _blas_limit(n_threads):
+    """Context manager limiting the BLAS/LAPACK threads to n_threads (no-op if None or threadpoolctl is missing)."""
+    global _THREADPOOL_CONTROLLER
+    if n_threads is None:
+        return contextlib.nullcontext()
+    try:
+        from threadpoolctl import ThreadpoolController
+    except ImportError:
+        return contextlib.nullcontext()
+    if _THREADPOOL_CONTROLLER is None:
+        _THREADPOOL_CONTROLLER = ThreadpoolController()      # inspects the loaded libraries once (a few ms)
+    return _THREADPOOL_CONTROLLER.limit(limits=n_threads, user_api='blas')
 
 
 def select_coupled_modes(f, a, b, mode_in=None, n=None, coupled_modes=None, maximum_modes=None):
@@ -200,7 +219,7 @@ class TransferMatrixResult:
 # ----------------------------------------------------------------------------------------- solver
 def solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes=None, maximum_modes=None,
                           atol=1e-6, error_control='input', initial_slices=8, max_slices=4096, breakpoints=None,
-                          max_phase_per_slice=4.0, z_eval=None, profile=True, verbose=False):
+                          max_phase_per_slice=4.0, z_eval=None, profile=True, verbose=False, blas_threads=1):
     """Solve the coupled-mode equations of a bent rectangular waveguide with the transfer-matrix method.
 
     Parameters
@@ -249,6 +268,12 @@ def solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes=Non
         Compute the amplitude profile y(z) (cheap). If False, x = [0, L] and y holds the end values only.
     verbose : bool
         Print the mode set and the convergence history.
+    blas_threads : int or None
+        Number of threads the BLAS/LAPACK library may use during the solution (default 1). The solver performs
+        thousands of operations on small (2N x 2N) matrices, for which a multithreaded BLAS only adds overhead:
+        on machines with many cores it can make the solver several times slower. The limit is applied with
+        threadpoolctl (if installed) and restored on return; None leaves the BLAS threading unchanged. To use
+        several cores, run different frequencies in parallel processes instead.
 
     Returns
     -------
@@ -257,6 +282,14 @@ def solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes=Non
     result : TransferMatrixResult
         See :class:`TransferMatrixResult`.
     """
+    with _blas_limit(blas_threads):
+        return _solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes, maximum_modes, atol,
+                                      error_control, initial_slices, max_slices, breakpoints, max_phase_per_slice,
+                                      z_eval, profile, verbose)
+
+
+def _solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes, maximum_modes, atol, error_control,
+                           initial_slices, max_slices, breakpoints, max_phase_per_slice, z_eval, profile, verbose):
     if error_control not in ('input', 'full'):
         raise ValueError("error_control must be 'input' or 'full'")
     modes = select_coupled_modes(f, a, b, mode_in, coupled_modes=coupled_modes, maximum_modes=maximum_modes)

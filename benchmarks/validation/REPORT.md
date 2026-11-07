@@ -156,7 +156,9 @@ frequencies, from 18 to 90 GHz in 0.5 GHz steps. That is **2320 points** with up
 
 ## 6. Run times (`run_timings.py`)
 
-Serial, best of 3 runs. Machine: Linux x86-64 cloud VM (2 cores), Python 3.13, NumPy 2.5, SciPy 1.18.
+Serial, best of 3 runs. Machine: Linux x86-64 cloud VM (2 cores), Python 3.13, NumPy 2.5, SciPy 1.18, with
+BLAS at one thread (`OPENBLAS_NUM_THREADS=1` in that environment; the solver now enforces this itself,
+see `blas_threads`).
 
 **a) The COMSOL case of the paper** (22 frequencies, 18–60 GHz, 15 cm 60° sech E-plane bend):
 

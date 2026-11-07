@@ -18,6 +18,7 @@ previous collocation solver is still available as `method='bvp'`. Setting the en
 | `paper_figures.py sparc` | Fig. 9 and Table 1: 60 cm 60° and 40 cm 90° WR-90 bends, 4 orientations, 18–90 GHz | ~2 min |
 | `paper_figures.py truncation`, `length`, `sequence` | Section 7: truncation sensitivity, 90° E-plane bend length, bend sequences | ~1–5 min each |
 | `runtime_comsol_case.py` | Run time for the COMSOL model of Fig. 6 (same bend, same 22 frequencies). `--repeat N` reports the best of N runs; `--method {transfer-matrix,bvp}` selects the solver | < 1 s |
+| `diagnose_runtime.py` | Times the solver and its building blocks with and without multithreaded BLAS on the current machine (needs `threadpoolctl`); writes `diagnose_runtime.txt` | seconds |
 
 `paper_figures.py all` runs every subcommand. Figures go to `figures/` (or `--out DIR`). The numbers quoted in
 the paper are printed and saved to `results/paper_numbers.json`.
