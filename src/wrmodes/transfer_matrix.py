@@ -219,7 +219,7 @@ class TransferMatrixResult:
 # ----------------------------------------------------------------------------------------- solver
 def solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes=None, maximum_modes=None,
                           atol=1e-6, error_control='input', initial_slices=8, max_slices=4096, breakpoints=None,
-                          max_phase_per_slice=4.0, z_eval=None, profile=True, verbose=False, blas_threads=1):
+                          max_phase_per_slice=np.pi, z_eval=None, profile=True, verbose=False, blas_threads=1):
     """Solve the coupled-mode equations of a bent rectangular waveguide with the transfer-matrix method.
 
     Parameters
@@ -259,9 +259,10 @@ def solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes=Non
         reached).
     max_phase_per_slice : float
         Upper limit (rad) of the relative phase |beta_p - beta_q| h accumulated over one slice by any pair of
-        coupled modes that can exchange a relevant amount of power. It sets the minimum number of slices, so that
-        the error estimate operates in the asymptotic (fourth-order) regime. The default 4.0 was chosen from a
-        validation over 1536 test cases (benchmarks/validation); None disables the rule.
+        coupled modes that can exchange a relevant amount of power. It sets the starting (minimum) number of
+        slices, so that the error estimate operates in the asymptotic (fourth-order) regime. The default, pi, means
+        that every relevant pair of modes slips by at most half a beat length per slice; it was validated over
+        1536 test cases (benchmarks/validation). None disables the rule.
     z_eval : array_like, optional
         Positions (m) at which to return the amplitude profile. By default, the slice boundaries.
     profile : bool

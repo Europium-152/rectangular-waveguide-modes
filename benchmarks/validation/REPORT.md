@@ -68,11 +68,11 @@ breakpoint):
 |---|---|
 | converged | 1536 / 1536 |
 | max error in the output power of any mode | **9.6e-7** (≤ atol in every case) |
-| loss error of the input mode | max 2.6e-5 dB, 99th percentile 4.9e-6 dB, median 1.0e-9 dB |
-| error estimate vs actual error (243 cases with actual error > 1e-8) | within 10 % in 99.2 % of cases; the actual error never exceeds the estimate by more than 7 % |
+| loss error of the input mode | max 2.6e-5 dB, 99th percentile 4.8e-6 dB, median 8.8e-10 dB |
+| error estimate vs actual error (218 cases with actual error > 1e-8) | within 10 % in 99.5 % of cases; the actual error never exceeds the estimate by more than 6 % |
 | slices per case | median 128, max 4096 |
 | unitarity defect of [T; R] (`error_control='full'`) | max 9.5e-13 |
-| `error_control='full'`, max error in any entry of T / R | 6.1e-7 / 6.7e-7 (1527 / 1536 converged, see below) |
+| `error_control='full'`, max error in any entry of T / R | 5.5e-7 / 6.7e-7 (1527 / 1536 converged, see below) |
 
 **Step profile without a breakpoint.** A curvature discontinuity inside a slice reduces the method to first
 order. In 208 of the 256 cases the solver stops at `max_slices` and warns, with a message that suggests passing
@@ -88,7 +88,7 @@ with clean fourth-order ratios.
 **Previous collocation solver** (`method='bvp'`, paper settings, 768 cases, 90° geometries):
 
 * Maximum loss error 0.58 dB; median 5.5e-4 dB; 0.035 dB where the loss is below 1 dB.
-* About 7 times slower than the transfer-matrix solver on the same cases (62 s vs 9.3 s in total).
+* About 6 times slower than the transfer-matrix solver on the same cases (65 s vs 11.5 s in total).
 
 ## 3. Physical properties and edge cases (`check_properties.py`)
 
@@ -150,9 +150,9 @@ frequencies, from 18 to 90 GHz in 0.5 GHz steps. That is **2320 points** with up
 * **Peak-loss table:** Table 1 of the paper (peak losses and the > 0.5, 1 and 3 dB intervals) is identical with
   both solvers.
 * **Run time:**
-  * Total (run in parallel on 2 cores): transfer matrix 157 s, collocation 1160 s, reference 315 s, i.e.
-    **7.4×** faster than collocation.
-  * Per point: 2.5–5× faster for N ≤ 7 and 6–10× for N ≥ 9.
+  * Total (run in parallel on 2 cores): transfer matrix 179 s, collocation 1299 s, reference 329 s, i.e.
+    **7.3×** faster than collocation.
+  * Per point: 2.3–5× faster for N ≤ 8 and 5–10× for N ≥ 9.
 
 ## 6. Run times (`run_timings.py`)
 
@@ -162,35 +162,55 @@ see `blas_threads`).
 
 **a) The COMSOL case of the paper** (22 frequencies, 18–60 GHz, 15 cm 60° sech E-plane bend):
 
-* transfer matrix **0.14 s**;
-* collocation (V1 settings) 0.72 s, a factor of 5.3.
+* transfer matrix **0.15 s**;
+* collocation (V1 settings) 0.74 s, a factor of 4.9.
 
 **b) Time per frequency point, 60 cm 60° sech bend:**
 
 | orientation | f (GHz) | N | transfer matrix (s) | collocation (s) | ratio |
 |---|---|---|---|---|---|
-| TE10 H-plane | 19.5 | 2 | 0.004 | 0.005 | 1.0 |
-| TE10 H-plane | 39.5 | 6 | 0.013 | 0.077 | 5.7 |
-| TE10 H-plane | 59.5 | 9 | 0.067 | 0.284 | 4.2 |
-| TE10 H-plane | 89.5 | 13 | 0.147 | 1.016 | 6.9 |
-| tall-guide TE01 E-plane | 29.5 | 7 | 0.010 | 0.089 | 8.6 |
-| tall-guide TE01 E-plane | 59.5 | 17 | 0.123 | 1.447 | 11.8 |
-| tall-guide TE01 E-plane | 89.5 | 27 | 0.749 | 6.570 | 8.8 |
+| TE10 H-plane | 19.5 | 2 | 0.005 | 0.004 | 0.9 |
+| TE10 H-plane | 39.5 | 6 | 0.013 | 0.080 | 6.0 |
+| TE10 H-plane | 59.5 | 9 | 0.061 | 0.295 | 4.9 |
+| TE10 H-plane | 89.5 | 13 | 0.138 | 1.022 | 7.4 |
+| tall-guide TE01 E-plane | 29.5 | 7 | 0.019 | 0.093 | 4.8 |
+| tall-guide TE01 E-plane | 59.5 | 17 | 0.252 | 1.561 | 6.2 |
+| tall-guide TE01 E-plane | 89.5 | 27 | 0.806 | 7.702 | 9.6 |
 
 **c) Bend length** (60° sech, TE10 H-plane). The number of slices grows slowly with length, while the
 collocation grid grows in proportion to it:
 
 | f (GHz) | L (m) | slices | transfer matrix (s) | collocation (s) | ratio |
 |---|---|---|---|---|---|
-| 60 | 0.15 | 512 | 0.030 | 0.116 | 3.9 |
-| 60 | 0.6 | 1024 | 0.062 | 0.288 | 4.6 |
-| 60 | 2.0 | 1024 | 0.067 | 0.785 | 11.7 |
-| 60 | 5.0 | 2048 | 0.138 | 2.039 | 14.8 |
-| 89.5 | 0.15 | 512 | 0.070 | 0.382 | 5.5 |
-| 89.5 | 0.6 | 1024 | 0.146 | 0.995 | 6.8 |
-| 89.5 | 5.0 | 2048 | 0.311 | 7.617 | 24.5 |
+| 60 | 0.15 | 512 | 0.029 | 0.112 | 3.9 |
+| 60 | 0.6 | 1024 | 0.056 | 0.291 | 5.2 |
+| 60 | 2.0 | 2048 | 0.128 | 0.834 | 6.5 |
+| 60 | 5.0 | 2048 | 0.139 | 1.997 | 14.3 |
+| 89.5 | 0.15 | 512 | 0.067 | 0.370 | 5.5 |
+| 89.5 | 0.6 | 1024 | 0.133 | 0.960 | 7.2 |
+| 89.5 | 5.0 | 2048 | 0.330 | 9.115 | 27.6 |
 
 The full table is in `results/timings.json`.
+
+## Choice of the minimum number of slices
+
+The solver starts from a minimum number of slices such that every pair of coupled modes that can exchange a
+relevant amount of power slips by at most `max_phase_per_slice` (default π, i.e. half a beat length) of
+relative phase per slice. Below that, the Richardson estimate is unreliable: coarse results can be stuck at the
+same wrong value and agree with each other.
+
+* **No minimum.** The first version started at 8 slices and doubled. 34 of the 1536 cases (2.2 %) ended above
+  atol, the worst at 3e-5, with estimates too low by up to ~100×.
+* **Rule variants.** These were tested on all 1536 cases: limits of 8, 6 and 4 rad, and none, each with single
+  or double ratio acceptance. 4 rad with double acceptance was the most relaxed clean combination.
+* **π vs 4 rad.** π is the natural scale (half a beat length; the convergence scale of the Magnus series). With
+  starting counts rounded up to 8·2^k, as for 4 rad, it gives the same maximum errors as 4 rad and a slightly
+  more reliable estimate (99.5 % within 10 %, never more than 6 % optimistic). It costs ~15–19 % more time.
+  π is the default.
+* **Rejected: starting exactly at the minimum.** Starting exactly at the minimum, rather than rounding up to
+  8·2^k, was also tried. It saved no time, because the final count is set mostly by the acceptance rules. It
+  gave 3 optimistic estimates (one by ×120, still 37× below atol). It also accepted one step-without-breakpoint
+  case with an error of 6.6e-6. It was therefore not adopted.
 
 ## Change of the acceptance rule during the validation
 

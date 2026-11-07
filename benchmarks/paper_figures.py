@@ -145,10 +145,10 @@ def fig_convergence(out, out_res):
                 T, R = _scattering_from_transfer(_product(_slice_exponentials(D, K, k, np.linspace(0, L, n + 1))), len(modes))
                 ep.append(np.max(np.abs(np.abs(T[:, j]) ** 2 - np.abs(T_ref[:, j]) ** 2)))
             _, rad = wr.solve_transfer_matrix(f, a, b, mi, L, k, profile=False)
-            conv[(c, f)] = dict(n=ns, err=ep, adaptive_slices=rad.n_slices)
+            ea = float(np.max(np.abs(np.abs(rad.T[:, rad.input_index]) ** 2 - np.abs(T_ref[:, j]) ** 2)))
+            conv[(c, f)] = dict(n=ns, err=ep, adaptive_slices=rad.n_slices, err_adaptive=ea)
             axs[1].loglog(ns, ep, marker=mk, ms=3, ls=ls, lw=0.8, color=COLORS[c])
-            axs[1].plot([rad.n_slices], [ep[ns.index(rad.n_slices)]], marker=mk, ms=7, mfc='none', mec='k', mew=0.8,
-                        ls='none')
+            axs[1].plot([rad.n_slices], [ea], marker=mk, ms=7, mfc='none', mec='k', mew=0.8, ls='none')
     nn = np.array([16, 1024]); axs[1].loglog(nn, 2e-1 * (nn / 16.) ** -4, 'k:', lw=0.8)
     axs[1].text(60, 2.5e-4, r'$\propto n^{-4}$', fontsize=7)
     axs[1].axhline(1e-6, color='0.4', lw=0.6, ls='--')
@@ -157,7 +157,7 @@ def fig_convergence(out, out_res):
     axs[1].xaxis.set_major_locator(FixedLocator([8, 32, 128, 512])); axs[1].xaxis.set_major_formatter(FormatStrFormatter('%g'))
     axs[1].xaxis.set_minor_formatter(NullFormatter())
     NUM['slicing'] = {f"{c} {f/1e9:g} GHz": dict(adaptive_slices=v['adaptive_slices'],
-                                                 err_at_adaptive=float(v['err'][v['n'].index(v['adaptive_slices'])]))
+                                                 err_at_adaptive=v['err_adaptive'])
                       for (c, f), v in conv.items()}
     # (c) estimated vs actual error over the validation test matrix
     path = os.path.join(HERE, 'validation', 'results', 'accuracy_suite.pkl')
