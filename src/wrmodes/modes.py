@@ -76,11 +76,22 @@ def cutoff_wavenumber(mode, a, b):
     return np.pi * np.hypot(mode.m / a, mode.n / b)
 
 
-def propagation_constant(mode, a, b, f):
-    """beta (1/m), real and positive above cutoff, -i|beta| below cutoff (forward modes decay in +z)."""
-    k = 2 * np.pi * f / cst.c
-    chi = cutoff_wavenumber(mode, a, b)
+CUTOFF_RTOL = 1e-13
+"""A mode is treated as exactly at cutoff when |k^2 - chi^2| <= CUTOFF_RTOL k^2. This makes the classification
+independent of the platform's rounding (a frequency built to coincide with a cutoff gives beta = 0 everywhere)."""
+
+
+def _cutoff_offset(k, chi):
+    """k^2 - chi^2, snapped to 0 within CUTOFF_RTOL k^2."""
     d = k * k - chi * chi
+    return 0.0 if abs(d) <= CUTOFF_RTOL * k * k else d
+
+
+def propagation_constant(mode, a, b, f):
+    """beta (1/m), real and positive above cutoff, -i|beta| below cutoff (forward modes decay in +z), exactly 0 at
+    cutoff (within CUTOFF_RTOL)."""
+    k = 2 * np.pi * f / cst.c
+    d = _cutoff_offset(k, cutoff_wavenumber(mode, a, b))
     return np.sqrt(d) + 0j if d >= 0 else -1j * np.sqrt(-d)
 
 
@@ -184,7 +195,7 @@ class ModeBasis:
                     if (kind == "TE" and m + n == 0) or (kind == "TM" and m * n == 0):
                         continue
                     mode = Mode(kind, m, n)
-                    if cutoff_wavenumber(mode, a, b) < chi_max:
+                    if _cutoff_offset(chi_max, cutoff_wavenumber(mode, a, b)) > 0:
                         modes.append(mode)
         return cls(a, b, modes, frame=frame)
 
@@ -252,9 +263,9 @@ class ModeBasis:
         return np.array([wave_admittance(m, self.a, self.b, f) for m in self.modes], dtype=complex)
 
     def propagating_mask(self, f):
-        """True for the modes that propagate at f (chi < k; a mode exactly at cutoff does not propagate)."""
+        """True for the modes that propagate at f (chi < k beyond CUTOFF_RTOL; a mode at cutoff does not propagate)."""
         k = 2 * np.pi * f / cst.c
-        return np.array([cutoff_wavenumber(m, self.a, self.b) < k for m in self.modes], dtype=bool)
+        return np.array([_cutoff_offset(k, cutoff_wavenumber(m, self.a, self.b)) > 0 for m in self.modes], dtype=bool)
 
     def family(self, n):
         """Indices of the modes with vertical index n."""

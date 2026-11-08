@@ -196,3 +196,20 @@ def test_cutoff_classification_and_legacy_guard():
         basis.legacy_modes(20e9)
     with pytest.warns(RuntimeWarning):
         coupled_mode_matrices(20e9, a, b, basis.legacy_modes())
+
+
+def test_cutoff_is_platform_independent():
+    """A frequency built to coincide with a cutoff (b / lambda_g = 1/2 for TE1,0 puts TE1,1 at cutoff) gives
+    beta = 0 exactly, the mode is not propagating, and its admittance raises, whatever the rounding."""
+    a, b = WR90
+    k = np.hypot(np.pi / a, np.pi / b)                  # chi of TE1,1
+    f = k * cst.c / (2 * np.pi)
+    te11 = Mode("TE", 1, 1)
+    assert propagation_constant(te11, a, b, f) == 0
+    for g in (f * (1 - 1e-15), f, f * (1 + 1e-15)):
+        assert propagation_constant(te11, a, b, g) == 0
+        assert te11 not in ModeBasis.propagating(g, a, b)
+        assert not ModeBasis.below(2 * g, a, b).propagating_mask(g)[ModeBasis.below(2 * g, a, b).index(te11)]
+    with pytest.raises(ValueError):
+        wave_admittance(te11, a, b, f)
+    assert propagation_constant(te11, a, b, f * (1 + 1e-9)).real > 0
