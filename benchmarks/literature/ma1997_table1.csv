@@ -1,0 +1,43 @@
+# Source: Z. Ma, T. Yamane, E. Yamashita, "Analysis and design of mitered H-plane bends in rectangular waveguides by combining the mode-matching and port reflection coefficient methods", Electronics and Communications in Japan, Part 2, 80(5), 1-7 (1997) (transl. from Denshi Joho Tsushin Gakkai Ronbunshi J80-C-I(2), 78-85, Feb. 1997)
+# Table: Table 1, p. 5 (PDF p. 5): "Difference between the scattering parameters of a mitered bend calculated with and without the displacement of steps shown in Fig. 10". Frequency 16 GHz (f/fc = 1.686); staircase with 50 or 60 steps. Ref. = no displacement; (a)-(d) = the four displacements of Fig. 10 (four arbitrary steps moved by half a step, text p. 5). Diff. (%) = printed difference to Ref.
+# Guide: a = 15.799 mm, b = 7.899 mm (p. 4); single-mode TE10 band 9.49-19.0 GHz; fc = c/(2a) = 9.488 GHz; H-plane bend (side a in the bend plane).
+# Geometry: 90 deg mitered H-plane bend. The table does not state c/a; the surrounding Figs. 6, 8, 9 and the text of section 3 use c/a = 1.0. Miter parameter c (inset of Figs. 6, 8, 9; Fig. 3): the outer corner is cut by a straight miter whose ends lie at distance c from the removed outer corner along each outer wall; c/a = 0 is the unmitered right-angle corner, c/a = 1.0 cuts at the extensions of the inner walls. The slanted miter is modelled by a staircase of N steps; division methods (Fig. 7, text p. 4): (a) steps go through the slanted plane, (b) steps lie below it, (c) steps lie above it.
+# Columns: steps, case, quantity, value (linear magnitude, or percent for the diff rows), uncertainty = half a unit of the last printed digit, source = ab (both transcriptions identical).
+# Transcriptions: L1a and L1b independently from the page image; compared value by value by L1 (2026-11-08): 0 differences; L1 re-read the table on the page image (Ref. rows: |S11|^2 + |S21|^2 = 1.00001 (50 steps) and 0.99997 (60 steps)). Fig. 9 at 16 GHz (merged file): see benchmarks/literature/README.md.
+steps,case,quantity,value,uncertainty,source
+50,Ref,|S11|,0.2641,0.00005,ab
+50,Ref,|S21|,0.9645,0.00005,ab
+50,(a),|S11|,0.2624,0.00005,ab
+50,(a),|S11| diff (%),0.64,0.005,ab
+50,(a),|S21|,0.9649,0.00005,ab
+50,(a),|S21| diff (%),0.04,0.005,ab
+50,(b),|S11|,0.2651,0.00005,ab
+50,(b),|S11| diff (%),0.38,0.005,ab
+50,(b),|S21|,0.9642,0.00005,ab
+50,(b),|S21| diff (%),0.03,0.005,ab
+50,(c),|S11|,0.2678,0.00005,ab
+50,(c),|S11| diff (%),1.40,0.005,ab
+50,(c),|S21|,0.9635,0.00005,ab
+50,(c),|S21| diff (%),0.10,0.005,ab
+50,(d),|S11|,0.2597,0.00005,ab
+50,(d),|S11| diff (%),1.67,0.005,ab
+50,(d),|S21|,0.9657,0.00005,ab
+50,(d),|S21| diff (%),0.12,0.005,ab
+60,Ref,|S11|,0.2622,0.00005,ab
+60,Ref,|S21|,0.9650,0.00005,ab
+60,(a),|S11|,0.2625,0.00005,ab
+60,(a),|S11| diff (%),0.11,0.005,ab
+60,(a),|S21|,0.9649,0.00005,ab
+60,(a),|S21| diff (%),0.01,0.005,ab
+60,(b),|S11|,0.2610,0.00005,ab
+60,(b),|S11| diff (%),0.46,0.005,ab
+60,(b),|S21|,0.9654,0.00005,ab
+60,(b),|S21| diff (%),0.04,0.005,ab
+60,(c),|S11|,0.2627,0.00005,ab
+60,(c),|S11| diff (%),0.19,0.005,ab
+60,(c),|S21|,0.9649,0.00005,ab
+60,(c),|S21| diff (%),0.01,0.005,ab
+60,(d),|S11|,0.2607,0.00005,ab
+60,(d),|S11| diff (%),0.57,0.005,ab
+60,(d),|S21|,0.9654,0.00005,ab
+60,(d),|S21| diff (%),0.04,0.005,ab

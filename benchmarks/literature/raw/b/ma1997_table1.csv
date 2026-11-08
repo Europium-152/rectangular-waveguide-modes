@@ -1,0 +1,45 @@
+# Source: Z. Ma, T. Yamane, E. Yamashita, Electronics and Communications in Japan, Part 2, 80(5), 1-7 (1997).
+# Table 1, p. 5 (PDF p. 5): "Difference between the scattering parameters of a mitered bend calculated with and
+#   without the displacement of steps shown in Fig. 10". Frequency 16 GHz; 50 and 60 staircase steps.
+#   Ref. = no displacement; (a)-(d) = the four step displacements of Fig. 10. Diff. (%) as printed.
+# Guide a = 15.799 mm, b = 7.899 mm (p. 4). The table does not state c/a; Figs. 6-9 of the paper use c/a = 1.0.
+# Transcribed by L1b from the page image (checked digit by digit on a 300 dpi render).
+# uncertainty: half a unit of the last printed digit (rounding).
+# Consistency (L1b arithmetic): |S11|^2 + |S21|^2 of the Ref. rows = 1.00001 (50 steps), 0.99997 (60 steps).
+steps,case,quantity,value,uncertainty
+50,Ref,|S11|,0.2641,0.00005
+50,Ref,|S21|,0.9645,0.00005
+50,(a),|S11|,0.2624,0.00005
+50,(a),|S11| diff (%),0.64,0.005
+50,(a),|S21|,0.9649,0.00005
+50,(a),|S21| diff (%),0.04,0.005
+50,(b),|S11|,0.2651,0.00005
+50,(b),|S11| diff (%),0.38,0.005
+50,(b),|S21|,0.9642,0.00005
+50,(b),|S21| diff (%),0.03,0.005
+50,(c),|S11|,0.2678,0.00005
+50,(c),|S11| diff (%),1.40,0.005
+50,(c),|S21|,0.9635,0.00005
+50,(c),|S21| diff (%),0.10,0.005
+50,(d),|S11|,0.2597,0.00005
+50,(d),|S11| diff (%),1.67,0.005
+50,(d),|S21|,0.9657,0.00005
+50,(d),|S21| diff (%),0.12,0.005
+60,Ref,|S11|,0.2622,0.00005
+60,Ref,|S21|,0.9650,0.00005
+60,(a),|S11|,0.2625,0.00005
+60,(a),|S11| diff (%),0.11,0.005
+60,(a),|S21|,0.9649,0.00005
+60,(a),|S21| diff (%),0.01,0.005
+60,(b),|S11|,0.2610,0.00005
+60,(b),|S11| diff (%),0.46,0.005
+60,(b),|S21|,0.9654,0.00005
+60,(b),|S21| diff (%),0.04,0.005
+60,(c),|S11|,0.2627,0.00005
+60,(c),|S11| diff (%),0.19,0.005
+60,(c),|S21|,0.9649,0.00005
+60,(c),|S21| diff (%),0.01,0.005
+60,(d),|S11|,0.2607,0.00005
+60,(d),|S11| diff (%),0.57,0.005
+60,(d),|S21|,0.9654,0.00005
+60,(d),|S21| diff (%),0.04,0.005
