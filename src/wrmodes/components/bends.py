@@ -5,6 +5,7 @@ from ..gsm import GSM, straight, from_transfer_matrix, block_diag
 from ..transfer_matrix import solve_transfer_matrix, coupled_mode_matrices
 from .base import Component
 from .guide import Guide, _check_plane
+from ..loss import bend_loss_matrices, straight_gsm_from_loss_matrix
 
 __all__ = ["SmoothBend", "SechCurvature", "ConstantCurvature"]
 
@@ -78,13 +79,40 @@ class SmoothBend(Component):
         Global cross-section; needed for `default_basis` only. A `Line` attaches its own guide.
     max_slices : int
         Upper limit of the adaptive slicing of `solve_transfer_matrix`.
+    families : 'separate' or 'coupled'
+        Wall loss only (lossless bends always treat the families separately, which is exact for them).
+        'separate' (default): one coupled-mode system per local family n, as for a lossless bend; 'coupled': one
+        system with all propagating modes of even n and one with those of odd n (the walls are equal, so Lambda
+        does not couple n of different parity), which keeps the coupling of the families by the lossy walls
+        v = +-b/2 (see Wall loss). 'coupled' costs 5-15 times more at 90 GHz (34-37 s per SPARC bend). Use it
+        for multimode method-vs-method validation (CONVENTIONS.md section 8).
 
     Method
     ------
     The bend does not vary along v, so it only couples modes of the same local family n (CONVENTIONS.md section 3).
     For each family, the propagating modes of the basis are coupled by the curvature: their 2N x 2N transfer matrix
     from `solve_transfer_matrix(error_control='full')` is converted with `from_transfer_matrix`. A family whose
-    coupling matrix vanishes (e.g. TE1,0 alone, below the cutoff of TE2,0) is a straight section.
+    coupling matrices vanish (e.g. TE1,0 alone, below the cutoff of TE2,0) is a straight section, lossy if the
+    guide is.
+
+    Wall loss (guide with a conductivity sigma; docs/theory/T1-wall-impedance.md, box B4b): the system of every
+    family is dy/dz = [(D - Lambda0_full) + kappa(z) (K - Lambda1_full)] y, with the surface impedance (1 + i) R_s
+    on all four walls (`wrmodes.loss.bend_loss_matrices`, passed to `solve_transfer_matrix(loss_matrix=...)`).
+    The kappa Lambda1 term (the walls of a bend are not equally long) is kept: it changes the converted powers of
+    the SPARC bends by up to 1.3e-4. The degenerate TE_mn/TM_mn coupling is kept (same family). Evanescent modes
+    get only their own Lambda^+_pp (`wrmodes.loss.coupling_mask`). With families='separate' the coupling of
+    different local families by the lossy walls v = +-b/2 (n with n +- 2; through kappa Lambda1 also m with m +- odd)
+    is neglected, while a lossy `Straight` keeps it. This coupling is non-synchronous, but summed over the many
+    propagating modes it carries a genuine O(ka Z/eta0) correction of the attenuation (T1 section 5; e.g. +1.4e-3
+    of alpha for TE1,0 from the broad walls at 90 GHz, which brings it within 3e-4 of the exact Leontovich value).
+    Measured for the SPARC bends in aluminium WR-90 (40 cm 90 deg sech, 60 cm 60 deg constant, H and E plane),
+    'separate' vs 'coupled', against the targets of CONVENTIONS.md section 8 (1e-4 of the input power for every
+    converted mode): for TE1,0 input the default is within 1e-4 (40 cm 90 deg sech H-plane bend at 90 GHz: largest
+    change in the TE1,0 column 1.8e-5, i.e. 1.3e-4 dB on its own transmission, and at most 2.4e-5 for the 60 cm
+    bend; below 1e-7 in the E plane). The largest
+    change of any |S_ij|^2 of the propagating block, 1.0-1.3e-4 at 90 GHz (6.3e-5 at 60 GHz, 4e-6 at 30 GHz), occurs
+    for near-cutoff modes, where it is below the error of the first-order model itself (about 2.8e-4, T1 section
+    5). In an E-plane bend the local walls v = +-b/2 are the narrow walls of the guide.
 
     **Evanescent modes** in the basis (needed next to miters and steps) are not coupled: they are propagated as
     uncoupled straight modes, exp(-i beta L) = exp(-|beta| L), over the centre-line length, with no reflection.
@@ -101,7 +129,7 @@ class SmoothBend(Component):
     """
 
     def __init__(self, length, curvature, plane="H", breakpoints=None, atol=1e-6, guide=None, max_slices=4096,
-                 name=""):
+                 name="", families="separate"):
         length = float(length)
         if not length > 0:
             raise ValueError("length must be positive")
@@ -114,6 +142,9 @@ class SmoothBend(Component):
         self.atol = float(atol)
         self.guide = guide
         self.max_slices = int(max_slices)
+        if families not in ("separate", "coupled"):
+            raise ValueError("families must be 'separate' or 'coupled'")
+        self.families = families
         self.name = name or f"{plane}-plane bend {length:g} m"
 
     def __repr__(self):
@@ -121,7 +152,7 @@ class SmoothBend(Component):
 
     def with_guide(self, guide):
         return type(self)(self.length, self.curvature, self.plane, self.breakpoints, self.atol, guide,
-                          self.max_slices, self.name)
+                          self.max_slices, self.name, self.families)
 
     @property
     def curvature_function(self):
@@ -139,17 +170,34 @@ class SmoothBend(Component):
         return b, b
 
     def _loss_matrix(self, basis, f):
-        """Hook for WP2: the N x N attenuation matrix Lambda (1/m) of the modes of `basis` at f (the same convention
-        as `Straight._loss_matrix`; WP2 adds it to the coupled-mode matrix). Lossless guides only, for now."""
-        if self.guide is not None:
-            self.guide.require_lossless(self.name)
-        return np.zeros((len(basis), len(basis)))
+        """(Lambda0_full, Lambda1_full), 2N x 2N each (T1 box B4b), or None for perfect walls."""
+        Zs = None if self.guide is None else self.guide.wall_impedance(f)
+        if Zs is None or len(basis) == 0:
+            return None
+        return bend_loss_matrices(basis, f, Zs)
+
+    def _solve(self, sub, f, lam):
+        """GSM of the propagating modes `sub` (one family, or all with families='coupled'); lam = sub-blocks or None."""
+        a, b, L = sub.a, sub.b, self.length
+        modes = sub.legacy_modes(f)
+        _, K, _ = coupled_mode_matrices(f, a, b, modes)
+        if not np.any(K) and (lam is None or not np.any(lam[1])):
+            g = straight(sub, f, L) if lam is None else straight_gsm_from_loss_matrix(sub, f, L, lam[0])
+            return g, None
+        m0 = sub.modes[0]
+        _, res = solve_transfer_matrix(f, a, b, (m0.kind, m0.m, m0.n), L, self.curvature_function,
+                                       coupled_modes=modes, atol=self.atol, error_control="full",
+                                       breakpoints=self.breakpoints, max_slices=self.max_slices, profile=False,
+                                       blas_threads=1, loss_matrix=lam)
+        info = dict(n_slices=res.n_slices, error_estimate=float(res.error_estimate), success=bool(res.success))
+        return from_transfer_matrix(res.transfer_matrix, sub, f), info
 
     def gsm(self, f, basis1=None, basis2=None):
         """GSM at f (Hz) in the local basis of the bend's plane (same basis at both ports).
 
         Each GSM carries `info`, a dict family n -> solver diagnostics (n_slices, error_estimate, success), with
-        None for families that are straight sections.
+        None for families that are straight sections (keys 'even' and 'odd', the parity of n, with
+        families='coupled' in a lossy guide).
         """
         if basis1 is None:
             basis1 = self.default_basis(f)[0]
@@ -158,38 +206,41 @@ class SmoothBend(Component):
         if basis1.frame not in (None, self.plane):
             raise ValueError(f"{self.name}: basis has frame {basis1.frame!r}, expected {self.plane!r} "
                              f"(insert a FrameChange, or use a Line)")
-        if np.any(self._loss_matrix(basis1, f)):
-            raise NotImplementedError("lossy smooth bends are implemented by WP2")
         if len(basis1) == 0:                    # below the first cutoff: nothing propagates, nothing to compute
             Z = np.zeros((0, 0))
             out = GSM(Z, Z, Z, Z, basis1, basis1, f, self.name)
             out.info = {}
             return out
-        a, b, L = basis1.a, basis1.b, self.length
-        kappa = self.curvature_function
+        lossm = self._loss_matrix(basis1, f)
+        N = len(basis1)
+
+        def blocks(idx):
+            if lossm is None:
+                return None
+            sel = np.concatenate([idx, np.asarray(idx) + N])
+            return lossm[0][np.ix_(sel, sel)], lossm[1][np.ix_(sel, sel)]
+
         prop = basis1.propagating_mask(f)
         parts, info = [], {}
-        for n in basis1.families():
-            idx = basis1.family(n)
+        if lossm is not None and self.families == "coupled":
+            # equal walls: Lambda0 and Lambda1 vanish exactly between even and odd n (and K couples equal n only),
+            # so the coupled system splits into the even-n and the odd-n modes
+            groups = [(key, [i for i, md in enumerate(basis1.modes) if md.n % 2 == par])
+                      for key, par in (("even", 0), ("odd", 1))]
+            groups = [g for g in groups if g[1]]
+        else:
+            groups = [(n, basis1.family(n)) for n in basis1.families()]
+        for key, idx in groups:
             pidx = [i for i in idx if prop[i]]
             eidx = [i for i in idx if not prop[i]]
-            info[n] = None
+            info[key] = None
             if pidx:
-                sub = basis1.subset(pidx)
-                modes = sub.legacy_modes(f)
-                _, K, _ = coupled_mode_matrices(f, a, b, modes)
-                if not np.any(K):
-                    parts.append(straight(sub, f, L))
-                else:
-                    m0 = sub.modes[0]
-                    _, res = solve_transfer_matrix(f, a, b, (m0.kind, m0.m, m0.n), L, kappa, coupled_modes=modes,
-                                                   atol=self.atol, error_control="full", breakpoints=self.breakpoints,
-                                                   max_slices=self.max_slices, profile=False, blas_threads=1)
-                    info[n] = dict(n_slices=res.n_slices, error_estimate=float(res.error_estimate),
-                                   success=bool(res.success))
-                    parts.append(from_transfer_matrix(res.transfer_matrix, sub, f))
-            if eidx:
-                parts.append(straight(basis1.subset(eidx), f, L))     # evanescent: uncoupled straight modes
+                g, info[key] = self._solve(basis1.subset(pidx), f, blocks(pidx))
+                parts.append(g)
+            if eidx:                               # evanescent: uncoupled straight modes (+ their own Lambda_pp)
+                sub = basis1.subset(eidx)
+                parts.append(straight(sub, f, self.length) if lossm is None
+                             else straight_gsm_from_loss_matrix(sub, f, self.length, blocks(eidx)[0]))
         out = block_diag(*parts, basis1=basis1, basis2=basis1, name=self.name)
         out.info = info
         return out

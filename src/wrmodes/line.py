@@ -125,6 +125,12 @@ class Line(Component):
                 if not (isinstance(g_in, Guide) and isinstance(g_out, Guide)):
                     raise TypeError(f"{c!r}.guides must be two wrmodes.components.Guide")
                 if g_in != guide_now:
+                    if (guide_now.sigma is not None and g_in.sigma is None
+                            and g_in == Guide(guide_now.w, guide_now.h)):
+                        raise NotImplementedError(
+                            f"{c!r} has perfectly conducting walls only (wrmodes 1.0: no ohmic loss in steps and "
+                            f"miters), but the line's guide {guide_now!r} has a wall conductivity; build the line "
+                            f"with sigma=None, or leave this component out")
                     raise ValueError(f"{c!r} starts in {g_in!r}, but the line is in {guide_now!r} at this point")
                 add(c, False, c, g_out)
                 guide_now = g_out
