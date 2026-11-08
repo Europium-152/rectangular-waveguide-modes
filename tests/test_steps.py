@@ -259,9 +259,6 @@ def test_large_small_large_is_an_iris_not_identity():
     assert 0.1 < t < 0.99                          # a thin inductive-capacitive iris, not a straight
 
 
-@pytest.mark.xfail(strict=True, reason="GSM.star silently returns wrong numbers when I - A22 B11 is singular (modes "
-                                       "trapped between two junctions on one plane); the coordinator is fixing "
-                                       "gsm.star, which will flip this test")
 def test_small_large_small_plain_star_regression():
     """Small -> large -> small at zero length with the plain star product (no least-squares workaround)."""
     f = 10e9
