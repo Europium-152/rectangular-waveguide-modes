@@ -61,19 +61,20 @@ Verified by: <card or role> · Time box: <days> (then status review)
 
 ## Status board
 
-| Card | Wave | Role | Depends on | Status |
-| --- | --- | --- | --- | --- |
-| T0 field convention | 0 | Theory | — | done (`docs/theory/T0-field-convention.md`) |
-| WP0 foundations | 0 | Coordinator | — | merged (#1) |
-| Conventions update 1 | 1 | Coordinator | WP1/WP4 reviews, T1b | this PR |
-| [T1 wall impedance](T1-wall-impedance.md) | 1 | Theory (T1 + T1b) | T0 | T1b done (#2, for comparison); T1 running |
-| [T2 taper coupling](T2-taper-coupling.md) | 1 | Theory (T2 + T2b) | T0 | running |
-| [T3 twist coupling](T3-twist-coupling.md) | 1 | Theory (T3 + T3b) | T0 | running |
-| [L1 literature data](L1-literature-data.md) | 1 | Literature (L1a + L1b) | — | both done (#5, #6); merge in progress, supersedes #5 and #6 |
-| [WP1 cascade](WP1-cascade.md) | 1 | Implementer | WP0 | PR #3, review fixes in progress |
-| [WP2 ohmic loss and filters](WP2-loss-and-filters.md) | 1 | Implementer | WP0, T1 | waits for T1 |
-| [WP3 2D modal-port solver](WP3-2d-solver.md) | 1 | Implementer | WP0, WP1 (interface only) | running |
-| [WP4 steps and mode matching](WP4-steps.md) | 1 | Implementer | WP0 | PR #4, review fixes in progress |
-| [WP7 verification, wave 1](WP7-verification-wave1.md) | 1 | Verifier + COMSOL scripter | WP0, L1 | running |
+| Card | Wave | Role | Status |
+| --- | --- | --- | --- |
+| T0 field convention | 0 | Theory | done |
+| WP0 foundations | 0 | Coordinator | merged (#1) |
+| Conventions update 1 | 1 | Coordinator | merged (#7) |
+| T1 / T1b wall impedance | 1 | Theory | merged (#8, #2); agree to 8e-16 |
+| T2 / T2b taper coupling | 1 | Theory | merged (#10, #13); agree to 7e-15 |
+| T3 / T3b twist coupling | 1 | Theory | merged (#14, #9); agree to 8e-18 |
+| L1 literature data | 1 | Literature | merged (#15; #5, #6 closed) |
+| WP1 cascade | 1 | Implementer | merged (#3) |
+| WP2 ohmic loss and filters | 1 | Implementer | merged (#16) |
+| WP3 2D modal-port solver | 1 | Implementer | merged (#11) |
+| WP4 steps and mode matching | 1 | Implementer | merged (#4) |
+| WP7 verification, wave 1 | 1 | Verifier | merged (#12) |
+| Conventions update 2, COMSOL campaign 1 | 1 | Coordinator | this PR; Gate A waits for Daniel's COMSOL results (`benchmarks/comsol/CAMPAIGN_1.md`) |
 
 Wave 2 cards (all miters, Alessandri segmentation, tapers, twists, COMSOL campaign 2) are written at Gate A.
