@@ -1,0 +1,37 @@
+1. two-mode truncation, square guide: order ['TE0,1', 'TE1,0']
+   A = [[ 0.             -0.810569469139]
+ [ 0.810569469139  0.            ]], max|B| = 0.0e+00
+   theta =   90.00 deg: local polarization  -72.951 deg (-c theta =  -72.951), fixed frame  17.049 deg ((1-c) theta =  17.049); |TE1,0|^2 = 0.085958
+   theta =  114.59 deg: local polarization  -92.884 deg (-c theta =  -92.884), fixed frame  21.707 deg ((1-c) theta =  21.707); |TE1,0|^2 = 0.002532
+   theta =  111.03 deg: local polarization  -90.000 deg (-c theta =  -90.000), fixed frame  21.033 deg ((1-c) theta =  21.033); |TE1,0|^2 = 0.000000
+   transfer matrix vs exp(-i beta L) R(-c theta) for constant, triangular and irregular profiles: max error 1.5e-14
+   full TE1,0 -> TE0,1 conversion at c theta = pi/2: theta = pi^3/16 = 111.03 deg
+2. full basis (all propagating modes), square guide a = b = 30 mm, incident TE1,0, 90-degree twists
+   2a/lambda  L/lambda  profile     local angle (deg)  [-c theta = -72.951]  ellipticity  P(other modes)  refl.
+         2.5         5  constant              -71.138                1.1e-02        1.13e-02  7.5e-04
+         2.5         5  triangular            -68.927                1.5e-02        1.72e-02  2.0e-05
+         2.5        20  constant              -72.849                4.8e-04        4.67e-04  4.3e-05
+         2.5        20  triangular            -72.776                1.8e-05        1.90e-05  5.7e-08
+         2.5        80  constant              -72.945                9.9e-06        2.00e-05  2.9e-06
+         2.5        80  triangular            -72.940                5.8e-08        5.83e-08  8.1e-11
+         4.5         5  constant              -88.001                4.9e-01        3.64e-01  4.6e-04
+         4.5         5  triangular            -89.092                3.2e-01        2.72e-01  1.8e-05
+         4.5        20  constant              -71.115                2.2e-02        3.07e-02  2.1e-05
+         4.5        20  triangular            -67.285                5.3e-02        5.13e-02  2.4e-08
+         4.5        80  constant              -72.836                1.4e-04        2.02e-04  1.7e-06
+         4.5        80  triangular            -72.734                7.3e-06        1.12e-05  9.1e-12
+   uniform twist, eigenvalue splitting of the TE1,0/TE0,1 pair (basis: modes with chi < 3 k):
+   2a/lambda = 1.4: tau a = 0.01: c_eff = 0.810571, tau a = 0.1: c_eff = 0.810727, tau a = 0.3: c_eff = 0.812006   (c = 0.810569)
+   2a/lambda = 2.5: tau a = 0.01: c_eff = 0.810557, tau a = 0.1: c_eff = 0.809300, tau a = 0.3: c_eff = 0.798727   (c = 0.810569)
+   2a/lambda = 4.5: tau a = 0.01: c_eff = 0.810507, tau a = 0.1: c_eff = 0.804136, tau a = 0.3: c_eff = 0.180102   (c = 0.810569)
+3. zero-length 90-degree twist, square guide: exp((pi/2) K) (E) and exp(-(pi/2) K^T) (H) vs F
+   chi a <  10 (  18 modes): E: TE1,0 -> TE0,1 -1.00546, max|T-F| (m,n <= 2) 0.6824;  H: TE1,0 -> TE0,1 -1.00546, max|T-F| 0.6824   (F = -1)
+   chi a <  20 (  64 modes): E: TE1,0 -> TE0,1 -0.97134, max|T-F| (m,n <= 2) 0.2630;  H: TE1,0 -> TE0,1 -0.97134, max|T-F| 0.2630   (F = -1)
+   chi a <  40 ( 254 modes): E: TE1,0 -> TE0,1 -0.96620, max|T-F| (m,n <= 2) 0.2591;  H: TE1,0 -> TE0,1 -0.96620, max|T-F| 0.2591   (F = -1)
+   chi a <  80 (1014 modes): E: TE1,0 -> TE0,1 -1.02038, max|T-F| (m,n <= 2) 0.2118;  H: TE1,0 -> TE0,1 -1.02038, max|T-F| 0.2118   (F = -1)
+   chi a < 120 (2290 modes): E: TE1,0 -> TE0,1 -0.96670, max|T-F| (m,n <= 2) 0.3149;  H: TE1,0 -> TE0,1 -0.96670, max|T-F| 0.3149   (F = -1)
+4. end frames: +90 twist followed by -90 twist (GSM cascade, propagating modes)
+   square 30 mm   9.0 GHz ( 4 modes): zero length max|S - I_GSM| = 2.2e-16;  two 20-lambda constant twists: |S21[TE1,0,TE1,0]|^2 = 1.000000
+   square 30 mm  16.5 GHz (18 modes): zero length max|S - I_GSM| = 4.4e-15;  two 20-lambda constant twists: |S21[TE1,0,TE1,0]|^2 = 0.995732
+   tall WR187     9.0 GHz ( 5 modes): zero length max|S - I_GSM| = 1.0e-15;  two 20-lambda constant twists: |S21[TE1,0,TE1,0]|^2 = 0.979936
+   tall WR187    16.5 GHz (19 modes): zero length max|S - I_GSM| = 4.3e-15;  two 20-lambda constant twists: |S21[TE1,0,TE1,0]|^2 = 0.686325

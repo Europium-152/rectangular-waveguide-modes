@@ -1,0 +1,48 @@
+check of the closed forms of |F| against quadrature
+  max |F_closed - F_quad| / Th = 3.1e-13
+
+eq. 18 (Doane) for the 20-inch 90-degree WR187 twist, TE1,0 - TE0,1:
+   15.0 GHz: approx. Delta beta 0.395 %, exact Delta beta 0.302 %
+   16.5 GHz: approx. Delta beta 0.579 %, exact Delta beta 0.465 %
+   18.0 GHz: approx. Delta beta 0.820 %, exact Delta beta 0.684 %
+
+tall WR187 (a = 0.872 in, b = 1.872 in), incident TE1,0 (E along 1.872 in)
+  first order, power in % of the incident power: TE0,1 only / all forward / all backward
+  constant   15.0 GHz: 0.8743 / 0.9398 / 8.1e-03  16.5 GHz: 0.1284 / 0.9802 / 4.3e-03  18.0 GHz: 2.3608 / 2.7146 / 2.1e-03
+  cosine     15.0 GHz: 0.3861 / 0.4029 / 5.0e-06  16.5 GHz: 0.7888 / 0.7910 / 1.4e-07  18.0 GHz: 0.6792 / 0.6984 / 1.4e-07
+  triangular 15.0 GHz: 0.0054 / 0.0480 / 5.3e-07  16.5 GHz: 0.0001 / 0.0284 / 1.6e-06  18.0 GHz: 0.0452 / 0.0662 / 2.1e-07
+  triangular, 16.5 GHz, largest first-order products: TE0,3 2.68e-02 %, TE2,1 1.41e-03 %, TE0,1 1.03e-04 %, TE0,5 1.24e-05 %
+
+ordinary WR187 (a = 1.872 in, b = 0.872 in), incident TE1,0 (E along 0.872 in)
+  first order, power in % of the incident power: TE0,1 only / all forward / all backward
+  constant   15.0 GHz: 0.8743 / 0.9360 / 1.2e-03  16.5 GHz: 0.1284 / 0.3273 / 3.2e-03  18.0 GHz: 2.3608 / 2.4281 / 9.5e-04
+  cosine     15.0 GHz: 0.3861 / 0.3914 / 1.1e-06  16.5 GHz: 0.7888 / 0.7928 / 8.3e-08  18.0 GHz: 0.6792 / 0.6922 / 3.5e-07
+  triangular 15.0 GHz: 0.0054 / 0.0213 / 3.4e-06  16.5 GHz: 0.0001 / 0.0012 / 9.7e-07  18.0 GHz: 0.0452 / 0.0453 / 2.4e-08
+  triangular, 16.5 GHz, largest first-order products: TM2,1 8.95e-04 %, TE2,1 1.50e-04 %, TE0,1 1.03e-04 %, TE4,1 5.16e-06 %
+
+sweep 15-18 GHz, tall WR187, incident TE1,0: full coupled modes (all propagating modes, forward and
+backward, 150 midpoint slices), power in %: TE0,1 / all spurious [largest other mode]; first order in ( )
+  constant
+    15.00 GHz (18 modes): 1.0864 / 1.3798 [TE0,3 0.1166]   (0.8743 / 0.9398)   refl. 7e-05, unitarity 4e-14, reciprocity 3e-14
+    15.50 GHz (18 modes): 0.4377 / 0.5891 [TE1,2 0.0802]   (0.2746 / 0.3408)   refl. 4e-05, unitarity 4e-14, reciprocity 3e-14
+    16.00 GHz (19 modes): 0.0605 / 0.2746 [TE2,1 0.1376]   (0.0071 / 0.2665)   refl. 3e-06, unitarity 6e-14, reciprocity 6e-14
+    16.50 GHz (19 modes): 0.0320 / 0.6930 [TE2,1 0.6088]   (0.1284 / 0.9802)   refl. 4e-05, unitarity 6e-14, reciprocity 5e-14
+    17.00 GHz (21 modes): 0.3553 / 0.5531 [TE2,1 0.1170]   (0.6151 / 1.0872)   refl. 7e-06, unitarity 5e-14, reciprocity 4e-14
+    17.50 GHz (23 modes): 0.9775 / 1.7132 [TE2,1 0.5799]   (1.3924 / 2.2407)   refl. 2e-05, unitarity 1e-13, reciprocity 8e-14
+    18.00 GHz (23 modes): 1.8203 / 2.1373 [TE0,3 0.1826]   (2.3608 / 2.7146)   refl. 2e-05, unitarity 4e-14, reciprocity 4e-14
+  cosine
+    15.00 GHz (18 modes): 0.3447 / 0.3513 [TE0,3 0.0042]   (0.3861 / 0.4029)   refl. 4e-08, unitarity 7e-15, reciprocity 5e-15
+    15.50 GHz (18 modes): 0.5343 / 0.5487 [TE0,3 0.0098]   (0.5586 / 0.5743)   refl. 2e-08, unitarity 8e-15, reciprocity 5e-15
+    16.00 GHz (19 modes): 0.7106 / 0.7301 [TE0,3 0.0136]   (0.7003 / 0.7104)   refl. 2e-08, unitarity 8e-15, reciprocity 5e-15
+    16.50 GHz (19 modes): 0.8474 / 0.8663 [TE0,3 0.0133]   (0.7888 / 0.7910)   refl. 5e-10, unitarity 8e-15, reciprocity 6e-15
+    17.00 GHz (21 modes): 0.9281 / 0.9494 [TE0,3 0.0092]   (0.8132 / 0.8166)   refl. 9e-09, unitarity 8e-15, reciprocity 8e-15
+    17.50 GHz (23 modes): 0.9466 / 0.9676 [TE1,2 0.0118]   (0.7736 / 0.7789)   refl. 3e-09, unitarity 7e-15, reciprocity 6e-15
+    18.00 GHz (23 modes): 0.9046 / 0.9423 [TE1,2 0.0229]   (0.6792 / 0.6984)   refl. 7e-10, unitarity 9e-15, reciprocity 8e-15
+  triangular
+    15.00 GHz (18 modes): 0.0012 / 0.1139 [TE1,2 0.0796]   (0.0054 / 0.0480)   refl. 4e-09, unitarity 8e-15, reciprocity 6e-15
+    15.50 GHz (18 modes): 0.0014 / 0.1392 [TE1,2 0.1016]   (0.0005 / 0.0404)   refl. 7e-08, unitarity 7e-15, reciprocity 4e-15
+    16.00 GHz (19 modes): 0.0071 / 0.1930 [TE1,2 0.1316]   (0.0000 / 0.0419)   refl. 1e-08, unitarity 1e-14, reciprocity 8e-15
+    16.50 GHz (19 modes): 0.0107 / 0.2471 [TE1,2 0.1685]   (0.0001 / 0.0284)   refl. 8e-09, unitarity 7e-15, reciprocity 5e-15
+    17.00 GHz (21 modes): 0.0090 / 0.3377 [TE1,2 0.2297]   (0.0025 / 0.0205)   refl. 3e-08, unitarity 9e-15, reciprocity 8e-15
+    17.50 GHz (23 modes): 0.0036 / 0.4499 [TE1,2 0.2977]   (0.0140 / 0.0326)   refl. 1e-08, unitarity 8e-15, reciprocity 5e-15
+    18.00 GHz (23 modes): 0.0000 / 0.6022 [TE1,2 0.3833]   (0.0452 / 0.0662)   refl. 2e-09, unitarity 1e-14, reciprocity 1e-14
