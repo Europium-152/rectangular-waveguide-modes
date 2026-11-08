@@ -1,0 +1,198 @@
+{
+  "description": "Benchmark registry of wrmodes 1.0 (CONVENTIONS.md section 9). One entry per benchmark: what it checks, the reference and its type, the data file, the tolerance and the test or script that applies it. Created by WP7 (wave 1). status: 'reference ready' = reference data and comparison exist, waiting for the implementation; 'waiting for data' = needs L1 or COMSOL output; 'self-check' = validates a WP7 reference itself.",
+  "reference_types": [
+    "independent method",
+    "COMSOL",
+    "literature",
+    "closed form"
+  ],
+  "entries": [
+    {
+      "id": "wp7-line-v01",
+      "component": "WP7 global-ODE line reference",
+      "card": "WP7",
+      "reference_type": "independent method",
+      "reference": "wrmodes 0.1 transfer-matrix solver (atol 1e-10, error_control='full'), product of segment transfer matrices",
+      "data_file": "benchmarks/validation_v1/data/line_reference.npz",
+      "tolerance": "1e-9 of input power, every output mode (WP7 acceptance)",
+      "test": "tests/adversarial/test_wp7_references.py::test_stored_line_reference_agrees_with_v01, ::test_line_reference_matches_v01_at_20GHz",
+      "status": "self-check, passes (largest difference 3.2e-11)"
+    },
+    {
+      "id": "wp1-line-same-plane",
+      "component": "WP1 Line (Straight + SmoothBend, H plane)",
+      "card": "WP1 acceptance: WP7's global-ODE reference for three lines",
+      "reference_type": "independent method",
+      "reference": "WP7 global-ODE reference (benchmarks/validation_v1/ref_line.py), line 'same-plane', 20/40/60/90 GHz",
+      "data_file": "benchmarks/validation_v1/data/line_reference.npz",
+      "tolerance": "1e-6 of input power for every output mode (|S|^2 of S11, S21, S12, S22)",
+      "test": "tests/adversarial/test_wp1_adversarial.py::test_lines_match_global_ode_reference[same-plane]; benchmarks/validation_v1/compare_wp1_lines.py",
+      "status": "reference ready"
+    },
+    {
+      "id": "wp1-line-mixed-planes",
+      "component": "WP1 Line with FrameChange (H and E bends)",
+      "card": "WP1 acceptance: WP7's global-ODE reference for three lines",
+      "reference_type": "independent method",
+      "reference": "WP7 global-ODE reference with independently derived frame relabelling (ref_frames.py), line 'mixed-planes', 20/30/40 GHz",
+      "data_file": "benchmarks/validation_v1/data/line_reference.npz",
+      "tolerance": "1e-6 of input power for every output mode",
+      "test": "tests/adversarial/test_wp1_adversarial.py::test_lines_match_global_ode_reference[mixed-planes], ::test_mixed_plane_line_at_40GHz_all_families_coupled; compare_wp1_lines.py",
+      "status": "reference ready"
+    },
+    {
+      "id": "wp1-line-long-straights",
+      "component": "WP1 Line with 10 m straights (paper section 7 sequence)",
+      "card": "WP1 acceptance: WP7's global-ODE reference for three lines",
+      "reference_type": "independent method",
+      "reference": "WP7 global-ODE reference, line 'long-straights' (21.4 m), 20/50/90 GHz",
+      "data_file": "benchmarks/validation_v1/data/line_reference.npz",
+      "tolerance": "1e-6 of input power for every output mode",
+      "test": "tests/adversarial/test_wp1_adversarial.py::test_lines_match_global_ode_reference[long-straights], ::test_long_line_equals_reference_at_90GHz; compare_wp1_lines.py",
+      "status": "reference ready"
+    },
+    {
+      "id": "wp1-frame-change",
+      "component": "WP1 FrameChange",
+      "card": "WP1 acceptance: FrameChange is a signed permutation; H -> E -> H is the identity",
+      "reference_type": "closed form",
+      "reference": "relabelling derived from the potentials (ref_frames.py docstring), checked against quadrature and wrmodes.modes.eplane_frame_signs",
+      "data_file": null,
+      "tolerance": "exact",
+      "test": "tests/adversarial/test_wp1_adversarial.py::test_frame_change_is_the_derived_signed_permutation, ::test_square_guide_frame_tags_prevent_silent_joins, ::test_square_guide_mixed_line_matches_reference",
+      "status": "reference ready"
+    },
+    {
+      "id": "wp7-loss-textbook",
+      "component": "WP7 surface-integral loss reference",
+      "card": "WP7",
+      "reference_type": "closed form",
+      "reference": "classical TE_mn / TM_mn attenuation formulas (Collin; Pozar eq. 3.96 for TE10)",
+      "data_file": "benchmarks/validation_v1/data/loss_reference.npz",
+      "tolerance": "1e-9 relative (observed 2e-12)",
+      "test": "tests/adversarial/test_wp7_references.py::test_loss_reference_equals_textbook, ::test_wp2_card_numbers_for_te10_in_aluminium",
+      "status": "self-check, passes"
+    },
+    {
+      "id": "wp2-alpha-surface-integral",
+      "component": "WP2 per-mode attenuation",
+      "card": "WP2 acceptance: lossy straight vs WP7 surface-integral reference",
+      "reference_type": "independent method",
+      "reference": "P_loss/(2P) with P_loss = (1/2) R_s oint |H_tan|^2 dl from transverse_field (ref_loss.py); WR-90 and 20 mm square, aluminium and copper; degenerate groups by eigenvalues of the wall-loss matrix",
+      "data_file": "benchmarks/validation_v1/data/loss_reference.npz",
+      "tolerance": "1e-6 relative on alpha for every mode",
+      "test": "tests/adversarial/test_wp2_adversarial.py::test_alpha_of_all_129_modes_at_90GHz, ::test_alpha_just_above_cutoff; compare_wp2_loss.py",
+      "status": "passes against WP2 (2e-12, coordinator)"
+    },
+    {
+      "id": "wp2-lossy-straight-coupled",
+      "component": "WP2 lossy Straight (all propagating modes)",
+      "card": "WP2 acceptance: lossy straight vs WP7 reference",
+      "reference_type": "independent method",
+      "reference": "WP7 first-order coupled system (own derivation = T1 B3-B4: all pairs through the walls, forward and backward blocks), solved by eigenmodes (ref_loss.first_order_matrices, straight_gsm_blocks); physics checked against exact Leontovich modes with one pair of impedance walls (ref_loss.one_pair_comparison)",
+      "data_file": null,
+      "tolerance": "1e-8 absolute on S11 and S21 (implementation agreement); physical accuracy of the first-order model vs exact: 1e-3 (fc/f < 0.9), 2.5e-3 near cutoff",
+      "test": "tests/adversarial/test_wp2_adversarial.py::test_20m_lossy_straight_at_90GHz, ::test_square_guide_degenerate_groups_in_a_lossy_straight; compare_wp2_loss.py; self-checks in test_wp7_references.py",
+      "status": "reference ready; replaces the group-block comparison (docs/discrepancies/2026-11-08-wp2-wp7-straight-attenuation.md)"
+    },
+    {
+      "id": "wp3-ma1997-table1",
+      "component": "WP3 Miter (H plane, diagonal miter c/a = 1)",
+      "card": "WP3 acceptance: H-plane miter vs Ma et al. 1997",
+      "reference_type": "literature",
+      "reference": "Ma, Yamane & Yamashita, Electron. Commun. Jpn. 2, 80(5) (1997), Table 1, p. 5: 15.799 x 7.899 mm, 16 GHz, |S11| = 0.2622, |S21| = 0.9650",
+      "data_file": null,
+      "tolerance": "0.57 % on |S11|, 0.04 % on |S21| (the spread the authors report under staircase displacement)",
+      "test": "tests/adversarial/test_wp3_adversarial.py::test_h_miter_against_ma1997_table1; compare_literature.py",
+      "status": "reference ready"
+    },
+    {
+      "id": "wp3-ma1997-figures",
+      "component": "WP3 Miter (H plane)",
+      "card": "WP3 acceptance: H-plane miter vs Ma et al. 1997 (D3 of L1)",
+      "reference_type": "literature",
+      "reference": "Ma et al. (1997) Figs. 5, 6, 8, 9, 11 (figure reading in ref_literature.FIGURES)",
+      "data_file": "benchmarks/literature/ma1997_fig<k>.csv (L1, D3)",
+      "tolerance": "the uncertainty column of each point",
+      "test": "benchmarks/validation_v1/compare_literature.py (CSV reader tested on synthetic files: tests/adversarial/test_wp7_references.py::test_csv_reader_and_comparison)",
+      "status": "waiting for data (L1)"
+    },
+    {
+      "id": "wave2-alessandri1994",
+      "component": "E-plane mitered bends (WP3 smoke test in wave 1, full in wave 2)",
+      "card": "L1 D1; wave 2",
+      "reference_type": "literature",
+      "reference": "Alessandri, Mongiardo & Sorrentino, IEEE MGWL 4(12) (1994), Figs. 4-5; the paper does not state the guide (b/a needed)",
+      "data_file": "benchmarks/literature/alessandri1994_fig4.csv, _fig5.csv (L1, D1)",
+      "tolerance": "the uncertainty column of each point",
+      "test": "benchmarks/validation_v1/compare_literature.py --b-over-a <ratio>",
+      "status": "waiting for data (L1) and for the guide ratio"
+    },
+    {
+      "id": "wp3-comsol-c1",
+      "component": "WP3 Miter, WR-90 H-plane plain 90 deg miter, 18-90 GHz",
+      "card": "WP3 (verified by WP7 COMSOL at Gate A)",
+      "reference_type": "COMSOL",
+      "reference": "benchmarks/comsol/WP7_C1_h_miter.java, field projection by benchmarks/comsol/wp7_postprocess.py",
+      "data_file": "benchmarks/comsol/data/WP7_C1.npz",
+      "tolerance": "0.02 dB on TE10 transmission (CONVENTIONS.md 8); complex column and converted powers reported",
+      "test": "benchmarks/validation_v1/compare_comsol.py",
+      "status": "waiting for data (Daniel runs COMSOL)"
+    },
+    {
+      "id": "wp2-comsol-c2",
+      "component": "WP1 SmoothBend + WP2 wall loss: 60 cm 60 deg sech H bend, aluminium WR-90",
+      "card": "WP2 (Gate A COMSOL campaign)",
+      "reference_type": "COMSOL",
+      "reference": "benchmarks/comsol/WP7_C2_sech_bend_aluminium.java (impedance boundary), 10 frequencies 18-38 GHz",
+      "data_file": "benchmarks/comsol/data/WP7_C2.npz",
+      "tolerance": "0.02 dB on TE10 transmission",
+      "test": "benchmarks/validation_v1/compare_comsol.py",
+      "status": "waiting for data (Daniel runs COMSOL)"
+    },
+    {
+      "id": "wp4-comsol-c3",
+      "component": "WP4 Step, WR-90 <-> 22.86 x 1.6 mm (strangling step)",
+      "card": "WP4 (Gate A COMSOL campaign)",
+      "reference_type": "COMSOL",
+      "reference": "benchmarks/comsol/WP7_C3_strangling_step.java, both excitations, 5 frequencies",
+      "data_file": "benchmarks/comsol/data/WP7_C3.npz",
+      "tolerance": "0.02 dB on TE10 transmission",
+      "test": "benchmarks/validation_v1/compare_comsol.py",
+      "status": "waiting for data (Daniel runs COMSOL)"
+    },
+    {
+      "id": "wp4-marcuvitz-eplane-step",
+      "component": "WP4 Step, symmetric E-plane step (change in height)",
+      "card": "WP4 acceptance: single-mode E-plane and H-plane steps vs Marcuvitz (D6 of L1)",
+      "reference_type": "literature",
+      "reference": "Marcuvitz, Waveguide Handbook (1951), sec. 5.26a eqs. (1), (2a), pp. 307-308 (implemented in ref_literature.marcuvitz_eplane_step, checked against its asymptotic forms 2c, 2d)",
+      "data_file": null,
+      "tolerance": "|S11| inside the band given by +-1 % on B (Marcuvitz's stated accuracy for b/lambda_g < 1)",
+      "test": "tests/adversarial/test_wp4_adversarial.py::test_symmetric_eplane_step_against_marcuvitz; compare_literature.py",
+      "status": "reference ready"
+    },
+    {
+      "id": "wp4-marcuvitz-hplane-step",
+      "component": "WP4 Step, symmetric H-plane step (change in width)",
+      "card": "WP4 acceptance: single-mode H-plane steps vs Marcuvitz (D6 of L1)",
+      "reference_type": "literature",
+      "reference": "Marcuvitz (1951) sec. 5.24a (pp. 296-297), to be taken from L1's transcription docs/literature/marcuvitz-steps-and-bends.md",
+      "data_file": "docs/literature/marcuvitz-steps-and-bends.md (L1, D6)",
+      "tolerance": "Marcuvitz's stated accuracy",
+      "test": "not written: WP7 transcribed only sec. 5.26a; compare_literature.compare_marcuvitz takes any |S11| model",
+      "status": "not done (waiting for L1 D6)"
+    },
+    {
+      "id": "wp7-comsol-postprocess",
+      "component": "COMSOL post-processing (projection, frames, de-embedding, file format)",
+      "card": "WP7",
+      "reference_type": "closed form",
+      "reference": "synthetic fields from planted modal amplitudes, C1 and C3 geometries",
+      "data_file": null,
+      "tolerance": "1e-9",
+      "test": "tests/adversarial/test_wp7_comsol_postprocess.py",
+      "status": "self-check, passes"
+    }
+  ]
+}
