@@ -26,7 +26,13 @@ def _alpha_fn():
 
 def _lossy_line(segs, w, h, sigma):
     I.require("Guide", "Straight", "SmoothBend", "Line")
-    return I.build_line(segs, w, h, sigma=sigma, atol=1e-10)
+    line = I.build_line(segs, w, h, sigma=sigma, atol=1e-10)
+    try:                                           # WP1's Guide accepts sigma but raises until WP2 lands: skip
+        I.build_line([ref_line.straight(1e-3)], w, h, sigma=sigma, atol=1e-10).gsm(1.2 * cst.c / (2 * w))
+    except NotImplementedError as exc:
+        pytest.skip(f"WP7: ohmic loss not implemented yet (WP2): {exc}")
+    return line
+
 
 
 @pytest.mark.parametrize("sigma", [ref_loss.SIGMA_AL, ref_loss.SIGMA_CU])

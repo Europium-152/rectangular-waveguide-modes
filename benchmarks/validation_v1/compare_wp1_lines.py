@@ -74,7 +74,9 @@ def check_frame_change(f=40e9):
     Uses the component's default bases (Component.default_basis) and matches modes by label.
     """
     FrameChange = I.get("FrameChange")
-    fc = FrameChange("H", "E")
+    import wrmodes as _wr
+    guide = _wr.Guide(0.9 * 0.0254, 0.4 * 0.0254)     # WR-90; WP1's FrameChange takes its guide explicitly
+    fc = FrameChange("H", "E", guide=guide)
     g = fc.gsm(f)
     b1, b2 = g.basis1, g.basis2
     report = {"basis1": repr(b1), "basis2": repr(b2)}
@@ -90,7 +92,7 @@ def check_frame_change(f=40e9):
         report["note"] = (f"FrameChange port 2 basis has a = {b2.a}, b = {b2.b}; expected the E-plane local guide "
                           f"a = h, b = w (CONVENTIONS.md 2). Cannot compare labels: file a discrepancy report.")
     try:
-        back = FrameChange("E", "H").gsm(f)
+        back = FrameChange("E", "H", guide=guide).gsm(f)
         gg = g @ back
         report["HEH_identity"] = float(max(np.max(np.abs(gg.S21 - np.eye(len(gg.basis1)))),
                                            np.max(np.abs(gg.S11)), np.max(np.abs(gg.S22))))
