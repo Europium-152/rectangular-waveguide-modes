@@ -1,6 +1,7 @@
 """Adversarial tests of WP2 (ohmic loss), written from tasks/WP2-loss-and-filters.md and CONVENTIONS.md only.
 
-Reference: the WP7 surface-integral loss matrix (ref_loss). Weak points: many modes (129 at 90 GHz), modes just
+Reference: the WP7 surface-integral loss matrix (ref_loss) for alpha, and the WP7 first-order coupled system
+(ref_loss.first_order_matrices / straight_gsm_blocks) for lossy straights. Weak points: many modes (129 at 90 GHz), modes just
 above cutoff (alpha ~ 1/sqrt(1 - fc^2/f^2)), degenerate TE/TM pairs and TE_mn/TE_nm in square guides, very long
 lossy straights, passivity of lossy bends, and the lossless limit.
 """
@@ -57,37 +58,37 @@ def test_alpha_just_above_cutoff(rel):
     assert abs(float(np.real(fn(m, a, b, f, ref_loss.SIGMA_AL))) / ref - 1) <= TOL
 
 
-def _group_alpha_check(g, A, basis, f, L):
-    from compare_wp2_loss import degenerate_groups
+TOL_S = 1e-8     # implementation agreement with the WP7 first-order coupled reference (same theory, absolute on S)
+
+
+def _straight_vs_coupled_reference(g, a, b, f, L, sigma):
+    """max |S - S_ref| over S11 and S21 (propagating modes), S_ref from ref_loss.straight_gsm_blocks: the full
+    first-order coupled system (every propagating pair through the walls, forward and backward blocks), solved by its
+    eigenmodes. Resolution of docs/discrepancies/2026-11-08-wp2-wp7-straight-attenuation.md."""
+    basis = ModeBasis.propagating(f, a, b)
+    Zs = (1 + 1j) * ref_loss.surface_resistance(f, sigma)
+    Lp, Lm = ref_loss.first_order_matrices(basis, f, Zs)
+    R, T = ref_loss.straight_gsm_blocks(basis, f, Lp, Lm, L)
     idx = np.array([g.basis1.index(m) for m in basis.modes])
-    S21 = g.S21[np.ix_(idx, idx)]
-    worst = 0.0
-    for grp in degenerate_groups(basis, f):
-        lam = np.sort(np.linalg.eigvalsh(A[np.ix_(grp, grp)]))
-        sv = np.linalg.svd(S21[np.ix_(grp, grp)], compute_uv=False)
-        worst = max(worst, np.max(np.abs(np.sort(-np.log(sv) / L) / lam - 1)))
-    return worst
+    jdx = np.array([g.basis2.index(m) for m in basis.modes])
+    return max(np.max(np.abs(g.S21[np.ix_(jdx, idx)] - T)), np.max(np.abs(g.S11[np.ix_(idx, idx)] - R)))
 
 
 def test_square_guide_degenerate_groups_in_a_lossy_straight():
-    """20 mm square guide at 30 GHz: TE1,2/TE2,1/TM1,2/TM2,1 are four-fold degenerate. The eigen-attenuations of
-    each degenerate group must match the wall-integral matrix (whatever basis WP2 diagonalizes in)."""
+    """20 mm square guide at 30 GHz, 1 m: four-fold degenerate TE1,2/TE2,1/TM1,2/TM2,1 and TE0,4/TE4,0 at
+    fc/f = 0.9993, where the forward-backward wall coupling changes the decay by 2.6 %."""
     a = b = 0.02
     f, L = 30e9, 1.0
     g = _lossy_line([ref_line.straight(L)], a, b, ref_loss.SIGMA_AL).gsm(f, cutoff_factor=1.0)
-    basis = ModeBasis.propagating(f, a, b)
-    A, _ = ref_loss.loss_matrix(basis, f, ref_loss.SIGMA_AL)
-    assert _group_alpha_check(g, A, basis, f, L) <= TOL
+    assert _straight_vs_coupled_reference(g, a, b, f, L, ref_loss.SIGMA_AL) <= TOL_S
 
 
 def test_20m_lossy_straight_at_90GHz():
-    """20 m of aluminium WR-90 at 90 GHz: TE10 loses 4.6 dB; alpha from |S21| to 1e-6 for every group."""
+    """20 m of aluminium WR-90 at 90 GHz, 129 modes: TE10 loses 4.6 dB; modes near cutoff lose hundreds of dB."""
     f, L = 90e9, 20.0
     g = _lossy_line([ref_line.straight(L)], *WR90, ref_loss.SIGMA_AL).gsm(f, cutoff_factor=1.0)
-    basis = ModeBasis.propagating(f, *WR90)
-    A, _ = ref_loss.loss_matrix(basis, f, ref_loss.SIGMA_AL)
     assert np.all(np.isfinite(g.S))
-    assert _group_alpha_check(g, A, basis, f, L) <= TOL
+    assert _straight_vs_coupled_reference(g, *WR90, f, L, ref_loss.SIGMA_AL) <= TOL_S
 
 
 def test_lossy_bend_is_passive_and_reciprocal_and_lossless_limit_is_exact():
