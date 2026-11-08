@@ -1,0 +1,209 @@
+# Source: Z. Ma, T. Yamane, E. Yamashita, "Analysis and design of mitered H-plane bends in rectangular waveguides by combining the mode-matching and port reflection coefficient methods", Electronics and Communications in Japan, Part 2, 80(5), 1-7 (1997) (transl. from Denshi Joho Tsushin Gakkai Ronbunshi J80-C-I(2), 78-85, Feb. 1997)
+# Figure: Fig. 5, p. 4 (PDF p. 4): "Variation of the power transmission coefficient of a waveguide right angle corner bend with different numbers of modal terms in the electromagnetic field expressions."
+# Curves: "3/6/12 terms": the 12-term (solid), 6-term (long-short dash) and 3-term (dotted) lines coincide within the line width except near 16.5-18.6 GHz, where the 3-term dots lie slightly to the right (up to about 0.02 in |S21|^2); the traced line is the solid 12-term line there. BEM = circles: boundary-element results; the legend says "BEM [9]" but the reference list ends at [8]; the text p. 4 cites the BEM results as [6] (Koshiba and Suzuki 1986).
+# Axes: x = frequency in GHz (linear, frame 9.5..19); y = |S21|^2, power transmission coefficient of TE10 (linear, 0..0.9).
+# Guide: a = 15.799 mm, b = 7.899 mm (p. 4); single-mode TE10 band 9.49-19.0 GHz; fc = c/(2a) = 9.488 GHz; H-plane bend (side a in the bend plane).
+# Geometry: 90 deg right-angle (unmitered) H-plane corner bend, c/a = 0 (Fig. 1(a), inset).
+# Columns: curve, x, y, uncertainty, x_uncertainty, source. uncertainty = y uncertainty in the units of y; x_uncertainty = 0 for line curves (x is the grid value, x reading errors are converted into the y uncertainty by both digitizers); for markers x_uncertainty is the x uncertainty in the units of x. source = ab (both digitizations), a (L1a only) or b (L1b only).
+# Merge (card L1, 2026-11-08, script benchmarks/literature/scripts/merge_ab.py): both raw sets linearly interpolated (y and their reading uncertainties) on a common grid of step 0.05 in x within their own traced segments (no interpolation across gaps > 0.3, nor across any gap wider than 1.5 grid steps whose both ends lie within 4 dB of the bottom frame, i.e. where a curve leaves the axes at a reflection zero); y = mean of a and b; uncertainty = max(|y_a - y_b|/2, max(u_a, u_b)); where only one set covers a point its y is kept and its uncertainty doubled (source a or b). Markers (one row per printed symbol) are paired between the sets by mutual nearest neighbour; x, y = means; uncertainty = max(|dy|/2, max(u_a, u_b)), x_uncertainty = max(|dx|/2, max(xu_a, xu_b)); unpaired symbols keep one set with doubled uncertainties.
+# Agreement of the two digitizations (y units; grid points or paired markers covered by both): 3/6/12 terms: n_ab=140, a-only=0, b-only=40, rms(a-b)=0.00402, max|a-b|=0.0144, mean(a-b)=-0.000874, points with |a-b| > sqrt(u_a^2+u_b^2): 0; BEM: n_ab=13, a-only=0, b-only=0, rms(a-b)=0.00216, max|a-b|=0.00384, mean(a-b)=-0.000602, points with |a-b| > sqrt(u_a^2+u_b^2): 0.
+# Calibration L1a (raw/a): axis resolution: ticks 0.5 GHz every 35.0 px (0.5*0.5/35.0 = 0.0071 GHz) and 0.05 every 26.6 px (0.5*0.05/26.6 = 0.00094)
+# Calibration L1a (raw/a): calibration points (page pixels -> value): x ticks px 433.5->9.5, 468.8->10, 503.6->10.5, 539.3->11, 574.6->11.5, 610.2->12, 644.9->12.5, 681.1->13, 716.0->13.5, 748.7->14, 784.1->14.5, 819.0->15, 853.9->15.5, 889.0->16, 924.0->16.5, 959.0->17, 995.0->17.5, 1030.0->18, 1064.4->18.5, 1100.0->19; y ticks px 2601.5->0, 2576.0->0.05, 2548.0->0.1, 2521.6->0.15, 2493.5->0.2, 2468.0->0.25, 2439.5->0.3, 2414.0->0.35, 2386.0->0.4, 2361.0->0.45, 2335.0->0.5, 2307.0->0.55, 2282.2->0.6, 2254.5->0.65, 2229.0->0.7, 2201.1->0.75, 2175.5->0.8, 2148.5->0.85, 2123.5->0.9
+# Calibration L1a (raw/a): calibration fit: x = 0.01427679*px + 3.30034 (max residual 0.02427), y = -0.00187913*py + 4.88727 (max residual 0.003655)
+# L1b note (raw/b): in this file the y uncertainty cap is 0.1 (not 10 dB): near-vertical parts are read through x_uncertainty.
+# Calibration L1b (raw/b): x: ticks (px, two opposite axes) [468.5, 610.5, 749.0, 889.0, 1030.0] / [468.5, 610.0, 748.5, 889.0, 1030.5] -> [10, 12, 14, 16, 18]; y: ticks [2177.5, 2284.0, 2388.5, 2495.5] / [2176.0, 2282.5, 2387.0, 2494.5] -> [0.8, 0.6, 0.4, 0.2] (PDF page rendered at 300 dpi; map = least-squares line through the mean of the two axes; half their largest difference, x 0.25 px, y 0.75 px, is added to the uncertainties; fit residual x 0.0161, y 0.0017).
+# Digitizers: L1a and L1b, independently (raw files benchmarks/literature/raw/a/ma1997_fig5.csv and raw/b/ma1997_fig5.csv, methods and scripts described there); merged and checked against the page images by L1, 2026-11-08.
+curve,x,y,uncertainty,x_uncertainty,source
+3/6/12 terms,9.600,0.2448,0.0860,0.000,ab
+3/6/12 terms,9.650,0.3113,0.0608,0.000,ab
+3/6/12 terms,9.700,0.3700,0.0338,0.000,ab
+3/6/12 terms,9.750,0.4337,0.0401,0.000,ab
+3/6/12 terms,9.800,0.4784,0.0328,0.000,ab
+3/6/12 terms,9.850,0.5096,0.0235,0.000,ab
+3/6/12 terms,9.900,0.5441,0.0282,0.000,ab
+3/6/12 terms,9.950,0.5687,0.0188,0.000,ab
+3/6/12 terms,10.000,0.5908,0.0180,0.000,ab
+3/6/12 terms,10.050,0.6101,0.0155,0.000,ab
+3/6/12 terms,10.100,0.6303,0.0187,0.000,ab
+3/6/12 terms,10.150,0.6502,0.0156,0.000,ab
+3/6/12 terms,10.200,0.6676,0.0138,0.000,ab
+3/6/12 terms,10.250,0.6824,0.0131,0.000,ab
+3/6/12 terms,10.300,0.6956,0.0128,0.000,ab
+3/6/12 terms,10.350,0.7071,0.0163,0.000,ab
+3/6/12 terms,10.400,0.7161,0.0140,0.000,ab
+3/6/12 terms,10.450,0.7252,0.0118,0.000,ab
+3/6/12 terms,10.500,0.7342,0.0102,0.000,ab
+3/6/12 terms,10.550,0.7404,0.0096,0.000,ab
+3/6/12 terms,10.600,0.7475,0.0089,0.000,ab
+3/6/12 terms,10.650,0.7567,0.0093,0.000,ab
+3/6/12 terms,10.700,0.7657,0.0090,0.000,ab
+3/6/12 terms,10.750,0.7734,0.0084,0.000,ab
+3/6/12 terms,10.800,0.7776,0.0079,0.000,ab
+3/6/12 terms,10.850,0.7829,0.0079,0.000,ab
+3/6/12 terms,10.900,0.7880,0.0086,0.000,ab
+3/6/12 terms,10.950,0.7922,0.0079,0.000,ab
+3/6/12 terms,11.000,0.7983,0.0078,0.000,ab
+3/6/12 terms,11.050,0.8019,0.0077,0.000,ab
+3/6/12 terms,11.100,0.8054,0.0075,0.000,ab
+3/6/12 terms,11.150,0.8102,0.0075,0.000,ab
+3/6/12 terms,11.200,0.8128,0.0072,0.000,ab
+3/6/12 terms,11.250,0.8157,0.0140,0.000,b
+3/6/12 terms,11.300,0.8202,0.0142,0.000,b
+3/6/12 terms,11.350,0.8247,0.0143,0.000,b
+3/6/12 terms,11.400,0.8277,0.0140,0.000,b
+3/6/12 terms,11.450,0.8285,0.0145,0.000,b
+3/6/12 terms,11.500,0.8324,0.0141,0.000,b
+3/6/12 terms,11.550,0.8336,0.0069,0.000,ab
+3/6/12 terms,11.600,0.8352,0.0069,0.000,ab
+3/6/12 terms,11.650,0.8368,0.0070,0.000,ab
+3/6/12 terms,11.700,0.8388,0.0070,0.000,ab
+3/6/12 terms,11.750,0.8404,0.0070,0.000,ab
+3/6/12 terms,11.800,0.8411,0.0069,0.000,ab
+3/6/12 terms,11.850,0.8419,0.0070,0.000,ab
+3/6/12 terms,11.900,0.8437,0.0071,0.000,ab
+3/6/12 terms,11.950,0.8468,0.0071,0.000,ab
+3/6/12 terms,12.000,0.8487,0.0070,0.000,ab
+3/6/12 terms,12.050,0.8490,0.0069,0.000,ab
+3/6/12 terms,12.100,0.8501,0.0070,0.000,ab
+3/6/12 terms,12.150,0.8523,0.0070,0.000,ab
+3/6/12 terms,12.200,0.8542,0.0141,0.000,b
+3/6/12 terms,12.250,0.8544,0.0140,0.000,b
+3/6/12 terms,12.300,0.8547,0.0138,0.000,b
+3/6/12 terms,12.350,0.8552,0.0138,0.000,b
+3/6/12 terms,12.400,0.8554,0.0138,0.000,b
+3/6/12 terms,12.450,0.8577,0.0138,0.000,b
+3/6/12 terms,12.500,0.8570,0.0069,0.000,ab
+3/6/12 terms,12.550,0.8576,0.0069,0.000,ab
+3/6/12 terms,12.600,0.8597,0.0069,0.000,ab
+3/6/12 terms,12.650,0.8598,0.0069,0.000,ab
+3/6/12 terms,12.700,0.8601,0.0069,0.000,ab
+3/6/12 terms,12.750,0.8595,0.0069,0.000,ab
+3/6/12 terms,12.800,0.8599,0.0069,0.000,ab
+3/6/12 terms,12.850,0.8600,0.0069,0.000,ab
+3/6/12 terms,12.900,0.8600,0.0069,0.000,ab
+3/6/12 terms,12.950,0.8597,0.0069,0.000,ab
+3/6/12 terms,13.000,0.8600,0.0069,0.000,ab
+3/6/12 terms,13.050,0.8585,0.0070,0.000,ab
+3/6/12 terms,13.100,0.8569,0.0070,0.000,ab
+3/6/12 terms,13.150,0.8577,0.0140,0.000,b
+3/6/12 terms,13.200,0.8574,0.0139,0.000,b
+3/6/12 terms,13.250,0.8572,0.0138,0.000,b
+3/6/12 terms,13.300,0.8570,0.0138,0.000,b
+3/6/12 terms,13.350,0.8566,0.0139,0.000,b
+3/6/12 terms,13.400,0.8561,0.0141,0.000,b
+3/6/12 terms,13.450,0.8554,0.0142,0.000,b
+3/6/12 terms,13.500,0.8518,0.0071,0.000,ab
+3/6/12 terms,13.550,0.8495,0.0070,0.000,ab
+3/6/12 terms,13.600,0.8492,0.0069,0.000,ab
+3/6/12 terms,13.650,0.8478,0.0070,0.000,ab
+3/6/12 terms,13.700,0.8457,0.0070,0.000,ab
+3/6/12 terms,13.750,0.8456,0.0069,0.000,ab
+3/6/12 terms,13.800,0.8454,0.0069,0.000,ab
+3/6/12 terms,13.850,0.8439,0.0070,0.000,ab
+3/6/12 terms,13.900,0.8417,0.0071,0.000,ab
+3/6/12 terms,13.950,0.8389,0.0072,0.000,ab
+3/6/12 terms,14.000,0.8358,0.0072,0.000,ab
+3/6/12 terms,14.050,0.8339,0.0070,0.000,ab
+3/6/12 terms,14.100,0.8357,0.0138,0.000,b
+3/6/12 terms,14.150,0.8322,0.0140,0.000,b
+3/6/12 terms,14.200,0.8285,0.0142,0.000,b
+3/6/12 terms,14.250,0.8265,0.0140,0.000,b
+3/6/12 terms,14.300,0.8256,0.0149,0.000,b
+3/6/12 terms,14.350,0.8193,0.0148,0.000,b
+3/6/12 terms,14.400,0.8163,0.0070,0.000,ab
+3/6/12 terms,14.450,0.8138,0.0072,0.000,ab
+3/6/12 terms,14.500,0.8090,0.0075,0.000,ab
+3/6/12 terms,14.550,0.8061,0.0073,0.000,ab
+3/6/12 terms,14.600,0.8035,0.0072,0.000,ab
+3/6/12 terms,14.650,0.8005,0.0075,0.000,ab
+3/6/12 terms,14.700,0.7953,0.0079,0.000,ab
+3/6/12 terms,14.750,0.7898,0.0079,0.000,ab
+3/6/12 terms,14.800,0.7857,0.0077,0.000,ab
+3/6/12 terms,14.850,0.7807,0.0076,0.000,ab
+3/6/12 terms,14.900,0.7776,0.0078,0.000,ab
+3/6/12 terms,14.950,0.7711,0.0083,0.000,ab
+3/6/12 terms,15.000,0.7641,0.0081,0.000,ab
+3/6/12 terms,15.050,0.7583,0.0086,0.000,ab
+3/6/12 terms,15.100,0.7505,0.0085,0.000,ab
+3/6/12 terms,15.150,0.7440,0.0083,0.000,ab
+3/6/12 terms,15.200,0.7402,0.0087,0.000,ab
+3/6/12 terms,15.250,0.7305,0.0086,0.000,ab
+3/6/12 terms,15.300,0.7258,0.0086,0.000,ab
+3/6/12 terms,15.350,0.7198,0.0093,0.000,ab
+3/6/12 terms,15.400,0.7132,0.0100,0.000,ab
+3/6/12 terms,15.450,0.7020,0.0104,0.000,ab
+3/6/12 terms,15.500,0.6918,0.0103,0.000,ab
+3/6/12 terms,15.550,0.6820,0.0134,0.000,ab
+3/6/12 terms,15.600,0.6709,0.0132,0.000,ab
+3/6/12 terms,15.650,0.6599,0.0131,0.000,ab
+3/6/12 terms,15.700,0.6486,0.0126,0.000,ab
+3/6/12 terms,15.750,0.6391,0.0125,0.000,ab
+3/6/12 terms,15.800,0.6289,0.0135,0.000,ab
+3/6/12 terms,15.850,0.6126,0.0145,0.000,ab
+3/6/12 terms,15.900,0.5982,0.0141,0.000,ab
+3/6/12 terms,15.950,0.5847,0.0150,0.000,ab
+3/6/12 terms,16.000,0.5745,0.0170,0.000,ab
+3/6/12 terms,16.050,0.5582,0.0175,0.000,ab
+3/6/12 terms,16.100,0.5439,0.0142,0.000,ab
+3/6/12 terms,16.150,0.5299,0.0150,0.000,ab
+3/6/12 terms,16.200,0.5181,0.0159,0.000,ab
+3/6/12 terms,16.250,0.5023,0.0145,0.000,ab
+3/6/12 terms,16.300,0.4837,0.0196,0.000,ab
+3/6/12 terms,16.350,0.4575,0.0247,0.000,ab
+3/6/12 terms,16.400,0.4355,0.0213,0.000,ab
+3/6/12 terms,16.450,0.4194,0.0223,0.000,ab
+3/6/12 terms,16.500,0.4007,0.0160,0.000,ab
+3/6/12 terms,16.550,0.3835,0.0230,0.000,ab
+3/6/12 terms,16.600,0.3658,0.0220,0.000,ab
+3/6/12 terms,16.650,0.3527,0.0167,0.000,ab
+3/6/12 terms,16.700,0.3283,0.0196,0.000,ab
+3/6/12 terms,16.750,0.3080,0.0243,0.000,ab
+3/6/12 terms,16.800,0.2854,0.0255,0.000,ab
+3/6/12 terms,16.850,0.2605,0.0231,0.000,ab
+3/6/12 terms,16.900,0.2371,0.0173,0.000,ab
+3/6/12 terms,16.950,0.2134,0.0293,0.000,ab
+3/6/12 terms,17.000,0.1921,0.0293,0.000,ab
+3/6/12 terms,17.050,0.1782,0.0610,0.000,ab
+3/6/12 terms,17.100,0.1579,0.0625,0.000,ab
+3/6/12 terms,17.150,0.1428,0.0258,0.000,ab
+3/6/12 terms,17.200,0.1205,0.0178,0.000,ab
+3/6/12 terms,17.250,0.1043,0.0166,0.000,ab
+3/6/12 terms,17.300,0.0877,0.0174,0.000,ab
+3/6/12 terms,17.350,0.0700,0.0219,0.000,ab
+3/6/12 terms,17.400,0.0507,0.0141,0.000,ab
+3/6/12 terms,17.450,0.0421,0.0099,0.000,ab
+3/6/12 terms,17.500,0.0336,0.0200,0.000,b
+3/6/12 terms,17.550,0.0221,0.0223,0.000,b
+3/6/12 terms,17.600,0.0173,0.0203,0.000,b
+3/6/12 terms,17.650,0.0058,0.0159,0.000,b
+3/6/12 terms,17.700,0.0052,0.0141,0.000,b
+3/6/12 terms,17.750,0.0048,0.0138,0.000,b
+3/6/12 terms,17.800,0.0041,0.0141,0.000,b
+3/6/12 terms,17.850,0.0034,0.0145,0.000,b
+3/6/12 terms,17.900,0.0047,0.0162,0.000,b
+3/6/12 terms,17.950,0.0110,0.0192,0.000,b
+3/6/12 terms,18.000,0.0257,0.0169,0.000,b
+3/6/12 terms,18.050,0.0271,0.0141,0.000,b
+3/6/12 terms,18.100,0.0278,0.0149,0.000,b
+3/6/12 terms,18.150,0.0353,0.0099,0.000,ab
+3/6/12 terms,18.200,0.0483,0.0185,0.000,ab
+3/6/12 terms,18.250,0.0634,0.0205,0.000,ab
+3/6/12 terms,18.300,0.0865,0.0207,0.000,ab
+3/6/12 terms,18.350,0.1015,0.0204,0.000,ab
+3/6/12 terms,18.400,0.1176,0.0255,0.000,ab
+3/6/12 terms,18.450,0.1398,0.0319,0.000,ab
+3/6/12 terms,18.500,0.1621,0.0343,0.000,b
+3/6/12 terms,18.550,0.1852,0.0312,0.000,b
+BEM,10.418,0.7273,0.0059,0.041,ab
+BEM,11.398,0.8224,0.0059,0.041,ab
+BEM,12.333,0.8500,0.0059,0.041,ab
+BEM,13.274,0.8552,0.0059,0.041,ab
+BEM,14.245,0.8270,0.0059,0.041,ab
+BEM,15.165,0.7417,0.0059,0.041,ab
+BEM,15.666,0.6608,0.0059,0.041,ab
+BEM,16.130,0.5476,0.0059,0.041,ab
+BEM,16.601,0.3791,0.0059,0.041,ab
+BEM,17.062,0.1679,0.0059,0.041,ab
+BEM,17.569,0.0217,0.0059,0.041,ab
+BEM,18.063,0.0106,0.0059,0.041,ab
+BEM,18.497,0.1472,0.0059,0.041,ab

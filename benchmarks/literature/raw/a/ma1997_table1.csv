@@ -1,0 +1,19 @@
+# source: Z. Ma, T. Yamane, E. Yamashita, "Analysis and design of mitered H-plane bends in rectangular waveguides by combining the mode-matching and port reflection coefficient methods", Electronics and Communications in Japan, Part 2, 80(5), 1-7 (1997)
+# table: Table 1, p. 5 (PDF p. 5): "Difference between the scattering parameters of a mitered bend calculated with and without the displacement of steps shown in Fig. 10"
+# transcription (not digitized): numbers copied from the printed table; uncertainty = half a unit of the last printed digit of |S11| and |S21| (0.00005)
+# guide dimensions (p. 4): a = 15.799 mm, b = 7.899 mm; frequency 16 GHz (f/fc = 1.686 with fc = c/(2a) = 9.488 GHz)
+# geometry: 90 deg mitered H-plane bend, staircase approximation with 50 or 60 steps; the table does not state c/a, the surrounding figures (6, 8, 9) and the text of section 3 use c/a = 1.0
+# displacement: Ref. = no displacement; (a)-(d) = four arbitrary steps moved by half a step, the four choices of Fig. 10 (text p. 5)
+# columns: steps, displacement, s11_mag = |S11| (linear), s11_diff_pct and s21_diff_pct = printed difference to Ref. in percent (empty for Ref.), s21_mag = |S21| (linear), uncertainty (applies to s11_mag and s21_mag)
+# transcriber: L1a, 2026-11-08
+steps,displacement,s11_mag,s11_diff_pct,s21_mag,s21_diff_pct,uncertainty
+50,Ref.,0.2641,,0.9645,,0.00005
+50,(a),0.2624,0.64,0.9649,0.04,0.00005
+50,(b),0.2651,0.38,0.9642,0.03,0.00005
+50,(c),0.2678,1.40,0.9635,0.10,0.00005
+50,(d),0.2597,1.67,0.9657,0.12,0.00005
+60,Ref.,0.2622,,0.9650,,0.00005
+60,(a),0.2625,0.11,0.9649,0.01,0.00005
+60,(b),0.2610,0.46,0.9654,0.04,0.00005
+60,(c),0.2627,0.19,0.9649,0.01,0.00005
+60,(d),0.2607,0.57,0.9654,0.04,0.00005
