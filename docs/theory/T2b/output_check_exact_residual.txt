@@ -1,0 +1,73 @@
+f = 30.0 GHz; residuals relative to max_p |dV_p/ds| (resp. |dI_p/ds|), worst of the first 4 modes
+
+H-plane symmetric wedge, n=0
+  s=0.020 M=  4 N=  4  |rV|=2.94e-03  |rI|=4.99e-04
+  s=0.020 M=  8 N=  8  |rV|=1.76e-04  |rI|=2.26e-04
+  s=0.020 M= 16 N= 16  |rV|=1.88e-05  |rI|=1.46e-04
+  s=0.020 M= 32 N= 32  |rV|=2.27e-06  |rI|=7.63e-05
+    with the moving-domain matrix -T^T in the voltage equation (M=16): |rV| = 1.9e-05
+    tilted-wall condition |h E_z + w_n E_n| / max|E| on the side walls: 0.0e+00
+    geometry: a=28.939 b=10.200 mm u0=0.000 v0=0.000 mm a'=0.2412 b'=-0.0000 u0'=0.0000 v0'=0.0000; modes and beta/k:
+    TE1,0:+0.98+0.00j, TE2,0:+0.94+0.00j, TE3,0:+0.86+0.00j, TE4,0:+0.72+0.00j, TE5,0:+0.50+0.00j, TE6,0:+0.00-0.27j
+  s=0.050 M=  4 N=  4  |rV|=7.22e-04  |rI|=1.34e-03
+  s=0.050 M=  8 N=  8  |rV|=2.76e-05  |rI|=1.03e-04
+  s=0.050 M= 16 N= 16  |rV|=3.32e-06  |rI|=8.60e-05
+  s=0.050 M= 32 N= 32  |rV|=4.10e-07  |rI|=4.62e-05
+    with the moving-domain matrix -T^T in the voltage equation (M=16): |rV| = 3.3e-06
+    tilted-wall condition |h E_z + w_n E_n| / max|E| on the side walls: 0.0e+00
+    geometry: a=36.174 b=10.200 mm u0=0.000 v0=0.000 mm a'=0.2412 b'=-0.0000 u0'=0.0000 v0'=0.0000; modes and beta/k:
+    TE1,0:+0.99+0.00j, TE2,0:+0.96+0.00j, TE3,0:+0.91+0.00j, TE4,0:+0.83+0.00j, TE5,0:+0.72+0.00j, TE6,0:+0.56+0.00j
+
+H-plane asymmetric wedge, n=1
+  s=0.020 M=  4 N=  9  |rV|=1.87e-04  |rI|=5.62e-03
+  s=0.020 M=  8 N= 17  |rV|=1.93e-05  |rI|=2.56e-03
+  s=0.020 M= 16 N= 33  |rV|=2.45e-06  |rI|=1.27e-03
+  s=0.020 M= 32 N= 65  |rV|=3.17e-07  |rI|=6.34e-04
+    with the moving-domain matrix -T^T in the voltage equation (M=16): |rV| = 4.3e-02
+    tilted-wall condition |h E_z + w_n E_n| / max|E| on the side walls: 1.3e-14
+    geometry: a=31.038 b=10.200 mm u0=4.513 v0=0.000 mm a'=0.2217 b'=-0.0000 u0'=0.0608 v0'=0.0000; modes and beta/k:
+    TE0,1:+0.87+0.00j, TE1,1:+0.86+0.00j, TM1,1:+0.86+0.00j, TE2,1:+0.81+0.00j, TM2,1:+0.81+0.00j, TE3,1:+0.73+0.00j
+  s=0.050 M=  4 N=  9  |rV|=1.56e-04  |rI|=5.70e-03
+  s=0.050 M=  8 N= 17  |rV|=1.36e-05  |rI|=2.55e-03
+  s=0.050 M= 16 N= 33  |rV|=1.65e-06  |rI|=1.25e-03
+  s=0.050 M= 32 N= 65  |rV|=2.12e-07  |rI|=6.28e-04
+    with the moving-domain matrix -T^T in the voltage equation (M=16): |rV| = 4.0e-02
+    tilted-wall condition |h E_z + w_n E_n| / max|E| on the side walls: 7.8e-15
+    geometry: a=37.689 b=10.200 mm u0=6.337 v0=0.000 mm a'=0.2217 b'=-0.0000 u0'=0.0608 v0'=0.0000; modes and beta/k:
+    TE0,1:+0.87+0.00j, TE1,1:+0.86+0.00j, TM1,1:+0.86+0.00j, TE2,1:+0.83+0.00j, TM2,1:+0.83+0.00j, TE3,1:+0.78+0.00j
+
+E-plane asymmetric wedge, m=1
+  s=0.020 M=  4 N=  9  |rV|=1.18e-05  |rI|=2.48e-04
+  s=0.020 M=  8 N= 17  |rV|=1.94e-06  |rI|=1.51e-04
+  s=0.020 M= 16 N= 33  |rV|=2.80e-07  |rI|=8.15e-05
+  s=0.020 M= 32 N= 65  |rV|=3.77e-08  |rI|=4.21e-05
+    with the moving-domain matrix -T^T in the voltage equation (M=16): |rV| = 9.6e-03
+    tilted-wall condition |h E_z + w_n E_n| / max|E| on the side walls: 2.5e-15
+    geometry: a=22.860 b=14.036 mm u0=0.000 v0=6.016 mm a'=-0.0000 b'=0.1404 u0'=0.0000 v0'=0.0302; modes and beta/k:
+    TE1,0:+0.98+0.00j, TE1,1:+0.91+0.00j, TM1,1:+0.91+0.00j, TE1,2:+0.67+0.00j, TM1,2:+0.67+0.00j, TE1,3:+0.00-0.43j
+  s=0.050 M=  4 N=  9  |rV|=1.85e-05  |rI|=6.53e-04
+  s=0.050 M=  8 N= 17  |rV|=2.72e-06  |rI|=3.46e-04
+  s=0.050 M= 16 N= 33  |rV|=3.83e-07  |rI|=1.80e-04
+  s=0.050 M= 32 N= 65  |rV|=5.13e-08  |rI|=9.19e-05
+    with the moving-domain matrix -T^T in the voltage equation (M=16): |rV| = 1.6e-02
+    tilted-wall condition |h E_z + w_n E_n| / max|E| on the side walls: 1.3e-14
+    geometry: a=22.860 b=18.246 mm u0=0.000 v0=6.920 mm a'=-0.0000 b'=0.1404 u0'=0.0000 v0'=0.0302; modes and beta/k:
+    TE1,0:+0.98+0.00j, TE1,1:+0.94+0.00j, TM1,1:+0.94+0.00j, TE1,2:+0.81+0.00j, TM1,2:+0.81+0.00j, TE1,3:+0.53+0.00j
+
+curved frame on asymmetric wedge, n=1
+  s=0.020 M=  4 N=  9  |rV|=1.06e-03  |rI|=1.26e-02
+  s=0.020 M=  8 N= 17  |rV|=1.00e-04  |rI|=5.69e-03
+  s=0.020 M= 16 N= 33  |rV|=1.21e-05  |rI|=2.83e-03
+  s=0.020 M= 32 N= 65  |rV|=1.53e-06  |rI|=1.42e-03
+    with the moving-domain matrix -T^T in the voltage equation (M=16): |rV| = 7.9e-02
+    tilted-wall condition |h E_z + w_n E_n| / max|E| on the side walls: 3.8e-14
+    geometry: a=31.383 b=10.200 mm u0=5.495 v0=0.000 mm a'=0.2482 b'=-0.0000 u0'=0.1529 v0'=0.0000; modes and beta/k:
+    TE0,1:+0.87+0.00j, TE1,1:+0.86+0.00j, TM1,1:+0.86+0.00j, TE2,1:+0.81+0.00j, TM2,1:+0.81+0.00j, TE3,1:+0.73+0.00j
+  s=0.050 M=  4 N=  9  |rV|=2.29e-03  |rI|=3.49e-02
+  s=0.050 M=  8 N= 17  |rV|=1.42e-04  |rI|=1.31e-02
+  s=0.050 M= 16 N= 33  |rV|=1.51e-05  |rI|=6.46e-03
+  s=0.050 M= 32 N= 65  |rV|=1.82e-06  |rI|=3.25e-03
+    with the moving-domain matrix -T^T in the voltage equation (M=16): |rV| = 8.8e-02
+    tilted-wall condition |h E_z + w_n E_n| / max|E| on the side walls: 4.7e-14
+    geometry: a=39.411 b=10.200 mm u0=12.122 v0=0.000 mm a'=0.2907 b'=-0.0000 u0'=0.2919 v0'=0.0000; modes and beta/k:
+    TE0,1:+0.87+0.00j, TE1,1:+0.86+0.00j, TM1,1:+0.86+0.00j, TE2,1:+0.83+0.00j, TM2,1:+0.83+0.00j, TE3,1:+0.78+0.00j
