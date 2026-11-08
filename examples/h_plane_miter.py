@@ -25,7 +25,7 @@ def point(args):
     f, options = args
     from wrmodes.fem2d import Miter
     from wrmodes.modes import ModeBasis
-    miter = Miter(np.pi / 2, guide=(W, H), **options)
+    miter = Miter(90, guide=(W, H), **options)
     basis = ModeBasis.propagating(f, W, H, families=[0], frame="H")
     t0 = time.perf_counter()
     g = miter.gsm(f, basis, basis)
@@ -39,9 +39,9 @@ def main():
     p.add_argument("--fmin", type=float, default=18.0)
     p.add_argument("--fmax", type=float, default=90.0)
     p.add_argument("--step", type=float, default=2.0, help="frequency step (GHz)")
-    p.add_argument("--order", type=int, default=2)
-    p.add_argument("--density", type=float, default=10.0, help="elements per transverse wavelength")
-    p.add_argument("--port-distance", type=float, default=None, help="arm length (m); default one guide width")
+    p.add_argument("--order", type=int, default=3)
+    p.add_argument("--density", type=float, default=6.0, help="elements per transverse wavelength")
+    p.add_argument("--port-distance", type=float, default=None, help="arm length (m); default a/4")
     p.add_argument("--near-cutoffs", action="store_true",
                    help="add points just below and above every TE_m0 cut-off in the range, where the loss peaks")
     p.add_argument("--processes", type=int, default=1)
@@ -53,7 +53,7 @@ def main():
     freqs = np.arange(a.fmin, a.fmax + 1e-9, a.step) * 1e9
     fc = 299792458.0 / (2 * W)
     if a.near_cutoffs:
-        extra = [m * fc * (1 + d) for m in range(1, 40) for d in (-0.01, -0.002, 0.0005, 0.002, 0.005, 0.01, 0.02, 0.04)]
+        extra = [m * fc * (1 + d) for m in range(1, 40) for d in (-0.01, -0.002, -1e-4, 1e-6, 1e-4, 5e-4, 0.002, 0.005, 0.01, 0.02, 0.04)]
         freqs = np.unique(np.concatenate([freqs, [f for f in extra if a.fmin * 1e9 <= f <= a.fmax * 1e9]]))
     jobs = [(f, options) for f in freqs]
     if a.processes > 1:

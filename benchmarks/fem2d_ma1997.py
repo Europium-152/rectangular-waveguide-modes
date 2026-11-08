@@ -17,7 +17,7 @@ Results computed:
   * Fig. 11: c/a = 0, 0.6, 0.631, 0.7, 1.0, 1.3, |S11| (dB) vs f/f_c = 1.02-1.98.
 
 Ma's reference planes are not needed: only magnitudes are compared. Usage:
-    python benchmarks/fem2d_ma1997.py [--out benchmarks/fem2d_ma1997.npz] [--density 10] [--order 2]
+    python benchmarks/fem2d_ma1997.py [--out benchmarks/fem2d/ma1997_wp3.npz] [--density 6] [--order 3]
 """
 import argparse
 import datetime
@@ -37,7 +37,7 @@ def d_from_c(c_over_a):
 
 def run(c_over_a, freqs, options):
     from wrmodes.fem2d import Miter
-    m = Miter(np.pi / 2, chamfer=d_from_c(c_over_a), guide=(A, B), **options)
+    m = Miter(90, chamfer=d_from_c(c_over_a), guide=(A, B), **options)
     s11, s21 = [], []
     for f in freqs:
         g = m.gsm(f)
@@ -49,8 +49,8 @@ def run(c_over_a, freqs, options):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--out", default=None)
-    p.add_argument("--density", type=float, default=10.0)
-    p.add_argument("--order", type=int, default=2)
+    p.add_argument("--density", type=float, default=6.0)
+    p.add_argument("--order", type=int, default=3)
     a = p.parse_args()
     options = dict(mesh_density=a.density, order=a.order)
     freqs = np.arange(9.6e9, 18.91e9, 0.1e9)

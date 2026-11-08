@@ -323,7 +323,8 @@ def build_mesh(outline, h, port_distance, refine_factor=0.2, refine_radius=None,
     h : float
         Element size away from re-entrant corners (m).
     port_distance : float
-        Length of the arms (m): distance from each port plane to the modal port.
+        Length of the arms (m): distance from each port plane to the modal port; 0 puts the modal ports on the
+        port planes of the core (no arms).
     refine_factor, refine_radius : float
         Element size at re-entrant corners (as a fraction of h) and the distance (m) over which it grows back to h
         (default: 2 h).
@@ -337,14 +338,18 @@ def build_mesh(outline, h, port_distance, refine_factor=0.2, refine_radius=None,
     arm1 = _arm(outline.ports[0], n1, port_distance)
     arm2 = _arm(outline.ports[1], n2, port_distance)
     scale = max(np.ptp(np.array(outline.vertices), axis=0)) + port_distance
-    corners = outline.reentrant_corners(port_distance)
+    # the field singularities are those of the physical guide, whose arms continue beyond the port planes
+    corners = outline.reentrant_corners(max(port_distance, min(p.a for p in outline.ports)))
+    arms = port_distance > 0
     if mirror is None:
-        regions = [(0, arm1, None), (1, list(map(np.array, outline.vertices)), outline.arcs), (2, arm2, None)]
+        regions = [(1, list(map(np.array, outline.vertices)), outline.arcs)]
+        if arms:
+            regions = [(0, arm1, None)] + regions + [(2, arm2, None)]
         p, t, region = _gmsh_mesh(regions, h, corners, refine_factor, refine_radius, scale)
     else:
         origin, direction = mirror
         half = _half_outline(outline, origin, direction)
-        regions = [(0, arm1, None), (1, half, None)]
+        regions = ([(0, arm1, None)] if arms else []) + [(1, half, None)]
         p, t, region = _gmsh_mesh(regions, h, corners, refine_factor, refine_radius, scale)
         p, t, region = _mirror_mesh(p, t, region, origin, direction, scale)
     arcs = [(c[0], c[1], float(np.hypot(*(np.array(outline.vertices[k]) - c)))) for k, c in outline.arcs.items()]

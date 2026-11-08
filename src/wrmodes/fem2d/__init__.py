@@ -9,7 +9,8 @@ Requires the optional extra ``wrmodes[fem]`` (scikit-fem and gmsh)::
     pip install "wrmodes[fem]"
 
 Public names: `Miter`, `Coplanar2D`, `FEMOptions`, `convergence_study`, and the outline helpers
-`Outline`, `PortPlane`, `miter_outline`, `arc_bend_outline`, `straight_outline`.
+`Outline`, `PortPlane`, `miter_outline`, `arc_bend_outline`, `straight_outline`, `mirror_outline`, and
+`mode_parity`.
 """
 try:
     import skfem  # noqa: F401
@@ -22,8 +23,9 @@ except (ImportError, OSError) as exc:          # gmsh raises OSError when its sh
     ) from exc
 
 from .geometry import Outline, PortPlane
-from .components import Coplanar2D, Miter, FEMOptions, miter_outline, arc_bend_outline, straight_outline
+from .components import (Coplanar2D, Miter, FEMOptions, miter_outline, arc_bend_outline, straight_outline,
+                         mirror_outline, mode_parity)
 from .convergence import convergence_study
 
 __all__ = ["Coplanar2D", "Miter", "FEMOptions", "convergence_study", "Outline", "PortPlane", "miter_outline",
-           "arc_bend_outline", "straight_outline"]
+           "arc_bend_outline", "straight_outline", "mirror_outline", "mode_parity"]
