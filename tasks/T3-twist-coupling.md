@@ -37,9 +37,10 @@ WP6 (wave 2) implements it.
    $(1 - 8/\pi^2)\theta$ in the fixed frame: the field does **not** follow the guide, unlike the circular-guide case
    where $c = 1$ and it stays fixed. Derive this two-mode result exactly, then quantify how the other modes of the
    full basis change it. Both are analytic or quasi-analytic tests for WP6.
-4. **End frames.** A twist by $\theta_{tot}$ ends in a frame rotated by $\theta_{tot}$. For 90° it equals the
-   E/H-plane frame change of `CONVENTIONS.md` §2. Specify the `FrameChange` that follows it, and check that a
-   +90° twist, a frame change and a −90° twist compose to identity at zero length.
+4. **End frames.** Per `CONVENTIONS.md` §2 (updated), the global guide frame rotates with the cross-section, so a
+   twist's GSM has the global frame at both ports and no `FrameChange` follows it. The twist angle only changes the
+   orientation of later components in space. Check that a +90° twist followed by a −90° twist is the identity at
+   zero length.
 5. **Rate profiles.** Constant, cosine and triangular (Doane eq. 17). Give the first-order conversion integral
    for each, to compare with Fig. 9. Eq. 18 behaves as an envelope: the coordinator's reviewer found 0.30 / 0.47 /
    0.68 % at 15 / 16.5 / 18 GHz from eq. 18 for the 20-inch WR187 twist, against 0.0054 / 0.0001 / 0.045 % from
