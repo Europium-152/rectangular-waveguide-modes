@@ -38,16 +38,21 @@ question. All other miters follow in wave 2.
    * This is the step most likely to go wrong. The acceptance tests below check it twice: against a straight
      section, and in phase against wrmodes on smooth bends.
 4. **Geometry.**
-   * `Miter(angle, chamfer=None, plane='H')`, any bend angle, with the mirror perpendicular to the bisector.
-     `chamfer` is Alessandri's $d$ (distance from the inner corner to the mirror), normalized to the in-plane
-     side; `None` means the plain miter whose mirror joins the two outer corners.
+   * `Miter(angle_deg, chamfer=None, plane='H', guide=None)`, any bend angle in degrees (negative: turning towards
+     +u), with the mirror perpendicular to the bisector. `chamfer` is Alessandri's $d$ (distance from the inner
+     corner to the mirror), normalized to the in-plane side; `None` means the optical mirror through the
+     intersection of the arm axes, $d = 1/(2\cos(\theta/2))$, which at 90° is the plain miter whose mirror joins
+     the two outer corners ($d = \cos(\theta/2)$ remains available explicitly). *(Changed at review of PR #11:
+     the outer-corner mirror is a poor bend for θ ≠ 90°.)*
    * `Coplanar2D(outline, ports)` for a general polygon or arc outline: used for smooth bends (validity map) and,
      in wave 2, double miters and chamfers.
-   * Port planes sit at a stated distance from the discontinuity (default one guide width). The component's GSM
-     is de-embedded to the reference planes it documents.
+   * Port planes sit at a stated distance from the discontinuity (default a/4, shortened automatically when the
+     bases contain evanescent modes; *changed at review from one guide width*). The component's GSM is
+     de-embedded to the reference planes it documents.
 5. **Discretization.**
-   * scikit-fem, P2 elements; mesh with gmsh, both through the optional extra `wrmodes[fem]`.
-   * Default mesh size $h \le \lambda_t/10$, refined at re-entrant corners.
+   * scikit-fem, P3 elements by default (P2 available); mesh with gmsh, both through the optional extra
+     `wrmodes[fem]`. *(Changed at review from P2: P2 at λ/10 is accurate in |S| but not in phase.)*
+   * Default mesh size $h \le \lambda_t/6$ (P3), refined at re-entrant corners.
    * Provide `convergence_study()`, which reports the change of every |S| entry under mesh refinement and $M$.
 6. **Performance.** WR-90 H-plane miter at 90 GHz: under 2 s per frequency on a laptop for the default settings.
    Frequencies are independent (WP1 `sweep`).
