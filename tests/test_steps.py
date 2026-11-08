@@ -403,8 +403,13 @@ def test_marcuvitz_transcription_internal_consistency():
     assert abs(0.05 * (Apq - C ** 2 / Aq) / np.pi / (0.0084 * 0.05 * (1 - 1.5 * 0.05 ** 2)) - 1) < 0.03
 
 
-EPLANE_CASES = [(r, al, asym) for r in (0.2, 0.5, 0.8) for al in (0.1, 0.3, 0.5, 0.7, 0.9) for asym in (False, True)
-                if (2 * r if asym else r) < 1]
+# b / lambda_g = 0.5 exactly puts TE1,1 of the wide guide at cutoff (beta_10 = pi / b gives k = chi_11), a real
+# degeneracy whose numerical treatment depends on rounding; 0.45 tests the same regime away from it
+# The asymmetric cases are tested at b / lambda_g = 0.2 only, as before (the effective ratio is 2 b / lambda_g). Nearly
+# flush asymmetric steps (b'/b = 0.9) at an effective ratio of 0.8-0.96 differ from (2a) by 1.0-1.25 %, the same edge
+# effect as the symmetric 0.8/0.9 case below (docs/reports/WP4.md).
+EPLANE_CASES = [(r, al, asym) for r in (0.2, 0.45, 0.8) for al in (0.1, 0.3, 0.5, 0.7, 0.9) for asym in (False, True)
+                if (not asym) or r < 0.3]
 
 
 @pytest.mark.parametrize("ratio,al,asym", EPLANE_CASES)
