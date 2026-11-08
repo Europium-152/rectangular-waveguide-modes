@@ -560,7 +560,9 @@ def test_sheet_filter_at_kt_zero():
     the n = 5 sheet modes are moved away from k_v = k by the sheet. A sheet mode left exactly at k_v = k (a node at
     every sheet) is self-orthogonal and is refused with a clear message."""
     b = 10e-3
-    f = cst.c / 4e-3
+    # exactly at lambda = 4 mm the empty-guide TE0,5 is at cutoff (k = 5 pi / b), where its admittance does not exist
+    # and wrmodes raises on every platform (CONVENTIONS 3); 1e-9 above it is the same k_t ~ 0 regime
+    f = cst.c / 4e-3 * (1 + 1e-9)
     g = ResistiveSheetFilter(0.10, 56.0).gsm(f, Guide(W, b).basis(f))
     check_lossy(g, rtol=1e-12)
     f6 = 6 * cst.c / (2 * b)              # k = 6 pi / b; sheets at b/3 and 2b/3 are nodes of n = 6
