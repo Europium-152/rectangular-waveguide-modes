@@ -1,0 +1,274 @@
+  // ===================================================================== WP7 helpers (shared by C1-C3)
+  // Generated from benchmarks/comsol/wp7/generate_java.py; edit there, not here.
+  static final String CMP = "comp1";
+  static String OUT = System.getProperty("wp7.out", ".");
+  static java.io.PrintWriter LOG;
+
+  static void log(String s) {
+    System.out.println(s);
+    if (LOG != null) { LOG.println(s); LOG.flush(); }
+  }
+
+  static String num(double x) {
+    return String.format(java.util.Locale.ROOT, "%.17g", x);
+  }
+
+  static java.io.PrintWriter open(String name, boolean append) {
+    try {
+      return new java.io.PrintWriter(new java.io.FileWriter(new java.io.File(OUT, name), append));
+    } catch (java.io.IOException e) {
+      throw new RuntimeException("cannot write " + name + " in " + OUT + ": " + e);
+    }
+  }
+
+  /** Gauss-Legendre nodes on [-1, 1] (Newton iteration on P_n), ascending. */
+  static double[] gaussNodes(int n) {
+    double[] x = new double[n];
+    for (int i = 0; i < n; i++) {
+      double z = Math.cos(Math.PI * (i + 0.75) / (n + 0.5));
+      for (int it = 0; it < 100; it++) {
+        double p0 = 1.0, p1 = z;
+        for (int k = 2; k <= n; k++) {
+          double p2 = ((2.0 * k - 1.0) * z * p1 - (k - 1.0) * p0) / k;
+          p0 = p1;
+          p1 = p2;
+        }
+        double dp = n * (z * p1 - p0) / (z * z - 1.0);
+        double dz = p1 / dp;
+        z -= dz;
+        if (Math.abs(dz) < 1e-16) break;
+      }
+      x[n - 1 - i] = z;
+    }
+    return x;
+  }
+
+  static String join(String[] a) {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < a.length; i++) {
+      if (i > 0) sb.append(", ");
+      sb.append(a[i]);
+    }
+    return sb.toString();
+  }
+
+  /** First property of a physics feature among exact names, then among names containing a fragment. */
+  static String findProp(Model model, String feat, String[] exact, String[] fragments) {
+    for (String c : exact) {
+      if (model.component(CMP).physics("emw").feature(feat).hasProperty(c)) return c;
+    }
+    String[] all = model.component(CMP).physics("emw").feature(feat).properties();
+    for (String fr : fragments) {
+      for (String p : all) {
+        if (p.toLowerCase(java.util.Locale.ROOT).contains(fr)) return p;
+      }
+    }
+    throw new RuntimeException("WP7: feature " + feat + " has none of the properties " + join(exact)
+        + "; its properties are: " + join(all) + ". Run C0_probe and send its output.");
+  }
+
+  /** Allowed value of a property that matches one of the candidates (case-insensitive, then substring). */
+  static String pickValue(Model model, String feat, String prop, String[] cands) {
+    String[] allowed = model.component(CMP).physics("emw").feature(feat).getAllowedPropertyValues(prop);
+    if (allowed == null) return cands[0];
+    for (String c : cands) {
+      for (String a : allowed) {
+        if (a.equalsIgnoreCase(c)) return a;
+      }
+    }
+    for (String c : cands) {
+      for (String a : allowed) {
+        if (a.toLowerCase(java.util.Locale.ROOT).contains(c.toLowerCase(java.util.Locale.ROOT))) return a;
+      }
+    }
+    throw new RuntimeException("WP7: property " + prop + " of " + feat + " allows " + join(allowed)
+        + ", none matches " + join(cands));
+  }
+
+  /** A rectangular port for mode (kind, m, n); m, n < 10 (COMSOL's mode number is the digit string "mn"). */
+  static void rectangularPort(Model model, String tag, String selection, int portName, String kind, int m, int n,
+                              boolean excite) {
+    if (m > 9 || n > 9) throw new RuntimeException("WP7: mode numbers above 9 are not supported by this script");
+    model.component(CMP).physics("emw").create(tag, "Port", 2);
+    model.component(CMP).physics("emw").feature(tag).selection().named(selection);
+    model.component(CMP).physics("emw").feature(tag).set("PortType", "Rectangular");
+    model.component(CMP).physics("emw").feature(tag).set("PortName", String.valueOf(portName));
+    if (!(kind.equals("TE") && m == 1 && n == 0)) {
+      String tp = findProp(model, tag, new String[]{"ModeType", "PortModeType", "modeType", "RectangularModeType"},
+                           new String[]{"modetype"});
+      String tv = pickValue(model, tag, tp, kind.equals("TE")
+          ? new String[]{"TE", "TransverseElectric", "electric"} : new String[]{"TM", "TransverseMagnetic", "magnetic"});
+      model.component(CMP).physics("emw").feature(tag).set(tp, tv);
+      String np = findProp(model, tag, new String[]{"ModeNumber", "PortModeNumber", "modeNumber", "Mode"},
+                           new String[]{"modenumber", "modenum"});
+      model.component(CMP).physics("emw").feature(tag).set(np, String.valueOf(m) + String.valueOf(n));
+      log("port " + tag + ": " + tp + " = " + tv + ", " + np + " = " + m + n);
+    }
+    model.component(CMP).physics("emw").feature(tag).set("PortExcitation", excite ? "on" : "off");
+  }
+
+  static void setExcitation(Model model, String tag, boolean on) {
+    model.component(CMP).physics("emw").feature(tag).set("PortExcitation", on ? "on" : "off");
+  }
+
+  static void boxSel(Model model, String tag, int dim, double x0, double x1, double y0, double y1, double z0,
+                     double z1) {
+    model.component(CMP).geom("geom1").create(tag, "BoxSelection");
+    model.component(CMP).geom("geom1").feature(tag).set("entitydim", dim);
+    model.component(CMP).geom("geom1").feature(tag).set("xmin", x0);
+    model.component(CMP).geom("geom1").feature(tag).set("xmax", x1);
+    model.component(CMP).geom("geom1").feature(tag).set("ymin", y0);
+    model.component(CMP).geom("geom1").feature(tag).set("ymax", y1);
+    model.component(CMP).geom("geom1").feature(tag).set("zmin", z0);
+    model.component(CMP).geom("geom1").feature(tag).set("zmax", z1);
+    model.component(CMP).geom("geom1").feature(tag).set("condition", "inside");
+  }
+
+  /** Air in every domain: eps_r = mu_r = 1, sigma = 0. */
+  static void air(Model model) {
+    model.component(CMP).material().create("matAir", "Common");
+    model.component(CMP).material("matAir").label("WP7 air (vacuum)");
+    model.component(CMP).material("matAir").propertyGroup("def").set("relpermittivity", new String[]{"1"});
+    model.component(CMP).material("matAir").propertyGroup("def").set("relpermeability", new String[]{"1"});
+    model.component(CMP).material("matAir").propertyGroup("def").set("electricconductivity", new String[]{"0"});
+  }
+
+  static void meshSetup(Model model) {
+    model.component(CMP).mesh().create("mesh1");
+    model.component(CMP).mesh("mesh1").create("ftet1", "FreeTet");
+    model.component(CMP).mesh("mesh1").feature("ftet1").create("size1", "Size");
+    model.component(CMP).mesh("mesh1").feature("ftet1").feature("size1").set("custom", "on");
+    model.component(CMP).mesh("mesh1").feature("ftet1").feature("size1").set("hmax", "c_const/f_mesh/ppw");
+    model.component(CMP).mesh("mesh1").feature("ftet1").feature("size1").set("hmaxactive", true);
+  }
+
+  static double currentMesh = -1;
+
+  /** Re-mesh when the band changes: the mesh frequency is the smallest entry of bands >= f. */
+  static void meshFor(Model model, double fGHz, double[] bandsGHz) {
+    double fm = bandsGHz[bandsGHz.length - 1];
+    for (double b : bandsGHz) {
+      if (b >= fGHz - 1e-9) { fm = b; break; }
+    }
+    if (fm != currentMesh) {
+      model.param().set("f_mesh", num(fm) + "[GHz]");
+      long t0 = System.currentTimeMillis();
+      model.component(CMP).mesh("mesh1").run();
+      currentMesh = fm;
+      log("meshed for " + fm + " GHz in " + (System.currentTimeMillis() - t0) / 1000.0 + " s");
+    }
+  }
+
+  static boolean studyReady = false;
+
+  static void study(Model model) {
+    model.study().create("std1");
+    model.study("std1").create("freq", "Frequency");
+    model.study("std1").feature("freq").set("plist", "f0");
+    model.study("std1").setGenPlots(false);
+  }
+
+  /** Solve at the current f0 and point dataset dsetW at the solution. */
+  static void solve(Model model) {
+    long t0 = System.currentTimeMillis();
+    model.study("std1").run();
+    String[] sols = model.study("std1").getSolverSequences("SolverSequence");
+    if (sols == null || sols.length == 0) sols = model.study("std1").getSolverSequences("All");
+    if (!studyReady) {
+      model.result().dataset().create("dsetW", "Solution");
+      model.result().numerical().create("gevW", "EvalGlobal");
+      model.result().numerical("gevW").set("data", "dsetW");
+      model.result().numerical().create("intW", "Interp");
+      model.result().numerical("intW").set("data", "dsetW");
+      studyReady = true;
+    }
+    model.result().dataset("dsetW").set("solution", sols[0]);
+    log("  solved in " + (System.currentTimeMillis() - t0) / 1000.0 + " s (solution " + sols[0] + ")");
+  }
+
+  static double[] flatten(double[][] r) {
+    int n = 0;
+    for (double[] row : r) n += row.length;
+    double[] out = new double[n];
+    int k = 0;
+    for (double[] row : r) for (double v : row) out[k++] = v;
+    return out;
+  }
+
+  /** Real values of global expressions at the current solution (one value per expression). */
+  static double[] evalGlobal(Model model, String[] exprs) {
+    model.result().numerical("gevW").set("expr", exprs);
+    double[] v = flatten(model.result().numerical("gevW").getReal());
+    if (v.length != exprs.length) throw new RuntimeException("WP7: EvalGlobal returned " + v.length + " values for "
+        + exprs.length + " expressions");
+    return v;
+  }
+
+  static final String[] FIELD_EXPR = {"real(emw.Ex)", "imag(emw.Ex)", "real(emw.Ey)", "imag(emw.Ey)",
+      "real(emw.Ez)", "imag(emw.Ez)", "real(emw.Hx)", "imag(emw.Hx)", "real(emw.Hy)", "imag(emw.Hy)",
+      "real(emw.Hz)", "imag(emw.Hz)"};
+
+  /** Field values [expression][point] at points xyz[3][N] (N must differ from the number of expressions). */
+  static double[][] evalFields(Model model, double[][] xyz) {
+    int np = xyz[0].length, ne = FIELD_EXPR.length;
+    model.result().numerical("intW").set("expr", FIELD_EXPR);
+    model.result().numerical("intW").setInterpolationCoordinates(xyz);
+    double[][] r = model.result().numerical("intW").getReal();
+    double[][] out = new double[ne][np];
+    if (r.length == ne && r[0].length == np) {
+      for (int e = 0; e < ne; e++) for (int p = 0; p < np; p++) out[e][p] = r[e][p];
+    } else if (r.length == np && r[0].length == ne) {
+      for (int e = 0; e < ne; e++) for (int p = 0; p < np; p++) out[e][p] = r[p][e];
+    } else {
+      double[] f = flatten(r);
+      if (f.length != ne * np) throw new RuntimeException("WP7: Interp returned " + r.length + " x " + r[0].length);
+      for (int e = 0; e < ne; e++) for (int p = 0; p < np; p++) out[e][p] = f[e * np + p];
+    }
+    return out;
+  }
+
+  /** Sampling plane: origin o, in-plane unit vectors u, v (local frame of CONVENTIONS.md), Gauss nodes. */
+  static double[][] planePoints(double[] o, double[] u, double[] v, double a, double b, double[] gu, double[] gv) {
+    int n = gu.length * gv.length, k = 0;
+    double[][] xyz = new double[3][n];
+    for (int i = 0; i < gu.length; i++) {
+      for (int j = 0; j < gv.length; j++) {
+        double uu = gu[i] * a / 2, vv = gv[j] * b / 2;
+        for (int c = 0; c < 3; c++) xyz[c][k] = o[c] + uu * u[c] + vv * v[c];
+        k++;
+      }
+    }
+    return xyz;
+  }
+
+  static String vec(double[] x) {
+    return "[" + num(x[0]) + ", " + num(x[1]) + ", " + num(x[2]) + "]";
+  }
+
+  static String arr(double[] x) {
+    StringBuilder sb = new StringBuilder("[");
+    for (int i = 0; i < x.length; i++) {
+      if (i > 0) sb.append(", ");
+      sb.append(num(x[i]));
+    }
+    return sb.append("]").toString();
+  }
+
+  /** Append the fields of all planes at one frequency and excitation to the CSV file. */
+  static void writeFields(java.io.PrintWriter w, int exc, double fHz, String[] names, double[][][] pts,
+                          double[][][] vals) {
+    for (int p = 0; p < names.length; p++) {
+      for (int k = 0; k < pts[p][0].length; k++) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(exc).append(',').append(num(fHz)).append(',').append(names[p]).append(',').append(k);
+        for (int c = 0; c < 3; c++) sb.append(',').append(num(pts[p][c][k]));
+        for (int e = 0; e < FIELD_EXPR.length; e++) sb.append(',').append(num(vals[p][e][k]));
+        w.println(sb.toString());
+      }
+    }
+    w.flush();
+  }
+
+  static final String FIELD_HEADER = "excitation,freq_Hz,plane,point,x,y,z,Ex_re,Ex_im,Ey_re,Ey_im,Ez_re,Ez_im,"
+      + "Hx_re,Hx_im,Hy_re,Hy_im,Hz_re,Hz_im";
+  // ===================================================================== end of WP7 helpers
