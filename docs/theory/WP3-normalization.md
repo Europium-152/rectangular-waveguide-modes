@@ -128,7 +128,7 @@ convergence study.
 
 | Check | What it pins down | Result (tests/test_fem2d.py) |
 | --- | --- | --- |
-| $g$, $h$ from the library fields vs the closed forms of §2, propagating and evanescent | sign and branch of $g$, $h$ | 1e-12 relative |
+| $g$, $h$ from the library fields vs the closed forms of §2, propagating and evanescent | sign and branch of $g$, $h$ | 2.5e-15 relative (test bound 1e-12) |
 | Straight channel vs `gsm.straight` | de-embedding phases, LSE transmission sign, $Q$ | 1e-6, signs included |
 | Smooth H- and E-plane bends vs wrmodes, 3 frequencies, every propagating mode | sign and gauge of every cross-mode coupling, LSM and LSE, TE/TM rotation | 1e-3 absolute |
 | Smooth bends vs exact bend modes (Bessel functions of order $\nu = \beta_{\text{bend}}R$) | the phase of $S_{21}$ beyond the propagating-mode coupled-mode theory | see the report |
