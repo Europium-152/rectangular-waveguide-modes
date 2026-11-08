@@ -6,7 +6,7 @@ Branch `wave-1/WP1-cascade`, from `main` at 223aeeb.
 
 | Item | Files |
 | --- | --- |
-| Component protocol (the shared stub, unchanged) | `src/wrmodes/components/base.py`, `src/wrmodes/components/__init__.py` (exports added) |
+| Component protocol (the shared stub, plus `plane` and the `default_basis(f, cutoff_factor=None)` signature; see Review fixes) | `src/wrmodes/components/base.py`, `src/wrmodes/components/__init__.py` (exports added) |
 | `Guide(w, h, sigma=None)`, `map_basis` | `src/wrmodes/components/guide.py` |
 | `Straight(length)` | `src/wrmodes/components/straight.py` |
 | `SmoothBend(length, curvature, plane, breakpoints, atol)`, picklable `SechCurvature`, `ConstantCurvature` | `src/wrmodes/components/bends.py` |
@@ -21,17 +21,14 @@ FrameChange, SechCurvature, ConstantCurvature`.
 
 ### Design
 
-* **Protocol.** `base.py` is byte-identical to the stub of the briefing. Nothing was added to `Component`. `Line`
-  uses three *optional* attributes by duck typing, and other components may adopt them:
-  * `plane`: `'H'` or `'E'` for components whose bases are local bases of that frame, `None` (or missing) for
-    frame-independent components (straights). `Line` inserts a `FrameChange` wherever the plane changes.
-  * `guide`: the component's `Guide`, used by its `default_basis`. If it is `None` and the component has
-    `with_guide(guide)`, `Line` attaches its own guide. A component with a different guide is refused.
-  * `with_guide(guide)`: returns a copy attached to the guide.
-* **Bases.** `Guide.basis(f, cutoff_factor, plane)` builds one basis per frequency in the global (H) frame,
-  `ModeBasis.propagating(f, w, h, cutoff_factor, frame='H')`, then maps it to the frame of `plane`
-  (`map_basis`: a ↔ b, (m, n) → (n, m), tag `'E'`). So every component of a line sees the same physical
-  modes. The E-frame basis is the mapped global basis, not the E-frame default (see Conventions issues).
+* **Protocol** (as revised after review; see Review fixes). `Component.plane` is required: `'H'` or `'E'` for
+  components whose bases are local bases of that frame, `None` for components that the H↔E frame change leaves
+  unchanged (straights, frame changes). The base class sets it to `UNDECLARED`, and `Line` raises `TypeError` for
+  it. Optional attributes: `guides = (g_in, g_out)` for components that change the cross-section; `guide` and
+  `with_guide(guide)` for components that use the line's guide in their `default_basis`.
+* **Bases.** `Guide.basis(f, cutoff_factor, plane, evanescent_families='live')` builds one basis per frequency
+  in the global (H) frame, then maps it to the frame of `plane` (`map_basis`: a ↔ b, (m, n) → (n, m), tag
+  `'E'`). So every component of a line sees the same physical modes. The 'live' rule is described under Review fixes.
 * **SmoothBend.** For each local family n, the propagating modes go through
   `solve_transfer_matrix(error_control='full', atol, breakpoints)` and `from_transfer_matrix`. A family with zero
   coupling matrix becomes `straight`; in practice this is TE1,0 alone, below the TE2,0 cutoff. Evanescent modes are
@@ -46,9 +43,9 @@ FrameChange, SechCurvature, ConstantCurvature`.
 * **Line.** `plane` is the frame of the line's two ports; `'H'` (the default) is the global frame. A straight takes
   the frame of the element before it, so a straight between two E-plane bends needs no frame change. Explicit
   `FrameChange` elements are accepted and checked. Inserted frame changes appear in `line.elements`, are flagged in
-  `line.inserted`, and are marked "(inserted by Line)" in `line.describe()`. A `Line` is itself a component and
-  can be nested. For now all elements must keep the cross-section; steps and tapers are refused with a clear
-  error.
+  `line.inserted`, and are marked "(inserted by Line)" in `line.describe()`. A `Line` is itself a component;
+  nested lines are flattened into the outer one. Components that change the cross-section are supported through
+  `guides` (see Review fixes).
 * **Sweep.** `processes=None` means `os.cpu_count()`, capped at the number of frequencies; `1` runs in-process.
   Every process limits BLAS to one thread (`_blas_limit(1)`, and `blas_threads=1` in the solver), so the results
   do not depend on the number of processes. Workers are started with `spawn`, and the line is pickled once per
@@ -57,9 +54,9 @@ FrameChange, SechCurvature, ConstantCurvature`.
   `converted_power[mode]` (every other propagating output mode, NaN where it does not propagate; keys accept
   `Mode`, names or tuples), `reflected_power` (total over the propagating modes of port 1), and `gsms` when
   `keep_gsm=True`.
-* **Wall-loss hook (WP2).** `Guide(w, h, sigma)` accepts a conductivity. `Straight._attenuation` and
-  `SmoothBend._wall_loss` call `Guide.require_lossless`, which raises `NotImplementedError` when `sigma` is not
-  None, so `Line.gsm` raises too. `FrameChange` stays valid in a lossy guide (zero length).
+* **Wall-loss hook (WP2).** `Guide(w, h, sigma)` accepts a conductivity. `Straight._loss_matrix(basis, f)` and
+  `SmoothBend._loss_matrix(basis, f)` call `Guide.require_lossless`, which raises `NotImplementedError` when
+  `sigma` is not None, so `Line.gsm` raises too. `FrameChange` stays valid in a lossy guide (zero length).
 
 ## Results
 
@@ -98,8 +95,8 @@ h = 10.16 mm.
   line with cutoff_factor 1.5 has the same propagating block as with 1.0, to 1e-13.
 * Sweep with 1 and 4 processes (5 frequencies, a mixed H/E line): bit-identical loss, converted and reflected
   powers, and GSMs. Power balance transmitted + converted + reflected = 1 to 1e-10.
-* Test suite: 128 tests pass (93 from WP0, 35 new). The new tests take about 30 s on an idle 2-core machine;
-  under the load of the other agents during this run, the full suite took 210–260 s.
+* Test suite after the review fixes: 141 tests pass (93 from WP0, 48 new: 27 in `test_components.py`, 21 in
+  `test_line.py`). Under the load of the other agents, the full suite took 354 s.
 * Runtime: a line with all families is costly at high frequency, because `error_control='full'` needs ≥ 1024
   slices per family. One sech 90° bend with all 129 modes at 90 GHz takes 6.2 s (7 families × 2048 slices,
   error estimates ≈ 5e-11). The full-basis sequence took 194 s (H) and 133 s (E) for 10 frequencies with the
@@ -127,8 +124,6 @@ h = 10.16 mm.
   (m, n) under both. Not done, because the card asks for all families.
 * **Evanescent modes in bends** are uncoupled (documented approximation). Its error next to a miter or step has
   not been quantified. The 2D solver (WP3) could measure it by comparing a short bend in both models.
-* `Line` supports constant-cross-section elements only. Steps and tapers (WP4, wave 2) will need the line to
-  carry the current cross-section (e.g. via an `output_guide` attribute).
 * On macOS, the `fork` fallback for unpicklable lines may be unsafe with the system BLAS. The default path is
   `spawn` with a picklable line. The fork fallback test runs on Linux only.
 * Near-cutoff modes (f_c/f > 0.999) give reflections of a few percent in their own family in the coupled-mode
@@ -138,26 +133,74 @@ h = 10.16 mm.
 ## Conventions issues
 
 * **§3 evanescent truncation vs the E frame.** "Evanescent modes are only added to families that have a
-  propagating mode" depends on the frame: a family is a fixed n in the local frame. The line follows the card
-  (one basis chosen in the global frame, then mapped). The E-plane components of a line therefore see
-  (a) local families that are entirely evanescent (handled: uncoupled straight modes), and (b) none of the
-  evanescent modes of global families without a propagating mode, even if they would belong to a live E-frame
-  family. For coplanar E-plane miters and steps (WP3/WP4) in a line, the relevant near-field modes may be missing
-  unless the coordinator chooses `evanescent_families='all'` (passed through by `Line.gsm`) or a rule that takes
-  the union of the live families of both frames. §3 should say which basis a mixed line uses.
+  propagating mode" depends on the frame. Resolved in the review fixes with the 'live' rule (union of the live
+  families of both frames). The coordinator will update §3.
 * **Line `plane` argument.** The card gives `Line(guide, components, plane='H')` without defining `plane`. It is
   implemented as the frame of the line's ports ('H' = the global frame of §2). Frame-independent components
   inherit the current frame.
 * §2 lists "a twist label" as a possible frame tag. `map_basis` and `FrameChange` handle only 'H' and 'E'
-  (rotations by 90°), as the card asks.
+  (the coordinator will drop twist tags from CONVENTIONS).
 
 ## Notes for other cards
 
-* WP3/WP4 components get a Line-compatible frame by setting `plane = 'H'` or `'E'` and accepting local bases
-  with that frame tag (or no tag). A `guide` attribute and `with_guide(guide)` are optional but give them
-  `default_basis` inside a line. They must return GSMs whose `basis1`/`basis2` are the bases they were given.
-* WP2: hook points are `Guide.require_lossless`, `Straight._attenuation(basis, f)` and
-  `SmoothBend._wall_loss(basis, f)`. In a lossy `SmoothBend`, the shortcut "coupling matrix K = 0 → straight section"
-  must also check the wall-loss terms (loss couples modes too).
-* Merge note: `components/base.py` is unchanged from the stub. `components/__init__.py` starts with the stub
-  line and adds 4 import lines, so an add/add conflict with WP3/WP4 is resolved by taking this version.
+* Components declare `plane` ('H', 'E' or None) and accept local bases with that frame tag (or no tag). They
+  must return GSMs whose `basis1`/`basis2` are exactly the bases they were given. `Line` never calls a
+  component's `default_basis`; it always calls `gsm(f, basis1, basis2)` with the line's bases.
+* **WP4 Step (PR #4) in a Line.** I read its interface. It needs two additions: `plane` (its `frame`), and
+  `guides = (Guide in, Guide out)` in global terms. For `plane='H'` these are `(Guide(a1, b1), Guide(a2, b2))`;
+  for `plane='E'` they are `(Guide(b1, a1), Guide(b2, a2))`. The line then hands it `basis2` from its rule in the
+  output guide. The line's default `cutoff_factor=1` gives a Step only propagating modes on its ports; as agreed,
+  Step solves internally on the union with its own default basis and returns the requested sub-block.
+* WP2: the hook is `_loss_matrix(basis, f)`, the full N×N matrix Λ with dA⁺/dz = −(i diag β + Λ)A⁺.
+  `Straight.gsm` already uses it: S21 = expm(−(i diag β + Λ)L), S12 = S21ᵀ. A test double checks this. A
+  non-zero Λ in `SmoothBend` raises `NotImplementedError`; WP2 adds Λ to the coupled-mode matrix there. The
+  "K = 0 → straight" shortcut is only taken when Λ = 0.
+* Merge note: `components/base.py` now differs from the stub (the `UNDECLARED` sentinel, `plane = UNDECLARED`, and
+  the `default_basis(f, cutoff_factor=None)` signature and docstring). `components/__init__.py` starts with the
+  stub line and adds 4 import lines.
+
+## Review fixes
+
+From the independent review of PR #3 and the coordinator's follow-up. No physics errors were found.
+
+1. **Evanescent families: the 'live' rule.** `Guide.basis`, `Line.gsm` and `Line.sweep` take
+   `evanescent_families='live'` by default. An evanescent global mode (M, N) is kept if a propagating mode has
+   the same N (a live H-frame family) or the same M (a live E-frame family). `'propagating'` (the old H-frame
+   rule) and `'all'` remain available, and `Line.sweep` forwards the choice. Tests: at 10 GHz with cutoff_factor 3,
+   local E family n = 1 now holds TE0,1, TE1,1 and TM1,1 (only TE0,1 before). In a square guide the H- and
+   E-frame bases now hold the same modes (12 and 20 GHz). Local families without a propagating mode are uncoupled
+   straight modes in `SmoothBend`. With cutoff_factor = 1 nothing changes: the quick run of
+   `benchmarks/wp1_cascade_checks.py` reproduced every number of the first version exactly.
+2. **`plane` in the protocol.** `Component.plane = UNDECLARED` in `base.py`. `Line` raises `TypeError` for a
+   component that does not declare it, and for any value other than 'H', 'E' or None. `Straight.plane = None`
+   and `FrameChange.plane = None`. `default_basis(f, cutoff_factor=None)` now means "the component's own default";
+   for WP1's components that default is 1. Line passes its own bases and does not impose a truncation through
+   `default_basis`.
+3. **Empty bases** below the first cutoff: `SmoothBend.gsm` and `FrameChange` return 0×0 GSMs. New tests: the
+   components at 5 GHz, and a mixed-plane sweep from 4 GHz (NaN loss and reflection until TE1,0 propagates, finite
+   after).
+4. **`Line.gsm(basis1=...)`** checks (a, b) against `guide.dims(plane)` and raises on a mismatch.
+5. **Documentation.**
+   * The `Line.gsm` docstring says that a sub-basis is exact only for coplanar lines of constant cross-section.
+   * The `SmoothBend` docstring states the conditions for treating evanescent modes as uncoupled: |β_e| ≫ the
+     curvature coupling κ|K|, and |β_e|L ≫ 1. Both fail near cutoff, and the error next to a miter or step is
+     unquantified.
+   * `benchmarks/wp1_cascade_checks.py` no longer imports from `tests/`; it carries its own reference helpers.
+6. **Interfaces for the next cards.**
+   * **Loss hook:** renamed to `_loss_matrix(basis, f)` and implemented in `Straight` (see Notes).
+   * **Changes of cross-section:** supported through `guides = (g_in, g_out)`, so steps are no longer refused.
+     `Line` tracks the current guide, attaches the following components to the new guide, and always calls
+     `e.gsm(f, current_basis, next_basis)`. `next_basis` is the line's rule in the output guide, in the
+     component's frame. The output port is in the last guide, `line.guides = (input, output)`, and
+     `describe()` marks each change of guide. Nested lines are flattened, so a nested line may change the guide.
+   * **Tests:** a test double (`IdealJunction`) is compared bit for bit with the manual cascade, at cutoff_factor
+     1 and 1.5, together with frame changes and an E-plane bend in the new guide. A line that starts in the wrong
+     guide is refused. WP4's `Step` was not run here because it is not on this branch.
+7. **Memoization.** `Line.gsm(..., cache=dict)` memoizes component GSMs keyed by (original component, guide, f,
+   port bases). Straights are not cached. Within one call a memo is always used, so a component that appears twice
+   is computed once. Test: an ensemble of three lines that share two bends and differ only in the straight length
+   needs 2 bend computations instead of 6, with bit-identical S. Another guide is a separate entry. The cache
+   relies on the components being immutable, as the protocol requires.
+
+Not touched: `wrmodes/gsm.py` (GSM.star with two junctions on one plane is handled by the coordinator), twist
+frame tags, CONVENTIONS.md.

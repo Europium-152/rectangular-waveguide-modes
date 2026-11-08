@@ -87,15 +87,18 @@ class FrameChange(Component):
         self.guide = guide
         self.name = name or f"frame change {from_plane}->{to_plane}"
 
-    plane = None          # the two ports have different frames: see from_plane / to_plane
+    #: None: the two ports have different frames (from_plane, to_plane); `Line` treats frame changes explicitly
+    plane = None
 
     def __repr__(self):
         return f"FrameChange({self.from_plane!r}, {self.to_plane!r})"
 
     def with_guide(self, guide):
-        return FrameChange(self.from_plane, self.to_plane, guide, self.name)
+        return type(self)(self.from_plane, self.to_plane, guide, self.name)
 
-    def default_basis(self, f, cutoff_factor=1.0):
+    def default_basis(self, f, cutoff_factor=None):
+        """Port bases from the component's guide; cutoff_factor=None means 1 (propagating modes only)."""
+        cutoff_factor = 1.0 if cutoff_factor is None else cutoff_factor
         if self.guide is None:
             raise ValueError("FrameChange.default_basis needs a guide (FrameChange(..., guide=Guide(w, h)))")
         b1 = self.guide.basis(f, cutoff_factor, plane=self.from_plane)
@@ -106,6 +109,10 @@ class FrameChange(Component):
         basis2 = map_basis(basis1, self.from_plane, self.to_plane) if basis2 is None else basis2
         if basis2.frame not in (None, self.to_plane):
             raise ValueError(f"basis2 has frame {basis2.frame!r}, expected {self.to_plane!r}")
+        if len(basis1) == 0 or len(basis2) == 0:
+            if len(basis1) != len(basis2):
+                raise ValueError("frame change between bases of different sizes")
+            return np.zeros((0, 0)), basis2
         if self.from_plane == self.to_plane:
             F = np.zeros((len(basis2), len(basis1)))
             for j, m in enumerate(basis1.modes):

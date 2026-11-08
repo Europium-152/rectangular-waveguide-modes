@@ -1,7 +1,7 @@
 """Smooth bends of constant cross-section, computed with the coupled-mode transfer-matrix solver of wrmodes 0.1."""
 import numpy as np
 
-from ..gsm import straight, from_transfer_matrix, block_diag
+from ..gsm import GSM, straight, from_transfer_matrix, block_diag
 from ..transfer_matrix import solve_transfer_matrix, coupled_mode_matrices
 from .base import Component
 from .guide import Guide, _check_plane
@@ -89,10 +89,13 @@ class SmoothBend(Component):
     **Evanescent modes** in the basis (needed next to miters and steps) are not coupled: they are propagated as
     uncoupled straight modes, exp(-i beta L) = exp(-|beta| L), over the centre-line length, with no reflection.
     This is an approximation. It is exact in the straight limit (kappa = 0); in a bend it neglects the coupling of
-    evanescent modes to the propagating ones and to each other. Over a smooth bend the coupling rate (of order
-    kappa) is small compared with the decay rate |beta| of an evanescent mode, so an evanescent mode excited at
-    one end (by a neighbouring miter or step) has decayed long before the curvature can convert it. The result
-    for the propagating modes does not depend on whether evanescent modes are included (they are separate blocks).
+    evanescent modes to the propagating ones and to each other. It is good when, for every evanescent mode e,
+    |beta_e| is large compared with the curvature coupling (of order kappa |K_pe|) and |beta_e| L >> 1, so that an
+    evanescent mode excited at one end (by a neighbouring miter or step) has decayed before the curvature can
+    convert it. Both conditions fail for modes just below cutoff (|beta_e| -> 0). The error of this approximation
+    next to a miter or a step has not been quantified. The result for the propagating modes does not depend on
+    whether evanescent modes are included (they are separate blocks). Local families without any propagating mode
+    (which the line's basis contains for E-plane components) are treated in the same way.
 
     The families are combined with `block_diag` in exactly the order of the given basis.
     """
@@ -117,7 +120,7 @@ class SmoothBend(Component):
         return f"SmoothBend({self.length!r}, {self.curvature!r}, plane={self.plane!r})"
 
     def with_guide(self, guide):
-        return SmoothBend(self.length, self.curvature, self.plane, self.breakpoints, self.atol, guide,
+        return type(self)(self.length, self.curvature, self.plane, self.breakpoints, self.atol, guide,
                           self.max_slices, self.name)
 
     @property
@@ -127,16 +130,20 @@ class SmoothBend(Component):
             return self.curvature
         return ConstantCurvature(self.curvature)
 
-    def default_basis(self, f, cutoff_factor=1.0):
+    def default_basis(self, f, cutoff_factor=None):
+        """Port bases from the component's guide; cutoff_factor=None means 1 (propagating modes only)."""
+        cutoff_factor = 1.0 if cutoff_factor is None else cutoff_factor
         if self.guide is None:
             raise ValueError("SmoothBend.default_basis needs a guide (SmoothBend(..., guide=Guide(w, h)))")
         b = self.guide.basis(f, cutoff_factor, plane=self.plane)
         return b, b
 
-    def _wall_loss(self, basis, f):
-        """Hook for WP2 (ohmic loss in bends). Lossless guides only, for now."""
+    def _loss_matrix(self, basis, f):
+        """Hook for WP2: the N x N attenuation matrix Lambda (1/m) of the modes of `basis` at f (the same convention
+        as `Straight._loss_matrix`; WP2 adds it to the coupled-mode matrix). Lossless guides only, for now."""
         if self.guide is not None:
             self.guide.require_lossless(self.name)
+        return np.zeros((len(basis), len(basis)))
 
     def gsm(self, f, basis1=None, basis2=None):
         """GSM at f (Hz) in the local basis of the bend's plane (same basis at both ports).
@@ -151,7 +158,13 @@ class SmoothBend(Component):
         if basis1.frame not in (None, self.plane):
             raise ValueError(f"{self.name}: basis has frame {basis1.frame!r}, expected {self.plane!r} "
                              f"(insert a FrameChange, or use a Line)")
-        self._wall_loss(basis1, f)
+        if np.any(self._loss_matrix(basis1, f)):
+            raise NotImplementedError("lossy smooth bends are implemented by WP2")
+        if len(basis1) == 0:                    # below the first cutoff: nothing propagates, nothing to compute
+            Z = np.zeros((0, 0))
+            out = GSM(Z, Z, Z, Z, basis1, basis1, f, self.name)
+            out.info = {}
+            return out
         a, b, L = basis1.a, basis1.b, self.length
         kappa = self.curvature_function
         prop = basis1.propagating_mask(f)

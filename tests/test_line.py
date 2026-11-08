@@ -270,3 +270,139 @@ def test_sweep_with_unpicklable_curvature_falls_back_to_fork():
 def test_sweep_below_cutoff_of_the_input_mode():
     r = Line(WR90, [Straight(1.0)]).sweep([5e9, 10e9], "TE1,0", processes=1)
     assert np.isnan(r.loss_db[0]) and abs(r.loss_db[1]) < 1e-12
+
+
+# ------------------------------------------------------------------------------------------ review fixes
+from wrmodes.components.base import Component           # noqa: E402
+from wrmodes.gsm import GSM, straight                   # noqa: E402
+
+
+class IdealJunction(Component):
+    """Test double for a component that changes the cross-section (e.g. a step): zero length, transmits the modes
+    common to both port bases and totally reflects the others. Symmetric and unitary, not physical."""
+
+    def __init__(self, g_in, g_out, plane):
+        self.guides, self.plane, self.name = (g_in, g_out), plane, "ideal junction"
+
+    def default_basis(self, f, cutoff_factor=1.0):
+        return tuple(g.basis(f, cutoff_factor, plane=self.plane) for g in self.guides)
+
+    def gsm(self, f, basis1=None, basis2=None):
+        if basis1 is None:
+            basis1, basis2 = self.default_basis(f)
+        S11, S22 = np.zeros((len(basis1),) * 2), np.zeros((len(basis2),) * 2)
+        S21 = np.zeros((len(basis2), len(basis1)))
+        for j, m in enumerate(basis1):
+            if m in basis2:
+                S21[basis2.index(m), j] = 1
+            else:
+                S11[j, j] = 1
+        for i, m in enumerate(basis2):
+            if m not in basis1:
+                S22[i, i] = 1
+        return GSM(S11, S21.T, S21, S22, basis1, basis2, f, self.name)
+
+
+class NoPlane(Component):
+    def default_basis(self, f, cutoff_factor=1.0):
+        raise NotImplementedError
+
+    def gsm(self, f, basis1=None, basis2=None):
+        raise NotImplementedError
+
+
+def test_line_requires_a_declared_plane():
+    with pytest.raises(TypeError):
+        Line(WR90, [Straight(1.0), NoPlane()])
+
+
+def test_line_checks_the_cross_section_of_basis1():
+    f = 30e9
+    line = Line(WR90, [Straight(1.0)])
+    with pytest.raises(ValueError):
+        line.gsm(f, basis1=WR90.basis(f, plane="E").with_frame("H"))         # a = h, b = w, tagged H
+    with pytest.raises(ValueError):
+        line.gsm(f, basis1=Guide(0.02, 0.01).basis(f))
+
+
+def test_line_through_a_change_of_cross_section():
+    f = 30e9
+    g2 = Guide(0.03, 0.012)
+    bend = SmoothBend(0.3, SechCurvature(60, 0.3), plane="E")
+    line = Line(WR90, [Straight(0.3), IdealJunction(WR90, g2, "H"), Straight(0.2), bend, Straight(0.1)])
+    assert line.guides == (WR90, g2)
+    assert line.elements[2].guide == g2 and line.elements[4].guide == g2
+    assert "(to Guide(w=0.03" in line.describe()
+    for cf in (1.0, 1.5):
+        g = line.gsm(f, cutoff_factor=cf)
+        b1, b2, b2e = WR90.basis(f, cf), g2.basis(f, cf), g2.basis(f, cf, plane="E")
+        assert g.basis1 == b1 and g.basis2 == b2 and len(b2) > len(b1)
+        manual = (straight(b1, f, 0.3) @ IdealJunction(WR90, g2, "H").gsm(f, b1, b2) @ straight(b2, f, 0.2)
+                  @ FrameChange("H", "E").gsm(f, b2) @ bend.with_guide(g2).gsm(f, b2e) @ straight(b2e, f, 0.1)
+                  @ FrameChange("E", "H").gsm(f, b2e))
+        assert np.array_equal(g.S, manual.S)
+        assert g.reciprocity_defect() < 1e-12      # (the test double is not unitary: it transmits evanescent modes)
+    # the junction in the E plane gets E-frame bases in both guides
+    gE = Line(WR90, [IdealJunction(WR90, g2, "E")]).gsm(f)
+    assert gE.basis2 == g2.basis(f)
+    with pytest.raises(ValueError):
+        Line(WR90, [IdealJunction(g2, WR90, "H")])                         # starts in the wrong guide
+    with pytest.raises(ValueError):
+        Line(WR90, [IdealJunction(WR90, g2, "H"), Straight(1.0, guide=WR90)])
+
+
+def test_nested_line_with_a_change_of_cross_section_is_flattened():
+    f = 30e9
+    g2 = Guide(0.03, 0.012)
+    inner = Line(WR90, [IdealJunction(WR90, g2, "H"), SmoothBend(0.3, SechCurvature(60, 0.3), plane="E")])
+    outer = Line(WR90, [Straight(0.5), inner, Straight(0.5)])
+    assert outer.guides == (WR90, g2) and not any(isinstance(e, Line) for e in outer.elements)
+    flat = Line(WR90, [Straight(0.5), IdealJunction(WR90, g2, "H"), SmoothBend(0.3, SechCurvature(60, 0.3), plane="E"),
+                       Straight(0.5)])
+    assert np.allclose(outer.gsm(f, cutoff_factor=1.3).S, flat.gsm(f, cutoff_factor=1.3).S, atol=1e-14, rtol=0)
+
+
+def test_sweep_from_below_cutoff_with_a_mixed_plane_line():
+    line = Line(WR90, [SmoothBend(0.3, SechCurvature(90, 0.3)), Straight(1.0),
+                       SmoothBend(0.3, SechCurvature(60, 0.3), plane="E")])
+    freqs = [4e9, 6e9, 8e9, 12e9, 18e9]
+    assert line.gsm(4e9).S.shape == (0, 0)
+    r = line.sweep(freqs, "TE1,0", processes=1, cutoff_factor=1.5, keep_gsm=True)
+    assert np.all(np.isnan(r.loss_db[:2])) and np.all(np.isnan(r.reflected_power[:2]))
+    assert np.all(np.isfinite(r.loss_db[2:]))
+    assert len(r.gsms[0].basis1) == 0 and len(r.gsms[1].basis1) == 0      # nothing propagates: no live family
+    assert len(r.gsms[2].basis1) >= 1
+    r2 = line.sweep(freqs, "TE1,0", processes=1, cutoff_factor=1.5, keep_gsm=True, evanescent_families="all")
+    assert len(r2.gsms[-1].basis1) >= len(r.gsms[-1].basis1)
+    assert r2.gsms[-1].basis1 == WR90.basis(18e9, 1.5, evanescent_families="all")
+
+
+class CountingBend(SmoothBend):
+    calls = 0
+
+    def gsm(self, f, basis1=None, basis2=None):
+        CountingBend.calls += 1
+        return super().gsm(f, basis1, basis2)
+
+
+def test_cache_for_ensembles_of_straight_lengths():
+    f = 30e9
+    b60, b90 = CountingBend(0.6, SechCurvature(60, 0.6)), CountingBend(0.4, SechCurvature(90, 0.4), plane="E")
+    lengths = [9.6, 10.0, 10.3]
+    CountingBend.calls = 0
+    plain = [Line(WR90, [b60, Straight(L), b90]).gsm(f) for L in lengths]
+    assert CountingBend.calls == 3 * 2
+    cache = {}
+    CountingBend.calls = 0
+    cached = [Line(WR90, [b60, Straight(L), b90]).gsm(f, cache=cache) for L in lengths]
+    assert CountingBend.calls == 2
+    for p, c in zip(plain, cached):
+        assert np.array_equal(p.S, c.S)
+    # a component used twice in one line is computed once
+    CountingBend.calls = 0
+    Line(WR90, [b60, Straight(1.0), b60]).gsm(f)
+    assert CountingBend.calls == 1
+    # another guide is another cache entry
+    CountingBend.calls = 0
+    Line(Guide(0.03, 0.012), [b60]).gsm(f, cache=cache)
+    assert CountingBend.calls == 1

@@ -6,16 +6,77 @@ Prints a JSON summary. The unit tests (tests/test_line.py, tests/test_components
 with fewer modes; this script runs the JINST section 7 sequence with the full basis of the line (all families)
 as well as in the input family only.
 """
-import sys, os, json, time
+import sys, json, time
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "tests"))
 import wrmodes as wr
 from wrmodes import Line, SmoothBend, SechCurvature, ConstantCurvature
 from wrmodes.components import map_basis
 from wrmodes.gsm import from_transfer_matrix
 from wrmodes.modes import eplane_frame_signs
-from test_line import reference_phi, components, sequence_items, WR90
+from scipy.linalg import block_diag as _bd
+from wrmodes import Guide, Straight
+
+WR90 = Guide(0.9 * 0.0254, 0.4 * 0.0254)
+
+
+# reference: products of full transfer matrices (the same construction as tests/test_line.py)
+def bend_phi(f, basis, L, kappa, atol=1e-6):
+    """Full 2N x 2N transfer matrix of a bend in the order of a local basis of propagating modes, assembled from
+    the per-family transfer matrices of solve_transfer_matrix (wrmodes 0.1 method, error_control='full')."""
+    N = len(basis)
+    phi = np.zeros((2 * N, 2 * N), complex)
+    for n in basis.families():
+        idx = np.array(basis.family(n))
+        sub = basis.subset(idx)
+        m0 = sub.modes[0]
+        _, r = wr.solve_transfer_matrix(f, basis.a, basis.b, (m0.kind, m0.m, m0.n), L, kappa,
+                                        coupled_modes=sub.legacy_modes(f), atol=atol, error_control="full",
+                                        profile=False)
+        k = len(idx)
+        P = r.transfer_matrix
+        for bi, rows in enumerate((idx, idx + N)):
+            for bj, cols in enumerate((idx, idx + N)):
+                phi[np.ix_(rows, cols)] = P[bi * k:(bi + 1) * k, bj * k:(bj + 1) * k]
+    return phi
+
+
+def straight_phi(f, basis, L):
+    b = basis.beta(f)
+    return np.diag(np.concatenate([np.exp(-1j * b * L), np.exp(1j * b * L)]))
+
+
+def to_global(phi_local, F):
+    """Transfer matrix in the global frame from one in a local frame with a_local = F a_global."""
+    FF = _bd(F, F)
+    return FF.T @ phi_local @ FF
+
+
+def reference_phi(f, gbasis, items):
+    """Product of full transfer matrices for a list of ('bend', plane, L, kappa) / ('straight', L) in the global basis."""
+    phi = np.eye(2 * len(gbasis), dtype=complex)
+    for it in items:
+        if it[0] == "straight":
+            phi = straight_phi(f, gbasis, it[1]) @ phi
+            continue
+        _, plane, L, kappa = it
+        if plane == "H":
+            phi = bend_phi(f, gbasis, L, kappa) @ phi
+        else:
+            lb = map_basis(gbasis, "H", "E")
+            F = eplane_frame_signs(gbasis, lb)
+            phi = to_global(bend_phi(f, lb, L, kappa), F) @ phi
+    return phi
+
+
+def components(items):
+    return [Straight(it[1]) if it[0] == "straight" else SmoothBend(it[2], it[3], plane=it[1]) for it in items]
+
+
+def sequence_items(plane):
+    return [("bend", plane, 0.6, SechCurvature(60, 0.6)), ("straight", 10.0),
+            ("bend", plane, 0.4, SechCurvature(90, 0.4)), ("straight", 1.0),
+            ("bend", plane, 0.4, -SechCurvature(90, 0.4))]
 
 
 def sequence(plane, freqs, family_only):

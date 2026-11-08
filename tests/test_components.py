@@ -205,3 +205,75 @@ def test_frame_tags_prevent_joining_square_guides_without_frame_change():
         gh @ ge
     g = gh @ FrameChange("H", "E").gsm(f, h) @ ge
     assert g.basis2.frame == "E"
+
+
+# ------------------------------------------------------------------------------------------ review fixes
+def test_live_rule_keeps_evanescent_modes_of_the_live_families_of_both_frames():
+    f = 10e9                                     # TE1,0 only propagates
+    be = WR90.basis(f, 3, plane="E")
+    fam1 = [m.name for m in be if m.n == 1]      # local family n = 1 = global m = 1
+    assert "TE1,1" in fam1 and "TM1,1" in fam1 and "TE0,1" in fam1
+    assert [m.name for m in WR90.basis(f, 3, plane="E", evanescent_families="propagating") if m.n == 1] == ["TE0,1"]
+    gb = WR90.basis(f, 3)
+    prop = gb.propagating_mask(f)
+    live_n = {m.n for m, p in zip(gb, prop) if p}
+    live_m = {m.m for m, p in zip(gb, prop) if p}
+    full = ModeBasis.below(3 * f, WR90.w, WR90.h)
+    assert set(gb.modes) == {m for m in full if m.n in live_n or m.m in live_m}
+    assert len(WR90.basis(f, 3, evanescent_families="all")) == len(full)
+    with pytest.raises(ValueError):
+        WR90.basis(f, 3, evanescent_families="none")
+
+
+@pytest.mark.parametrize("f", [12e9, 20e9])
+def test_live_rule_is_symmetric_in_a_square_guide(f):
+    sq = Guide(0.02, 0.02)
+    assert sq.basis(f, 3).modes == sq.basis(f, 3, plane="E").modes
+
+
+def test_plane_is_part_of_the_protocol():
+    from wrmodes.components.base import Component, UNDECLARED
+    assert Component.plane is UNDECLARED
+    assert Straight.plane is None and FrameChange.plane is None
+    assert SmoothBend(0.3, 1.0, plane="E").plane == "E"
+
+
+def test_empty_bases_below_the_first_cutoff():
+    f = 5e9
+    assert len(WR90.basis(f)) == 0
+    g = SmoothBend(0.3, 1.0, guide=WR90).gsm(f)
+    assert g.S.shape == (0, 0)
+    g = FrameChange("H", "E", guide=WR90).gsm(f)
+    assert g.S.shape == (0, 0) and g.basis2.frame == "E"
+    assert Straight(1.0, guide=WR90).gsm(f).S.shape == (0, 0)
+
+
+class LossyStraight(Straight):
+    """Test double: a straight with a given (symmetric) attenuation matrix, to check the WP2 hook."""
+
+    def _loss_matrix(self, basis, f):
+        n = len(basis)
+        lam = np.diag(np.linspace(0.1, 0.3, n)).astype(complex)
+        if n > 1:
+            lam[0, 1] = lam[1, 0] = 0.02
+        return lam
+
+
+def test_loss_matrix_hook_of_straight():
+    from scipy.linalg import expm
+    f, L = 30e9, 2.0
+    s = LossyStraight(L, guide=WR90)
+    g = s.gsm(f)
+    b = g.basis1
+    lam = s._loss_matrix(b, f)
+    assert np.allclose(g.S21, expm(-(np.diag(1j * b.beta(f)) + lam) * L), atol=1e-14, rtol=0)
+    assert g.reciprocity_defect() < 1e-15 and g.passivity_margin() > 0
+    assert not np.any(Straight(L, guide=WR90)._loss_matrix(b, f))
+
+
+def test_smooth_bend_loss_hook_refuses_nonzero_loss():
+    class LossyBend(SmoothBend):
+        def _loss_matrix(self, basis, f):
+            return 0.1 * np.eye(len(basis))
+    with pytest.raises(NotImplementedError):
+        LossyBend(0.3, 1.0, guide=WR90).gsm(30e9)

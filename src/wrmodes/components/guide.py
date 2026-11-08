@@ -100,14 +100,34 @@ class Guide:
         """Local sides (a, b) of the cross-section in the frame of `plane` (CONVENTIONS.md section 2)."""
         return (self.w, self.h) if _check_plane(plane) == "H" else (self.h, self.w)
 
-    def basis(self, f, cutoff_factor=1.0, plane="H", evanescent_families="propagating"):
+    def basis(self, f, cutoff_factor=1.0, plane="H", evanescent_families="live"):
         """The line's basis at f (Hz), expressed in the local frame of `plane`.
 
-        The basis is chosen once in the global frame, ModeBasis.propagating(f, w, h, cutoff_factor) with frame tag
-        'H' (CONVENTIONS.md section 3: propagating modes of all families, plus the evanescent modes with cutoff
-        below cutoff_factor * f, by default only in the global families n that have a propagating mode), and then
-        mapped with `map_basis`, so that every frame describes the same physical modes.
+        The basis is chosen once in the global frame (frame tag 'H'): the propagating modes of all families, plus
+        the evanescent modes with cutoff below cutoff_factor * f selected by `evanescent_families`, and then mapped
+        with `map_basis`, so that every frame describes the same physical modes.
+
+        evanescent_families
+            'live' (default): keep an evanescent global mode (M, N) if a propagating mode has the same N (a live
+            family of the H frame) or the same M (a live family of the E frame). Components that conserve the local
+            family index, in either plane, then see every evanescent mode that can couple to a propagating mode,
+            and the rule is symmetric under the H <-> E exchange (in a square guide, rotated lines get the same
+            modes).
+            'propagating': only the live families N of the global (H) frame (`ModeBasis.propagating`).
+            'all': every mode below cutoff_factor * f.
         """
-        g = ModeBasis.propagating(f, self.w, self.h, cutoff_factor=cutoff_factor, frame="H",
-                                  evanescent_families=evanescent_families)
+        if evanescent_families not in ("live", "propagating", "all"):
+            raise ValueError("evanescent_families must be 'live', 'propagating' or 'all'")
+        if cutoff_factor < 1:
+            raise ValueError("cutoff_factor must be >= 1 (the basis must contain the propagating modes)")
+        if evanescent_families == "live":
+            full = ModeBasis.below(cutoff_factor * f, self.w, self.h, frame="H")
+            prop = full.propagating_mask(f) if len(full) else np.zeros(0, bool)
+            live_n = {m.n for m, p in zip(full.modes, prop) if p}
+            live_m = {m.m for m, p in zip(full.modes, prop) if p}
+            g = full.subset([i for i, (m, p) in enumerate(zip(full.modes, prop))
+                             if p or m.n in live_n or m.m in live_m])
+        else:
+            g = ModeBasis.propagating(f, self.w, self.h, cutoff_factor=cutoff_factor, frame="H",
+                                      evanescent_families=evanescent_families)
         return map_basis(g, "H", plane)
