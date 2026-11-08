@@ -175,8 +175,11 @@ def test_breakpoints_restore_fast_convergence_for_discontinuous_curvature():
     N = len(modes)
     R = -np.linalg.solve(exact[N:, N:], exact[N:, :N]); T = exact[:N, :N] + exact[:N, N:] @ R
     assert res.success and res.n_slices <= 1024
-    _, res_nobp = wr.solve_transfer_matrix(f, a, b, ('TE', 1, 0), L, kappa, max_slices=1024)
-    assert res_nobp.n_slices >= res.n_slices
+    # without the breakpoint the convergence is only first order: the solver must hit max_slices and warn,
+    # suggesting breakpoints
+    with pytest.warns(RuntimeWarning, match="breakpoints"):
+        _, res_nobp = wr.solve_transfer_matrix(f, a, b, ('TE', 1, 0), L, kappa, max_slices=1024)
+    assert not res_nobp.success and res_nobp.n_slices >= res.n_slices
     assert np.allclose(np.abs(res.T[:, 0]) ** 2, np.abs(T[:, 0]) ** 2, atol=1e-8)
 
 
