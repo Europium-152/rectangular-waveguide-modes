@@ -504,3 +504,16 @@ def test_exp_theta_k_recomputed_point():
         S = d[f"S_{plane}"][i]
         assert np.allclose(S[nmax:nmax + N, :N], g.S21, atol=1e-12)
         assert list(d[f"modes_{plane}"][i][:N]) == g.basis1.names
+
+
+def test_untagged_basis_on_one_port_is_read_in_the_step_frame():
+    """One port given an untagged basis, the other the step's default (tagged) basis: accepted, same result as with
+    both untagged (regression for WP7's adversarial test with a long thin section)."""
+    f = 40e9
+    s = Step(A, B, A, 1.6e-3)
+    thin = ModeBasis.propagating(f, A, 1.6e-3, cutoff_factor=3.0, evanescent_families="all")
+    g1 = s.gsm(f, None, thin)
+    g2 = s.gsm(f, s.default_basis(f)[0].with_frame(None), thin)
+    assert np.allclose(g1.S, g2.S, atol=1e-13)
+    with pytest.raises(ValueError, match="frame"):
+        s.gsm(f, None, thin.with_frame("E"))
