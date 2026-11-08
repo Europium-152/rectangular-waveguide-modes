@@ -1,0 +1,31 @@
+1. T_pq: closed form vs transformation route vs overlap derivative (fixed domain R(z))
+   max |T_closed - T_transformed| / max|T| = 6.5e-15   (31 modes, 3 geometries)
+   max |T_closed - T_overlap (complex step)| / max|T| = 3.8e-15   (31 modes, 3 geometries)
+   max |T_closed - T_overlap (Richardson)| / max|T| = 1.3e-10   (31 modes, 3 geometries)
+   moving domain R(z'): |dO/dz' + T^T| / max|T| = 2.8e-15; |dO/dz' - T| / max|T| = 0.55
+2. Exact symbolic check of B3 (sympy, symbolic a, b, a', b', u0', v0')
+   T[TE1,0, TE3,0] = 3*da/(4*a)    (B3 - sympy: simplified 0; max rel. at 3 random points 0e+00)
+   T[TE1,0, TE2,0] = -8*du0/(3*a)    (B3 - sympy: simplified 0; max rel. at 3 random points 0e+00)
+   T[TE1,1, TM1,1] = 0    (B3 - sympy: simplified 0; max rel. at 3 random points 0e+00)
+   T[TM1,1, TE1,1] = -2*(a*db - b*da)/(a**2 + b**2)    (B3 - sympy: simplified 0; max rel. at 3 random points 6e-15)
+   T[TM2,1, TE1,1] = -8*b*du0/(sqrt(a**2 + b**2)*sqrt(a**2 + 4*b**2))    (B3 - sympy: simplified 0; max rel. at 3 random points 1e-16)
+   T[TM1,2, TM1,1] = 8*dv0*sqrt(4*a**2 + b**2)/(3*b*sqrt(a**2 + b**2))    (B3 - sympy: simplified 8*dv0*(-(a**2 + b**2)*sqrt(4*a**2 + b**2) + sqrt(4*a**6 + 9*a**4*b**2 + 6*a**2*b**4 + b**6))/(3*b*(a**2 + b**2)**(3/2)); max rel. at 3 random points 2e-16)
+   T[TE1,2, TE1,0] = -sqrt(2)*db/sqrt(4*a**2 + b**2)    (B3 - sympy: simplified db*(1.4142135623731 - sqrt(2))/sqrt(4*a**2 + b**2); max rel. at 3 random points 3e-16)
+   T[TE0,1, TE1,1] = 0    (B3 - sympy: simplified 0; max rel. at 3 random points 0e+00)
+   T[TE1,1, TE1,1] = -(a*da + b*db)/(a**2 + b**2)    (B3 - sympy: simplified 0; max rel. at 3 random points 0e+00)
+   T[TM1,1, TM1,1] = -(a**3*db + b**3*da)/(a*b*(a**2 + b**2))    (B3 - sympy: simplified 0; max rel. at 3 random points 1e-16)
+   T[TE1,1, TM2,1] = 0    (B3 - sympy: simplified 0; max rel. at 3 random points 0e+00)
+   T[TM2,2, TE2,1] = 8*a*dv0/(sqrt(a**2 + b**2)*sqrt(a**2 + 4*b**2))    (B3 - sympy: simplified 0; max rel. at 3 random points 2e-16)
+3. Power-wave form B4 vs numerical change of variables of the V-I system
+   max |K_numeric - K_B4| / max|A, B| = 3.7e-10  (22 modes, propagating and evanescent)
+4. structure (propagating block): |A + A^T| = 0.0e+00, |B - B^T| = 0.0e+00, |Im A| = 0.0e+00, |Im B| = 0.0e+00
+   V-I system: T^I = -T^T exactly by construction; dI-block + T^T = 0.0e+00; Z, Y symmetric: 0.0e+00, 0.0e+00
+5. TE10 reflection coupling vs Katsenelenbaum et al. 1998, eq. 4.47 (W = C b / beta, eqs. 4.51-4.52)
+   a'=0.1, b'=0.0, u0'=0.0, v0'=0.0:  B_11 = +9.310748e-01, -(1/2) d ln(b/beta)/dz = +9.310748e-01
+   a'=0.0, b'=0.07, u0'=0.0, v0'=0.0:  B_11 = -3.444882e+00, -(1/2) d ln(b/beta)/dz = -3.444882e+00
+   a'=0.06, b'=-0.04, u0'=0.02, v0'=0.05:  B_11 = +1.876399e+00, -(1/2) d ln(b/beta)/dz = +1.876399e+00
+   first-order reflection a-(0) = -int B_11 exp(-2i int beta) dz = (1/2) int d ln W exp(...) dz: the voltage
+   reflection coefficient Delta W / 2W of Katsenelenbaum eq. 4.50 for a small step; offsets do not contribute.
+6. uniform guide: max|T| = 0.0e+00 (the V-I system is then exactly the T0 one)
+
+SUMMARY: T closed form 1.3e-10; sympy 6.0e-15; power waves 3.7e-10; Katsenelenbaum 4.47 3.6e-16; uniform 0.0e+00

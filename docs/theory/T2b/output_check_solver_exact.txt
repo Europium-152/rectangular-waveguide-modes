@@ -1,0 +1,48 @@
+
+H-plane symmetric wedge, n=0: TE10 out + TE30, TE50 reflected at cutoff  (section -0.06 .. 0.0 m), tail correction up to index 0
+  M=  6 N=  6: max|S a_inc - a_out| / max|a_inc| = 3.49e-02  (first 5 modes each port); |S-S^T| = 1.8e-15, |Sp^H Sp - I| = 1.2e-14
+  M= 12 N= 12: max|S a_inc - a_out| / max|a_inc| = 1.74e-02  (first 5 modes each port); |S-S^T| = 2.5e-15, |Sp^H Sp - I| = 3.0e-14
+  modes propagating at s1: TE1,0
+  modes propagating at s2: TE1,0, TE2,0, TE3,0, TE4,0
+
+H-plane symmetric wedge, n=0: TE10 out + TE30, TE50 reflected at cutoff  (section -0.06 .. 0.0 m), tail correction up to index 1000
+  M=  6 N=  6: max|S a_inc - a_out| / max|a_inc| = 6.25e-03  (first 5 modes each port); |S-S^T| = 1.1e-15, |Sp^H Sp - I| = 1.5e-14
+  M= 12 N= 12: max|S a_inc - a_out| / max|a_inc| = 3.65e-04  (first 5 modes each port); |S-S^T| = 2.5e-15, |Sp^H Sp - I| = 2.8e-14
+  modes propagating at s1: TE1,0
+  modes propagating at s2: TE1,0, TE2,0, TE3,0, TE4,0
+
+H-plane asymmetric wedge, n=1: LSM1 out + LSE3, LSM3 reflected at cutoff  (section -0.06 .. 0.0 m), tail correction up to index 0
+  M=  6 N= 13: max|S a_inc - a_out| / max|a_inc| = 8.92e-03  (first 5 modes each port); |S-S^T| = 5.6e-15, |Sp^H Sp - I| = 1.2e-14
+  M= 12 N= 25: max|S a_inc - a_out| / max|a_inc| = 3.74e-03  (first 5 modes each port); |S-S^T| = 1.2e-14, |Sp^H Sp - I| = 2.0e-14
+  modes propagating at s1: TE0,1, TE1,1, TM1,1, TE2,1, TM2,1
+  modes propagating at s2: TE0,1, TE1,1, TM1,1, TE2,1, TM2,1, TE3,1, TM3,1, TE4,1, TM4,1
+
+H-plane asymmetric wedge, n=1: LSM1 out + LSE3, LSM3 reflected at cutoff  (section -0.06 .. 0.0 m), tail correction up to index 1000
+  M=  6 N= 13: max|S a_inc - a_out| / max|a_inc| = 6.78e-04  (first 5 modes each port); |S-S^T| = 5.4e-15, |Sp^H Sp - I| = 1.2e-14
+  M= 12 N= 25: max|S a_inc - a_out| / max|a_inc| = 3.31e-05  (first 5 modes each port); |S-S^T| = 1.3e-14, |Sp^H Sp - I| = 2.3e-14
+  modes propagating at s1: TE0,1, TE1,1, TM1,1, TE2,1, TM2,1
+  modes propagating at s2: TE0,1, TE1,1, TM1,1, TE2,1, TM2,1, TE3,1, TM3,1, TE4,1, TM4,1
+
+E-plane asymmetric wedge, m=1: TE10 out + LSE/LSM 2 reflected at cutoff  (section -0.04 .. 0.03 m), tail correction up to index 0
+  M=  6 N= 13: max|S a_inc - a_out| / max|a_inc| = 7.25e-03  (first 5 modes each port); |S-S^T| = 4.9e-15, |Sp^H Sp - I| = 2.2e-14
+  M= 12 N= 25: max|S a_inc - a_out| / max|a_inc| = 3.88e-03  (first 5 modes each port); |S-S^T| = 2.8e-14, |Sp^H Sp - I| = 4.7e-14
+  modes propagating at s1: TE1,0, TE1,1, TM1,1
+  modes propagating at s2: TE1,0, TE1,1, TM1,1, TE1,2, TM1,2, TE1,3, TM1,3
+
+E-plane asymmetric wedge, m=1: TE10 out + LSE/LSM 2 reflected at cutoff  (section -0.04 .. 0.03 m), tail correction up to index 1000
+  M=  6 N= 13: max|S a_inc - a_out| / max|a_inc| = 2.02e-04  (first 5 modes each port); |S-S^T| = 4.6e-15, |Sp^H Sp - I| = 3.1e-14
+  M= 12 N= 25: max|S a_inc - a_out| / max|a_inc| = 1.32e-05  (first 5 modes each port); |S-S^T| = 2.5e-14, |Sp^H Sp - I| = 5.1e-14
+  modes propagating at s1: TE1,0, TE1,1, TM1,1
+  modes propagating at s2: TE1,0, TE1,1, TM1,1, TE1,2, TM1,2, TE1,3, TM1,3
+
+curved centre line (kappa = 4 /m) on the asymmetric wedge, n=1  (section -0.04 .. 0.0 m), tail correction up to index 0
+  M=  4 N=  9: max|S a_inc - a_out| / max|a_inc| = 1.86e-02  (first 5 modes each port); |S-S^T| = 2.7e-15, |Sp^H Sp - I| = 1.2e-14
+  M=  8 N= 17: max|S a_inc - a_out| / max|a_inc| = 5.02e-03  (first 5 modes each port); |S-S^T| = 4.9e-15, |Sp^H Sp - I| = 9.8e-15
+  modes propagating at s1: TE0,1, TE1,1, TM1,1, TE2,1, TM2,1, TE3,1, TM3,1
+  modes propagating at s2: TE0,1, TE1,1, TM1,1, TE2,1, TM2,1, TE3,1, TM3,1, TE4,1, TM4,1
+
+curved centre line (kappa = 4 /m) on the asymmetric wedge, n=1  (section -0.04 .. 0.0 m), tail correction up to index 1000
+  M=  4 N=  9: max|S a_inc - a_out| / max|a_inc| = 1.09e-02  (first 5 modes each port); |S-S^T| = 3.2e-15, |Sp^H Sp - I| = 6.7e-15
+  M=  8 N= 17: max|S a_inc - a_out| / max|a_inc| = 3.15e-04  (first 5 modes each port); |S-S^T| = 6.8e-15, |Sp^H Sp - I| = 1.2e-14
+  modes propagating at s1: TE0,1, TE1,1, TM1,1, TE2,1, TM2,1, TE3,1, TM3,1
+  modes propagating at s2: TE0,1, TE1,1, TM1,1, TE2,1, TM2,1, TE3,1, TM3,1, TE4,1, TM4,1
