@@ -77,6 +77,9 @@ def test_closed_form_coupling_follows_from_the_field_convention(a, b, n, f):
     scale = np.max(np.abs(K))
     assert np.max(np.abs(K[:N, :N] + 1j * Cp)) < 1e-10 * scale
     assert np.max(np.abs(K[:N, N:] + 1j * Cm)) < 1e-10 * scale
+    # backward equations: da-/dz = +i beta a- + i kappa sum (C- a+ + C+ a-)
+    assert np.max(np.abs(K[N:, :N] - 1j * Cm)) < 1e-10 * scale
+    assert np.max(np.abs(K[N:, N:] - 1j * Cp)) < 1e-10 * scale
     assert np.allclose(beta, basis.beta(f))
 
 
@@ -138,3 +141,58 @@ def test_ls_rotation(f):
             assert np.max(np.abs(Ev)) < 1e-12 * scale, (kind, m, n)
         else:
             assert np.max(np.abs(Hv)) < 1e-12 * scale, (kind, m, n)
+
+
+def test_eplane_frame_signs_from_the_fields():
+    """Global (H-plane) frame -> E-plane local frame (u = y, v = -x): the signed permutation of CONVENTIONS.md 2."""
+    from wrmodes.modes import eplane_frame_signs
+    w, h = WR90
+    gb = ModeBasis.below(70e9, w, h)
+    lb = ModeBasis.below(70e9, h, w)
+    F = eplane_frame_signs(gb, lb)
+    x, wt = np.polynomial.legendre.leggauss(48)
+    X, Y = np.meshgrid(x * w / 2, x * h / 2, indexing="ij")
+    W = np.outer(wt * w / 2, wt * h / 2)
+    G = np.zeros_like(F)
+    for i, loc in enumerate(lb):
+        eu, ev = transverse_field(loc, h, w, Y, -X)
+        lx, ly = -ev, eu                                  # u_hat = y_hat, v_hat = -x_hat
+        for j, g in enumerate(gb):
+            ex, ey = transverse_field(g, w, h, X, Y)
+            G[i, j] = np.sum(W * (ex * lx + ey * ly))
+    assert np.allclose(G, F, atol=1e-12)
+
+
+def test_ls_rotation_refuses_the_singular_point():
+    a, b = WR90
+    f_sing = cst.c / (2 * b)                             # k = pi / b: k_t = 0 for family n = 1
+    basis = ModeBasis.below(1.6 * f_sing, a, b, families=[1])
+    with pytest.raises(ValueError):
+        ls_rotation(basis, f_sing)
+    Q, _ = ls_rotation(basis, 1.01 * f_sing)            # close to it: valid, complex-orthogonal
+    assert np.allclose(Q @ Q.T, np.eye(len(basis)), atol=1e-10)
+
+
+def test_propagating_basis_adds_evanescent_modes_only_to_live_families():
+    a, b = WR90
+    f = 10e9                                             # only TE1,0 propagates
+    basis = ModeBasis.propagating(f, a, b, cutoff_factor=3.0)
+    assert basis.families() == [0]
+    full = ModeBasis.propagating(f, a, b, cutoff_factor=3.0, evanescent_families="all")
+    assert len(full.families()) > 1
+
+
+def test_cutoff_classification_and_legacy_guard():
+    a, b = WR90
+    te20 = Mode("TE", 2, 0)
+    fc = cutoff_wavenumber(te20, a, b) * cst.c / (2 * np.pi)
+    basis = ModeBasis.below(40e9, a, b)
+    for f in (np.nextafter(fc, 0), fc, np.nextafter(fc, np.inf), 1.0001 * fc):
+        mask = basis.propagating_mask(f)
+        prop = ModeBasis.propagating(f, a, b)
+        assert [m for m, p in zip(basis, mask) if p] == list(prop.modes)
+    basis = ModeBasis.propagating(20e9, a, b, cutoff_factor=1.5)
+    with pytest.raises(ValueError):
+        basis.legacy_modes(20e9)
+    with pytest.warns(RuntimeWarning):
+        coupled_mode_matrices(20e9, a, b, basis.legacy_modes())

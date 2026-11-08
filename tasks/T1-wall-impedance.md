@@ -25,11 +25,14 @@ as in Butterweck's sheet filter. WP2 implements what this note derives.
 
 ## Specification
 
-1. **Leontovich boundary condition** $E_t = Z_s\, H_t\times\hat n$ on a wall with outward normal $\hat n$, sign
-   checked for the $e^{+i\omega t}$ convention, with $Z_s = (1+i)R_s$ for a good conductor.
+1. **Leontovich boundary condition** $E_t = Z_s\, H_t\times\hat n$ on a wall, with $\hat n$ pointing from the guide
+   into the wall, sign checked for the $e^{+i\omega t}$ convention, with $Z_s = (1+i)R_s$ for a good conductor.
 2. **Straight guide, all walls lossy.** Write $dV_p/dz$ and $dI_p/dz$ (T0 notation) with the boundary terms
    $\oint$ over the wall contour. Then convert to power waves:
-   $da^\pm/dz = \mp i\beta a^\pm - \sum_q (\Lambda^{\pm\pm}_{pq} a^\pm_q + \Lambda^{\pm\mp}_{pq} a^\mp_q)$.
+   $da^\pm/dz = \mp i\beta a^\pm \mp \sum_q (\Lambda^{\pm\pm}_{pq} a^\pm_q + \Lambda^{\pm\mp}_{pq} a^\mp_q)$, so that the
+   loss enters the wrmodes system as $dy/dz = (D + \kappa K - \Lambda_{\text{full}})y$ with
+   $\Lambda_{\text{full}} = [[\Lambda^{++}, \Lambda^{+-}], [-\Lambda^{-+}, -\Lambda^{--}]]$ (state the final form explicitly;
+   WP2 uses it as written).
    Give closed forms of $\Lambda$ for TE–TE, TM–TM and TE–TM pairs of the same and of different $(m, n)$, and
    per wall, so that walls can have different $Z_s$.
 3. **Checks of item 2:**
@@ -40,7 +43,9 @@ as in Butterweck's sheet filter. WP2 implements what this note derives.
    * Quantify both effects for WR-90 at 18–90 GHz with aluminium.
 4. **Bends.** Combine with the curvature terms of T0 to first order in $Z_s$, including the factor $h = 1+\kappa u$
    on the wall integrals. State the neglected cross terms ($\kappa Z_s$) and estimate them for the SPARC bends.
-5. **Large wall impedance** (lossy-wall filter, $|Z_w|$ up to about 250 Ω). Say where the first-order
+5. **Large wall impedance** (lossy-wall filter, $|Z_w|$ up to about 250 Ω). Note that with impedance walls at
+   $u = \pm a/2$ the exact modes are longitudinal-section modes with respect to $u$ (the wall normal), not the LS modes
+   with respect to $v$ of `CONVENTIONS.md` §7. Say where the first-order
    (Leontovich-perturbation) treatment fails. Give the exact alternative for a guide with two impedance walls
    ($u = \pm a/2$): the modes of the impedance-walled guide from a transcendental equation, then mode matching to
    the ideal guide. Reproduce Butterweck's eq. 21 in the low-impedance limit.
@@ -54,8 +59,8 @@ as in Butterweck's sheet filter. WP2 implements what this note derives.
 | --- | --- |
 | Diagonal attenuation vs textbook TE/TM formulas, WR-90 and a square guide | 1e-6 relative |
 | Item 2 coefficients vs direct numerical surface integrals of $\oint \lvert H_t\rvert^2$ and the cross terms (script in `docs/theory/T1/`) | 1e-8 relative |
-| Butterweck lossy-wall example (X-band, 75 GHz, $Z_w$ = 250 Ω real) | attenuation 4 dB/m (H₁₀), 36 dB/m (H₃₀); over 15 cm, 0.6 dB (H₁₀) and 5.4 dB (H₃₀) |
-| Butterweck resistive-sheet example ($b$ = 10 mm, λ = 4 mm) | optimum $R_\square$ ≈ 56 Ω, maximum EH₁₁⁽²⁾ attenuation ≈ 1.5 dB/cm |
+| Butterweck lossy-wall example: standard X-band guide (22.86 × 10.16 mm) used at 75 GHz, $Z_w$ = 250 Ω real. Butterweck's theory gives 4 dB/m (H₁₀) and 36 dB/m (H₃₀), i.e. 0.6 and 5.4 dB over 15 cm; his measurements (Philips Tech. Rev.) were 0.6, 2.5 and 5.4 dB for H₁₀, H₂₀, H₃₀ | first-order theory within 5 % of his theory values; exact method within 10 % of the measurements |
+| Butterweck resistive-sheet example ($b$ = 10 mm, λ = 4 mm) | optimum $R_\square$ ≈ 56 Ω and maximum EH₁₁⁽²⁾ attenuation ≈ 1.5 dB/cm, within 5 % (theory values) |
 | T1 and T1b, derived independently | identical coefficient formulas (or a discrepancy report) |
 
 ## Deliverables

@@ -47,7 +47,8 @@ explicit frame changes between H- and E-plane components, a `Line` object, and f
 | Check | Target |
 | --- | --- |
 | Same-plane cascade of two bends and a straight vs product of transfer matrices (0.1 method) | 1e-12 on S |
-| Paper §7 sequence: the per-bend losses and the cascade of `benchmarks/paper_figures.py sequence` at 10 frequencies | 1e-10 vs the 0.1 computation |
+| Paper §7 sequence at 10 frequencies vs the product of the full 2N × 2N transfer matrices Φ of the bends and straights | 1e-10 |
+| The same vs the T-only product of `benchmarks/paper_figures.py sequence` (which ignores reflections between bends) | about 1e-6, stating the size of the reflection terms (the reviewer measured differences up to 2.8e-7 on S21) |
 | H → E → H frame changes compose to identity; `FrameChange` is a signed permutation | exact |
 | An E-plane bend in a line equals the 0.1 E-plane result (a = h, b = w) after the frame change | 1e-10 |
 | Every component: reciprocity and unitarity (lossless) | 1e-10 |

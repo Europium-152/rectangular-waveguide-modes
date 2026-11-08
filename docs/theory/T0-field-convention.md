@@ -14,8 +14,8 @@ the field definitions that reproduce the existing coefficients, signs included.
 ## Setting
 
 Time dependence $e^{+i\omega t}$, forward modes $\propto e^{-i\beta z}$. Bend coordinates $(u, v, z)$,
-right-handed, with scale factors $h_1 = h_2 = 1$ and $h_3 = h = 1 + \kappa u$. With $\kappa$ locally constant,
-the transverse components of Maxwell's equations ($\nabla\times E = -i\omega\mu_0 H$,
+right-handed, with scale factors $h_1 = h_2 = 1$ and $h_3 = h = 1 + \kappa(z) u$. The frame is orthogonal for any
+planar curvature profile κ(z), and the transverse components of Maxwell's equations ($\nabla\times E = -i\omega\mu_0 H$,
 $\nabla\times H = i\omega\varepsilon_0 E$) can be written
 
 ```latex
@@ -37,8 +37,14 @@ admittances $Y_p$ ($\beta_p/(\omega\mu_0)$ for TE, $\omega\varepsilon_0/\beta_p$
 E_t = \sum_q V_q\, e_q ,\qquad H_t = \sum_q I_q\, \hat z\times e_q .
 ```
 
-Projecting the two transverse equations on $e_p$ and $\hat z\times e_p$, integrating the gradient terms by parts
-(the boundary terms vanish because $E_z = 0$ and $e_p\cdot\hat t = 0$ on the walls), gives
+Projecting the two transverse equations on $e_p$ and $\hat z\times e_p$ and integrating the gradient terms by
+parts gives the equations below. Two sets of boundary terms vanish on perfectly conducting walls:
+
+* those of the first integration, because $E_z = 0$ and $e_p\cdot\hat t = 0$ on the walls;
+* those hidden in writing $E_z$ (and $H_z$) as the term-by-term divergence of the $H_t$ (and $E_t$) series, which
+  needs $d_p = -\chi_p^2\Pi_p = 0$ on the walls.
+
+The second set is exactly what changes with impedance walls (T1) and with tilted walls (T2).
 
 ```latex
 \frac{dV_p}{dz} = -i\omega\mu_0 \sum_q I_q \iint h\, e_p\cdot e_q
@@ -60,9 +66,13 @@ a propagating mode), the terms proportional to $\kappa$ give exactly the form of
 $da^+_p/dz = -i\beta_p a^+_p - i\kappa\sum_q (C^+_{pq} a^+_q + C^-_{pq} a^-_q)$, with
 
 ```latex
-C^{\pm}_{pq} = \tfrac12\Big[\pm\sqrt{Y_pY_q}\,\big(\omega\mu_0 U_{pq} - U^d_{pq}/(\omega\varepsilon_0)\big)
-             + \big(\omega\varepsilon_0 U_{pq} - U^g_{pq}/(\omega\mu_0)\big)/\sqrt{Y_pY_q}\Big],
+C^{\pm}_{pq} = \tfrac12\Big[\pm\sqrt{Y_p}\sqrt{Y_q}\,\big(\omega\mu_0 U_{pq} - U^d_{pq}/(\omega\varepsilon_0)\big)
+             + \big(\omega\varepsilon_0 U_{pq} - U^g_{pq}/(\omega\mu_0)\big)/\big(\sqrt{Y_p}\sqrt{Y_q}\big)\Big],
 ```
+
+(written with $\sqrt{Y_p}\sqrt{Y_q}$, which differs from $\sqrt{Y_pY_q}$ by the branch when the admittances are
+complex). The backward amplitudes obey $da^-_p/dz = +i\beta_p a^-_p + i\kappa\sum_q(C^-_{pq}a^+_q + C^+_{pq}a^-_q)$,
+which is the lower half of the wrmodes matrix $K$ and is tested as well.
 
 ```latex
 U_{pq} = \iint u\, e_p\cdot e_q\, ds,\quad U^d_{pq} = \iint u\, d_p d_q\, ds,\quad U^g_{pq} = \iint u\, g_p g_q\, ds .
@@ -90,8 +100,8 @@ with Π and Γ exactly as in eq. 5.4 of the paper (arguments $u + a/2$, $v + b/2
 
 `tests/test_conventions.py::test_closed_form_coupling_follows_from_the_field_convention` evaluates $U$, $U^d$ and
 $U^g$ by Gauss–Legendre quadrature from `wrmodes.modes.transverse_field` and compares $C^\pm$ with
-`coupled_mode_matrices` for four guide/family/frequency cases with TE and TM modes: agreement to 1e-10 relative
-(quadrature-limited). `test_te_tm_sign_matters` confirms that the opposite relative sign fails. The same
+`coupled_mode_matrices` for four guide/family/frequency cases with TE and TM modes, for all four blocks of $K$:
+agreement to 1e-10 relative (quadrature-limited). `test_te_tm_sign_matters` confirms that the opposite relative sign fails. The same
 derivation is an independent check of the structure of eqs. 5.3 of the paper.
 
 ## Uses beyond wave 0

@@ -21,7 +21,7 @@ from dataclasses import dataclass
 import numpy as np
 import scipy.constants as cst
 
-__all__ = ["ETA0", "Mode", "ModeBasis", "cutoff_wavenumber", "propagation_constant", "wave_admittance",
+__all__ = ["ETA0", "Mode", "ModeBasis", "reversal_signs", "eplane_frame_signs", "cutoff_wavenumber", "propagation_constant", "wave_admittance",
            "transverse_field", "potential", "divergence", "ls_rotation"]
 
 _KIND_ORDER = {"TE": 0, "TM": 1}
@@ -86,7 +86,7 @@ def propagation_constant(mode, a, b, f):
 
 ETA0 = cst.mu_0 * cst.c
 """Free-space impedance used throughout (ohm). It is defined as mu0 c so that k = omega / c, omega mu0 = k ETA0 and
-omega eps0 = k / ETA0 hold exactly; the CODATA eps0 of scipy satisfies mu0 eps0 c^2 = 1 only to about 1e-10."""
+omega eps0 = k / ETA0 hold exactly; the CODATA eps0 of scipy satisfies mu0 eps0 c^2 = 1 only to about 1e-12."""
 
 
 def wave_admittance(mode, a, b, f):
@@ -94,6 +94,8 @@ def wave_admittance(mode, a, b, f):
     mode = Mode.parse(mode)
     k = 2 * np.pi * f / cst.c
     beta = propagation_constant(mode, a, b, f)
+    if beta == 0:
+        raise ValueError(f"{mode.name} is exactly at cutoff at {f} Hz; its wave admittance is 0 or infinite")
     return beta / (k * ETA0) if mode.kind == "TE" else k / (ETA0 * beta)
 
 
@@ -149,11 +151,14 @@ class ModeBasis:
     """An ordered set of modes of an a x b guide; the basis of one port of a GSM.
 
     Modes are ordered by cutoff frequency, then TE before TM, then m, then n (see CONVENTIONS.md). Two bases
-    are equal when a, b and the ordered mode list are equal.
+    are equal when a, b, the ordered mode list and the frame tag are equal. The optional `frame` tag (e.g. 'H' or
+    'E', CONVENTIONS.md section 2) lets the cascade detect frame mismatches that the dimensions alone cannot
+    reveal, as in a square guide.
     """
 
-    def __init__(self, a, b, modes, sort=True):
+    def __init__(self, a, b, modes, sort=True, frame=None):
         self.a, self.b = float(a), float(b)
+        self.frame = frame
         modes = [Mode.parse(m) for m in modes]
         if len(set(modes)) != len(modes):
             raise ValueError("duplicate modes in basis")
@@ -164,9 +169,10 @@ class ModeBasis:
 
     # construction ------------------------------------------------------------------------------
     @classmethod
-    def below(cls, f_max, a, b, families=None, kinds=("TE", "TM")):
+    def below(cls, f_max, a, b, families=None, kinds=("TE", "TM"), frame=None):
         """All modes with cutoff frequency strictly below f_max (Hz), optionally restricted to vertical
-        indices n in `families`."""
+        indices n in `families`. A mode is below f_max when chi < 2 pi f_max / c (the same test as
+        `propagating_mask`)."""
         chi_max = 2 * np.pi * f_max / cst.c
         m_max, n_max = int(chi_max * a / np.pi) + 1, int(chi_max * b / np.pi) + 1
         modes = []
@@ -180,12 +186,25 @@ class ModeBasis:
                     mode = Mode(kind, m, n)
                     if cutoff_wavenumber(mode, a, b) < chi_max:
                         modes.append(mode)
-        return cls(a, b, modes)
+        return cls(a, b, modes, frame=frame)
 
     @classmethod
-    def propagating(cls, f, a, b, families=None, cutoff_factor=1.0):
-        """Propagating modes at f (cutoff below f), plus the evanescent modes with cutoff below cutoff_factor * f."""
-        return cls.below(cutoff_factor * f, a, b, families=families)
+    def propagating(cls, f, a, b, families=None, cutoff_factor=1.0, frame=None, evanescent_families="propagating"):
+        """Propagating modes at f, plus the evanescent modes with cutoff below cutoff_factor * f.
+
+        By default (`evanescent_families='propagating'`), evanescent modes are only added to families that have at
+        least one propagating mode: components that conserve n cannot couple the others to anything that
+        propagates, and leaving them out avoids the singular LS rotation at k = n pi / b (see ls_rotation). Use
+        'all' to keep every family.
+        """
+        basis = cls.below(cutoff_factor * f, a, b, families=families, frame=frame)
+        if cutoff_factor > 1 and evanescent_families == "propagating":
+            prop = basis.propagating_mask(f)
+            keep_n = {m.n for m, p in zip(basis.modes, prop) if p}
+            basis = cls(a, b, [m for m in basis.modes if m.n in keep_n], frame=frame)
+        elif evanescent_families not in ("propagating", "all"):
+            raise ValueError("evanescent_families must be 'propagating' or 'all'")
+        return basis
 
     # access -------------------------------------------------------------------------------------
     def __len__(self):
@@ -207,14 +226,16 @@ class ModeBasis:
             return False
 
     def __eq__(self, other):
-        return (isinstance(other, ModeBasis) and self.modes == other.modes
+        return (isinstance(other, ModeBasis) and self.modes == other.modes and self.frame == other.frame
                 and np.isclose(self.a, other.a, rtol=1e-12, atol=0) and np.isclose(self.b, other.b, rtol=1e-12, atol=0))
 
     def __hash__(self):
-        return hash((round(self.a, 15), round(self.b, 15), self.modes))
+        # a and b are compared with a tolerance, so they cannot enter the hash
+        return hash((self.modes, self.frame))
 
     def __repr__(self):
-        return f"ModeBasis(a={self.a:g}, b={self.b:g}, {len(self)} modes: {', '.join(self.names)})"
+        fr = "" if self.frame is None else f", frame={self.frame!r}"
+        return f"ModeBasis(a={self.a:g}, b={self.b:g}{fr}, {len(self)} modes: {', '.join(self.names)})"
 
     @property
     def names(self):
@@ -231,7 +252,9 @@ class ModeBasis:
         return np.array([wave_admittance(m, self.a, self.b, f) for m in self.modes], dtype=complex)
 
     def propagating_mask(self, f):
-        return self.cutoff_frequencies() < f
+        """True for the modes that propagate at f (chi < k; a mode exactly at cutoff does not propagate)."""
+        k = 2 * np.pi * f / cst.c
+        return np.array([cutoff_wavenumber(m, self.a, self.b) < k for m in self.modes], dtype=bool)
 
     def family(self, n):
         """Indices of the modes with vertical index n."""
@@ -241,15 +264,51 @@ class ModeBasis:
         return sorted({m.n for m in self.modes})
 
     def subset(self, indices):
-        return ModeBasis(self.a, self.b, [self.modes[i] for i in indices], sort=False)
+        return ModeBasis(self.a, self.b, [self.modes[i] for i in indices], sort=False, frame=self.frame)
 
-    def legacy_modes(self):
-        """The modes as wrmodes 0.1 tuples (name, m, n, cutoff), as used by coupled_mode_matrices."""
+    def with_frame(self, frame):
+        """The same modes with another frame tag."""
+        return ModeBasis(self.a, self.b, self.modes, sort=False, frame=frame)
+
+    def legacy_modes(self, f=None):
+        """The modes as wrmodes 0.1 tuples (name, m, n, cutoff), as used by coupled_mode_matrices.
+
+        The 0.1 functions only handle propagating modes (their branch of beta below cutoff is +i|beta|, opposite to
+        CONVENTIONS.md). If f is given, a ValueError is raised when any mode is evanescent at f.
+        """
+        if f is not None and not np.all(self.propagating_mask(f)):
+            bad = [m.name for m, p in zip(self.modes, self.propagating_mask(f)) if not p]
+            raise ValueError(f"the wrmodes 0.1 coupled-mode functions only take propagating modes; evanescent at "
+                             f"{f / 1e9:.4g} GHz: {', '.join(bad)}")
         fc = self.cutoff_frequencies()
         return [(m.name, m.m, m.n, c) for m, c in zip(self.modes, fc)]
 
 
 # ----------------------------------------------------------------------------------------- LS modes
+def reversal_signs(basis):
+    """Signs P (+1/-1 per mode) for turning a component around (CONVENTIONS.md section 2).
+
+    Turning a component around is the rotation by pi about u: (u, v, z) -> (u, -v, -z). It keeps the sign of the
+    curvature (u stays on the outer side of a bend) and maps mode p to P_p times itself, P = (-1)^(n+1) for TE and
+    TM alike.
+    """
+    return np.array([(-1.0) ** (m.n + 1) for m in basis.modes])
+
+
+def eplane_frame_signs(global_basis, local_basis):
+    """Signed permutation from the global (H-plane) frame to the E-plane local frame (CONVENTIONS.md section 2).
+
+    Local frame u = y, v = -x: global mode (M, N) of a w x h guide is local mode (N, M) of the h x w guide, with
+    the factor (-1)^M for TE and (-1)^(M+1) for TM. Returns the matrix F with a_local = F a_global.
+    """
+    F = np.zeros((len(local_basis), len(global_basis)))
+    for j, g in enumerate(global_basis.modes):
+        loc = Mode(g.kind, g.n, g.m)
+        sign = (-1.0) ** g.m if g.kind == "TE" else (-1.0) ** (g.m + 1)
+        F[local_basis.index(loc), j] = sign
+    return F
+
+
 def ls_rotation(basis, f):
     """Rotation from TE/TM amplitudes to longitudinal-section amplitudes with respect to v (side b).
 
@@ -263,6 +322,12 @@ def ls_rotation(basis, f):
     LSE_mn = cos(phi) TE - sin(phi) TM and LSM_mn = sin(phi) TE + cos(phi) TM, with
     tan(phi) = (m b k) / (n a beta). Both members of every such pair must be in the basis.
     The rows of Q follow the order of the TE member of each pair (TM rows take the LSM of the pair).
+
+    The normalization is cos^2 + sin^2 = 1 with r^2 = (n a beta)^2 + (m b k)^2 = (n^2 a^2 + m^2 b^2) k_t^2, where
+    k_t^2 = k^2 - (n pi / b)^2. At k_t = 0 (f = n c / (2 b)) the LS amplitudes of evanescent pairs with m >= 1 do
+    not exist and Q is singular; near it, Q is ill-conditioned (entries of order k / |k_t|). A ValueError is
+    raised when |k_t^2| < 1e-10 k^2. Families with k_t^2 <= 0 have no propagating mode, so components that conserve
+    n can leave them out (ModeBasis.propagating does so by default).
     """
     N = len(basis)
     Q = np.zeros((N, N), dtype=complex)
@@ -281,8 +346,10 @@ def ls_rotation(basis, f):
                 raise ValueError(f"{mode.name} needs {partner.name} in the basis for the LS rotation")
             j = basis.index(partner)
             beta = propagation_constant(mode, a, b, f)
-            if beta == 0:
-                raise ValueError(f"{mode.name} is exactly at cutoff; the LS rotation is singular there")
+            kt2 = k * k - (n * np.pi / b) ** 2
+            if abs(kt2) < 1e-10 * k * k:
+                raise ValueError(f"LS rotation of {mode.name}/{partner.name} is singular at {f / 1e9:.6g} GHz "
+                                 f"(k_t = 0 for family n = {n}); leave this family out of the LS basis")
             # tan(phi) = (m b k) / (n a beta); cos/sin from the complex-orthogonal normalization
             x, y = n * a * beta, m * b * k
             r = np.sqrt(x * x + y * y)

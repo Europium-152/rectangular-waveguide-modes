@@ -46,7 +46,10 @@ basis of WP5 (tapers and the strangled E-plane bend, wave 2).
 
 | Check | Target |
 | --- | --- |
-| Closed forms vs numerical derivative of the overlap $\iint e_p(a+\delta a)\cdot e_q(a)$ | 1e-8 relative |
+| Closed forms of the cross-section term vs a numerical derivative of the overlap, with the integration domain stated explicitly (the domain choice changes the result at first order, because normal field components are O(1) at the walls) | 1e-8 relative |
+| The tilted-wall term (on a tapered PEC wall $E_z = -\text{slope}\cdot E_n \neq 0$, the boundary term T0 drops): derived and checked separately | analytic + numerical |
+| A closed-form special case: TE₁₀ in a linear H-plane taper (published single-mode taper theory) | exact in its limit |
+| Full equations vs the WP4 staircase of steps (wave 2) | convergence as the step size → 0 |
 | Uniform-guide limit ($a' = b' = 0$) | equations reduce to T0 exactly |
 | Lossless: power-wave coupling matrix structure | net power flux conserved, shown analytically |
 | T2 and T2b, derived independently | identical formulas (or a discrepancy report) |

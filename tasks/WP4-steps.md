@@ -35,10 +35,11 @@ library will host Alessandri's segmentation for 90° miters.
      dimensions).
    * Provide `convergence_study()`. Report how |S| of the propagating modes converges with the number of
      evanescent modes.
-5. **The exp(θK) study** (for the article). For a WR-90 90° H-plane and E-plane "zero-length bend", compute
-   $T = e^{\theta K}$ in the wrmodes family basis, with $K$ the curvature matrix. Report its unitarity and its
-   conversion vs frequency. Store it as data for comparison with the miter of WP3 at Gate A. This documents why
-   coupled-mode theory cannot model a miter.
+5. **The exp(θK) study** (for the article). For a WR-90 90° H-plane and E-plane "zero-length bend", compute the
+   transfer matrix $\Phi = e^{\theta K}$ in the wrmodes family basis, with $K$ the curvature matrix, and convert it with
+   `from_transfer_matrix`. Report the unitarity of that GSM and its conversion vs frequency. Store it as data for
+   comparison with the miter of WP3 at Gate A, to test whether, and how far, the coupled-mode limit departs from a
+   real miter.
 
 ## Acceptance tests
 
@@ -48,7 +49,7 @@ library will host Alessandri's segmentation for 90° miters.
 | Identity step ($a_1 = a_2$, $b_1 = b_2$) | S = zero-length straight to 1e-12 |
 | Reciprocity | 1e-10 |
 | Unitarity (propagating modes) | 1e-10 at every truncation |
-| Step followed by its reverse at zero distance, propagating modes | identity to 1e-10 when the bases match |
+| Small → large → small at zero distance, propagating modes of the small guide | identity to 1e-10 when the large guide's truncated basis spans the small one's fields (full column rank of $X^T$). Large → small → large is a zero-thickness iris, not the identity |
 | Single-mode E-plane and H-plane steps vs Marcuvitz equivalent circuits (D6 of L1), in their stated ranges | within Marcuvitz's stated accuracy |
 | Convergence of |S11| for TE₁₀ in the WR-90 → 22.86 × 2 mm step | change < 1e-4 between the two finest truncations |
 

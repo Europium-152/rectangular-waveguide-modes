@@ -54,7 +54,10 @@ def main():
         print(f"case {i:2d}: {c['orient']} {c['theta']} deg {c['L']} m {c['profile']:8s} {c['f']/1e9:4.0f} GHz "
               f"N={len(modes):2d} slices={res.n_slices:5d} loss={-20*np.log10(abs(res.T[0,0])):.4f} dB")
     commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
-    meta = dict(wrmodes_version=wr.__version__, git_commit=commit, solver_commit="441431e",
+    dirty = bool(subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], capture_output=True,
+                                text=True).stdout.strip())
+    meta = dict(wrmodes_version=wr.__version__, git_commit=commit, tree_dirty=dirty,
+                solver_commit="441431e (wrmodes 0.1.0 solver; unchanged apart from a warning for evanescent modes)",
                 created=datetime.date.today().isoformat(), generator="tests/data/make_regression_v0_1.py",
                 cases=CASES, solver_settings=dict(error_control="full", atol=1e-6))
     np.savez_compressed(os.path.join(HERE, "regression_v0_1.npz"), meta=json.dumps(meta), **out)

@@ -23,12 +23,13 @@ Implement the results of T1:
    * per-mode attenuation constants for TE and TM;
    * the loss coupling matrices of T1 (per wall, so that walls can differ).
 2. **Straight sections with loss.**
-   * A `Straight` in a `Guide` with `sigma` becomes lossy: the matrix exponential of $(D + \Lambda)L$ for the
-     propagating modes, including the degenerate TE/TM coupling of T1.
+   * A `Straight` in a `Guide` with `sigma` becomes lossy: the matrix exponential of $(D - \Lambda_{\text{full}})L$
+     (sign and block structure exactly as written in T1) for the propagating modes, including the degenerate TE/TM
+     coupling.
    * Evanescent modes get their attenuation added to their decay.
    * Lossless guides (`sigma=None`) must give exactly the 0.1 results.
 3. **Smooth bends with loss.**
-   * Add $\Lambda$ to $D + \kappa K$ in the transfer-matrix solver.
+   * Use $D + \kappa K - \Lambda_{\text{full}}$ in the transfer-matrix solver.
    * Do it through a new optional argument of `solve_transfer_matrix`, e.g. `loss_matrix`, that defaults to the
      0.1 behaviour.
    * The error control and the adaptive slicing must remain valid. Test it.
@@ -49,7 +50,7 @@ Implement the results of T1:
 | Passivity of every lossy component | largest singular value ≤ 1 |
 | Reciprocity | 1e-10 |
 | Lossy straight vs WP7 surface-integral reference | 1e-6 relative on α for every mode |
-| Lossy-wall filter, Butterweck example (75 GHz, X-band guide, $Z_w$ = 250 Ω, 15 cm) | 0.6 dB (H₁₀), 2.5 dB (H₂₀), 5.4 dB (H₃₀), within 10 % (measured values) |
+| Lossy-wall filter, Butterweck example (X-band guide 22.86 × 10.16 mm at 75 GHz, $Z_w$ = 250 Ω, 15 cm) | 0.6 dB (H₁₀), 2.5 dB (H₂₀), 5.4 dB (H₃₀) within 10 % (measurements; 0.6 and 5.4 dB also equal his theory, 4 and 36 dB/m) |
 | Lossy-wall filter H₁₀→H₃₀ conversion over 15 cm | between −36 and −24.5 dB, as in Butterweck |
 | Resistive sheet, $b$ = 10 mm, 75 GHz | optimum ≈ 56 Ω, EH₁₁⁽²⁾ ≈ 1.5 dB/cm (theory values, 5 %) |
 | Bend with loss: power balance (transmitted + reflected + dissipated = 1, dissipated from the wall integral) | 1e-6 |

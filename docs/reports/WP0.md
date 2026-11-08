@@ -16,14 +16,16 @@ Branch `wave-0/foundations`, from `main` at 441431e (wrmodes 0.1.0).
 
 ## Numbers
 
-* Test suite: 87 tests, all passing (20 s): the 27 tests of 0.1 plus 60 new ones.
+* Test suite: 93 tests, all passing (about 20 s): the 27 tests of 0.1 plus 66 new ones. Also run by the reviewer on
+  Python 3.9.
 * The 0.1 bend matrices are exactly reciprocal and unitary in the new GSM form (defects about 3e-14),
   confirming the amplitude normalization of `CONVENTIONS.md` §5.
 * GSM cascade of two bends and a straight equals the 0.1 transfer-matrix product to 1e-12.
 
 ## Findings worth knowing
 
-* **Constants.** `scipy.constants` gives $\mu_0\varepsilon_0c^2 = 1$ only to about 1e-10 (CODATA values).
+* **Constants.** `scipy.constants` gives $\mu_0\varepsilon_0c^2 = 1$ only to about 1e-12 (CODATA values), which
+  shows up as 1e-10 relative errors where large terms cancel.
   wrmodes now defines $\eta_0 = \mu_0 c$ and never uses `epsilon_0` together with `mu_0` and `c`.
 * **Branch of β.** wrmodes 0.1 uses `sqrt(k² − χ² + 0j)`, which gives $+i|\beta|$ below cutoff: a growing
   forward wave. That never mattered, because 0.1 only keeps propagating modes. The new `modes.propagation_constant`
@@ -36,3 +38,21 @@ Branch `wave-0/foundations`, from `main` at 441431e (wrmodes 0.1.0).
 
 * Version string set to `1.0.0.dev0`. The 0.1 API is unchanged.
 * The `fem` optional extra is declared (`scikit-fem`, `gmsh`) but not used until WP3.
+
+## Independent review
+
+A reviewer agent with a fresh context checked this work before the pull request. It re-derived the T0 result by
+hand and by quadrature and confirmed it, including the TE–TM sign and the backward blocks. It reported 20 findings
+(1 blocker, 9 should-fix, 10 minor), all addressed in the second commit:
+
+| Finding | Resolution |
+| --- | --- |
+| T3 card: wrong sign of the rotation generator; "field follows the rotation exactly in a square guide" is false (c = 8/π² < 1) | generator corrected; square-guide test replaced by the exact two-mode result (rotation by −cθ in the local frame) |
+| LS rotation singular at $k_t = 0$, unhandled | `ls_rotation` raises there; `ModeBasis.propagating` adds evanescent modes only to families with a propagating mode; documented in CONVENTIONS §7 |
+| Port-2 frame and miter reference planes undefined | CONVENTIONS §2 (port 2 = port 1 frame transported along the centre line) and §6 (miter planes through the inner corner, `arm_length`) |
+| `GSM.reversed()` produced a left-handed frame | reversal defined (rotation by π about u), signs $P = (-1)^{n+1}$ applied and checked against the fields |
+| `block_diag` and `star` accepted mixed cross-sections or frequencies | checks added; bases carry an optional frame tag |
+| Legacy $+i\lvert\beta\rvert$ branch unguarded | `coupled_mode_matrices` warns, `legacy_modes(f)` raises for evanescent modes |
+| E-plane frame-change signs left implicit | stated exactly in CONVENTIONS §2, `modes.eplane_frame_signs`, tested against the fields |
+| WP1, T2, WP4, WP7, T1, WP2 card issues (impossible or ill-posed acceptance tests, sign mismatch of Λ, theory vs measured numbers) | cards corrected |
+| Minor: cutoff classification, hash contract, regression metadata, T0 wording | fixed |

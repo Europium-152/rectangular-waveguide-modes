@@ -44,7 +44,8 @@ runs on the COMSOL machine for Gate A.
 
 ## Acceptance tests
 
-* Each reference reproduces the existing 0.1 results where they overlap (to 1e-9 in power).
+* Each reference reproduces the existing 0.1 results where they overlap, to 1e-9 in power, with the 0.1 solver run at
+  `atol=1e-10` for the comparison (its default `atol=1e-6` gives power errors of about 2e-6).
 * The COMSOL scripts run on Daniel's COMSOL version without edits (check the version with him first).
 * Every wave 1 acceptance number of WP1–WP4 that cites WP7 has a registry entry.
 

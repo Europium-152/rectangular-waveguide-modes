@@ -14,7 +14,7 @@ down are `tests/test_conventions.py` and `tests/test_gsm.py`. The derivation beh
 * Time dependence $e^{+i\omega t}$, written with `1j` in code. A forward mode varies as $e^{-i\beta z}$.
 * $k = \omega/c$ with `scipy.constants.c`; free-space impedance $\eta_0 = \mu_0 c$ (`wrmodes.modes.ETA0`), so that
   $\omega\mu_0 = k\eta_0$ and $\omega\varepsilon_0 = k/\eta_0$ hold exactly. Do not use `scipy.constants.epsilon_0`
-  together with `mu_0` and `c`: the CODATA values satisfy $\mu_0\varepsilon_0c^2 = 1$ only to about 1e-10.
+  together with `mu_0` and `c`: the CODATA values satisfy $\mu_0\varepsilon_0c^2 = 1$ only to about 1e-12, which shows up when large terms cancel.
 * Surface impedance of a wall of conductivity σ: $Z_s = (1 + i)R_s$ with $R_s = \sqrt{\omega\mu_0/(2\sigma)}$
   (for the $e^{+i\omega t}$ convention written with $i$; textbooks with $e^{j\omega t}$ write the same $(1+j)R_s$).
   Baseline SPARC wall: aluminium, σ = 3.5×10⁷ S/m until the alloy is fixed. Copper: σ = 5.8×10⁷ S/m.
@@ -26,8 +26,15 @@ down are `tests/test_conventions.py` and `tests/test_gsm.py`. The derivation beh
   propagation from port 1 to port 2.
 * Side **a** lies along $u$, side **b** along $v$. In a coplanar bend, the bend plane is the $u$–$z$ plane: this is
   the convention of the JINST paper ("a in the bend plane").
-* Curvature: the $z$ scale factor is $h = 1 + \kappa u$. A positive κ puts the centre of curvature at
+* Curvature: the $z$ scale factor is $h = 1 + \kappa(z) u$. A positive κ puts the centre of curvature at
   $u = -1/\kappa$, so the guide turns towards $-u$ and the outer wall is at $u = +a/2$.
+* **Port 2 frame.** The frame of port 2 is the frame of port 1 transported along the centre line: for a bend or a
+  miter, port 1's frame rotated about $\hat v$ by the bend angle. For κ > 0, $u$ is on the outer side at both
+  ports. With this definition a symmetric miter has $S_{11} = S_{22}$ with no sign matrix.
+* **Turning a component around** (its port 2 becomes port 1) is the rotation by π about $\hat u$:
+  $(u, v, z)\to(u, -v, -z)$. It keeps the sign of κ. Mode $p$ maps to $P_p$ times itself with
+  $P = (-1)^{n+1}$ for TE and TM alike, so $S' = P\,S_{\text{swapped}}\,P$ (`GSM.reversed`, `modes.reversal_signs`).
+  The signs cancel within a family and matter for components that couple families.
 
 ### Global guide frame and plane changes
 
@@ -35,8 +42,12 @@ down are `tests/test_conventions.py` and `tests/test_gsm.py`. The derivation beh
   $h$ along $y$. For SPARC, WR-90 with $w = 22.86$ mm and $h = 10.16$ mm; TE₁₀ has its electric field along $y$.
 * A component in the **H plane** of the global TE₁₀ mode bends in the $x$–$z$ plane: local $u = x$, $v = y$,
   $a = w$, $b = h$, and the local mode numbers equal the global ones.
-* A component in the **E plane** bends in the $y$–$z$ plane: local $u = y$, $v = -x$, $a = h$, $b = w$. Local mode
-  $(m, n)$ is global mode $(n, m)$, with a sign set by the field definitions.
+* A component in the **E plane** bends in the $y$–$z$ plane: local $u = y$, $v = -x$, $a = h$, $b = w$. Global
+  mode $(M, N)$ is local mode $(N, M)$ times $(-1)^M$ for TE and $(-1)^{M+1}$ for TM: TE₁₀ → −TE₀₁, TE₂₀ → +TE₀₂,
+  TM₁₁ → +TM₁₁, TM₂₁ → −TM₁₂ (`modes.eplane_frame_signs`, checked against the fields in
+  `tests/test_conventions.py`). The relative sign of TE and TM changes under this frame change.
+* Every `ModeBasis` may carry a **frame tag** (`'H'`, `'E'`, or a twist label). Bases with different tags are
+  unequal, so the cascade refuses to join them even when the dimensions agree (square guides).
 * Frame changes are never implicit. They are explicit, lossless components (`FrameChange`, WP1) whose matrix is
   the overlap $\iint e^{\text{to}}_p\cdot e^{\text{from}}_q\,ds$ of the normalized fields, a signed permutation for
   rotations by multiples of 90°. A twist (WP6) ends in a rotated frame and is followed by the corresponding
@@ -49,7 +60,11 @@ down are `tests/test_conventions.py` and `tests/test_gsm.py`. The derivation beh
   (side b). TE needs $m + n > 0$; TM needs $m, n \ge 1$. Names follow wrmodes 0.1: `'TE1,0'`, `'TM2,1'`.
 * Cutoff wavenumber $\chi = \pi\sqrt{(m/a)^2 + (n/b)^2}$; propagation constant
   $\beta = \sqrt{k^2 - \chi^2}$ above cutoff and $\beta = -i\sqrt{\chi^2 - k^2}$ below, so that every forward mode,
-  propagating or evanescent, is $e^{-i\beta z}$ with $\operatorname{Im}\beta\le 0$.
+  propagating or evanescent, is $e^{-i\beta z}$ with $\operatorname{Im}\beta\le 0$. A mode propagates when
+  $\chi < k$; a mode exactly at cutoff does not, and its admittance is undefined (`wave_admittance` raises).
+* The wrmodes 0.1 functions (`coupled_mode_matrices`, `straight_section`) use $+i|\beta|$ below cutoff. They are
+  only for propagating modes: `coupled_mode_matrices` warns and `ModeBasis.legacy_modes(f)` raises if a mode is
+  evanescent.
 * A `ModeBasis(a, b, modes)` is an ordered list of modes of one cross-section. **Order**: cutoff frequency, then
   TE before TM, then $m$, then $n$. Two bases are equal when $a$, $b$ (to 1e-12 relative) and the ordered modes are
   equal; the cascade refuses to join unequal bases.
@@ -57,7 +72,9 @@ down are `tests/test_conventions.py` and `tests/test_gsm.py`. The derivation beh
   bends, miters, steps in $a$ only, tapers of $a$ only) couple only modes of the same family, and may return one
   GSM per family, combined with `wrmodes.gsm.block_diag`.
 * Truncation: a basis contains the propagating modes plus the evanescent modes with cutoff below
-  `cutoff_factor × f` (`ModeBasis.propagating`). Coupled-mode (transfer-matrix) solvers use `cutoff_factor = 1`;
+  `cutoff_factor × f` (`ModeBasis.propagating`). By default evanescent modes are only added to families that
+  have a propagating mode; components that conserve $n$ cannot couple the other families to anything that
+  propagates. Coupled-mode (transfer-matrix) solvers use `cutoff_factor = 1`;
   solvers that need evanescent modes state their own default and show convergence in it.
 
 ## 4. Mode fields
@@ -107,8 +124,14 @@ $\tfrac12\iint(E^+_p\times H^+_q)\cdot\hat z\,ds = a_p a_q\,\delta_{pq}$.
   $b_2 = A^+$ at port 2. $b = S a$ with $S = [[S_{11}, S_{12}], [S_{21}, S_{22}]]$.
 * **Reference planes** are the physical end planes of the component; lengths are measured along the centre line.
   A component never includes connecting straight sections unless its name says so.
+* **Miters** (plain or chamfered, any bend angle θ): the reference planes are perpendicular to each arm's axis and
+  pass through the **inner corner** (where the inner wall turns). Each plane lies $(a/2)\tan(\theta/2)$ from the
+  intersection of the two arm axes, and the component reports this distance as `arm_length`, so that a line keeps
+  its centre-line geometry. The 2D solver, the mode-matching code and COMSOL models use these planes, phases
+  included.
 * **Cascade**: Redheffer star product, `A @ B` or `cascade(A, B, ...)`, in the order of propagation. It requires
-  `A.basis2 == B.basis1` and equal frequencies.
+  `A.basis2 == B.basis1` (frame tags included) and equal frequencies; a GSM with a frequency cannot be joined to
+  one without.
 * **Properties every component must have**, checked in its tests at each frequency tested:
   * reciprocity: $\max|S - S^T| \le 10^{-10}$ (relative to $\max|S|$);
   * lossless components: unitarity over the propagating modes, $\max|S_p^HS_p - I| \le 10^{-10}$;
@@ -137,7 +160,11 @@ The H-plane bend of TE₁₀ (family $n = 0$) is therefore a pure LSM (Dirichlet
 \tan\varphi = \frac{m\,b\,k}{n\,a\,\beta}.
 ```
 
-$Q$ is orthogonal above cutoff and complex-orthogonal ($QQ^T = I$) below it, so a GSM computed in the LS basis
+$Q$ is normalized with $r^2 = (na\beta)^2 + (mbk)^2 = (n^2a^2 + m^2b^2)k_t^2$. It is **singular at $k_t = 0$**
+($f = nc/2b$), where the LS amplitudes of evanescent pairs with $m\ge1$ do not exist, and ill-conditioned near it
+(entries of order $k/|k_t|$); `ls_rotation` raises within $|k_t^2| < 10^{-10}k^2$. A family with $k_t^2\le 0$ has
+no propagating mode, so LS solvers leave it out (the default basis already does). $Q$ is orthogonal above cutoff
+and complex-orthogonal ($QQ^T = I$) below it, so a GSM computed in the LS basis
 converts to the TE/TM basis as $S_{TE/TM} = Q^T S_{LS} Q$ (applied per port) and stays symmetric. Solvers in
 the LS basis return their result converted to TE/TM; the TE/TM basis is the only one exchanged between
 components.

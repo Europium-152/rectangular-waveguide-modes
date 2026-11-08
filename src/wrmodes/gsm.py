@@ -14,7 +14,7 @@ is the Redheffer star product, which stays well conditioned with evanescent mode
 """
 import numpy as np
 
-from .modes import ModeBasis
+from .modes import ModeBasis, reversal_signs
 
 __all__ = ["GSM", "cascade", "straight", "from_transfer_matrix", "block_diag"]
 
@@ -74,9 +74,16 @@ class GSM:
         return self.basis1.propagating_mask(self.f), self.basis2.propagating_mask(self.f)
 
     def reversed(self):
-        """The same component seen from the other end (ports swapped)."""
-        return GSM(self.S22, self.S21, self.S12, self.S11, self.basis2, self.basis1, self.f,
-                   self.name + " (reversed)" if self.name else "")
+        """The same component turned around, so that its port 2 becomes port 1 (CONVENTIONS.md section 2).
+
+        Turning around is the rotation by pi about u, (u, v, z) -> (u, -v, -z): the ports are swapped and every
+        mode picks up the sign P = (-1)^(n+1), so S' = P S_swapped P. Within one family P is a common sign and
+        cancels; it matters for components that couple different families.
+        """
+        P1, P2 = reversal_signs(self.basis2), reversal_signs(self.basis1)    # new port 1 = old port 2
+        return GSM(P1[:, None] * self.S22 * P1[None, :], P1[:, None] * self.S21 * P2[None, :],
+                   P2[:, None] * self.S12 * P1[None, :], P2[:, None] * self.S11 * P2[None, :],
+                   self.basis2, self.basis1, self.f, self.name + " (reversed)" if self.name else "")
 
     def transmission(self, mode_in, mode_out=None):
         """Complex transmission amplitude from mode_in at port 1 to mode_out (default: the same mode) at port 2."""
@@ -114,7 +121,9 @@ class GSM:
         if self.basis2 != other.basis1:
             raise ValueError(f"cannot join {self!r} to {other!r}: port bases differ "
                              f"({self.basis2!r} vs {other.basis1!r}); insert a junction or change basis")
-        if self.f is not None and other.f is not None and not np.isclose(self.f, other.f, rtol=1e-12, atol=0):
+        if (self.f is None) != (other.f is None):
+            raise ValueError("cannot join a GSM with a frequency to one without")
+        if self.f is not None and not np.isclose(self.f, other.f, rtol=1e-12, atol=0):
             raise ValueError("cannot join GSMs computed at different frequencies")
         A11, A12, A21, A22 = self.S11, self.S12, self.S21, self.S22
         B11, B12, B21, B22 = other.S11, other.S12, other.S21, other.S22
@@ -185,12 +194,21 @@ def block_diag(*gsms, basis1=None, basis2=None, name=""):
     """
     if not gsms:
         raise ValueError("nothing to combine")
-    a, b = gsms[0].basis1.a, gsms[0].basis1.b
-    a2, b2 = gsms[0].basis2.a, gsms[0].basis2.b
+    g0 = gsms[0]
+    for g in gsms[1:]:
+        for port in ("basis1", "basis2"):
+            p, q = getattr(g0, port), getattr(g, port)
+            if not (np.isclose(p.a, q.a, rtol=1e-12, atol=0) and np.isclose(p.b, q.b, rtol=1e-12, atol=0)
+                    and p.frame == q.frame):
+                raise ValueError(f"block_diag: {port} of {g!r} has another cross-section or frame than {g0!r}")
+        if (g.f is None) != (g0.f is None) or (g.f is not None and not np.isclose(g.f, g0.f, rtol=1e-12, atol=0)):
+            raise ValueError("block_diag: GSMs at different frequencies")
+    a, b = g0.basis1.a, g0.basis1.b
+    a2, b2 = g0.basis2.a, g0.basis2.b
     modes1 = [m for g in gsms for m in g.basis1]
     modes2 = [m for g in gsms for m in g.basis2]
-    basis1 = ModeBasis(a, b, modes1) if basis1 is None else basis1
-    basis2 = ModeBasis(a2, b2, modes2) if basis2 is None else basis2
+    basis1 = ModeBasis(a, b, modes1, frame=g0.basis1.frame) if basis1 is None else basis1
+    basis2 = ModeBasis(a2, b2, modes2, frame=g0.basis2.frame) if basis2 is None else basis2
     if sorted(map(str, basis1)) != sorted(map(str, modes1)) or sorted(map(str, basis2)) != sorted(map(str, modes2)):
         raise ValueError("basis1/basis2 must contain exactly the modes of the GSMs being combined")
     N1, N2 = len(basis1), len(basis2)

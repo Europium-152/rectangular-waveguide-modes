@@ -101,11 +101,46 @@ def test_mismatched_bases_are_refused():
         random_reciprocal_lossy(b1) @ random_reciprocal_lossy(b2)
 
 
-def test_reversed_swaps_ports():
+def test_reversed_swaps_ports_with_reversal_signs():
     basis = ModeBasis.propagating(40e9, *WR90)
     A = random_reciprocal_lossy(basis)
     R = A.reversed()
-    assert np.allclose(R.S11, A.S22) and np.allclose(R.S21, A.S12)
+    P = np.array([(-1.0) ** (m.n + 1) for m in basis])
+    assert np.allclose(R.S11, P[:, None] * A.S22 * P[None, :]) and np.allclose(R.S21, P[:, None] * A.S12 * P[None, :])
+    assert np.allclose(R.reversed().S, A.S)
+    # within one family the signs cancel
+    g, _ = bend_gsm(60e9, *WR90, 1, 1 / 0.2, 0.1)
+    assert np.allclose(g.reversed().S11, g.S22) and np.allclose(g.reversed().S21, g.S12)
+
+
+def test_reversal_signs_from_the_fields():
+    """P_p = overlap of mode p with itself rotated by pi about u: (u, v) -> (u, -v), (e_u, e_v) -> (e_u, -e_v)."""
+    from wrmodes.modes import transverse_field, reversal_signs
+    a, b = WR90
+    basis = ModeBasis.below(80e9, a, b)
+    x, w = np.polynomial.legendre.leggauss(48)
+    U, V = np.meshgrid(x * a / 2, x * b / 2, indexing="ij")
+    W = np.outer(w * a / 2, w * b / 2)
+    P = reversal_signs(basis)
+    for mode, p in zip(basis, P):
+        eu, ev = transverse_field(mode, a, b, U, V)
+        ru, rv = transverse_field(mode, a, b, U, -V)
+        assert np.isclose(np.sum(W * (eu * ru - ev * rv)), p, atol=1e-12), mode
+
+
+def test_frequency_and_cross_section_checks():
+    f, (a, b) = 30e9, WR90
+    g1 = straight(ModeBasis.propagating(f, a, b, families=[0]), f, 0.1)
+    g2 = straight(ModeBasis.propagating(31e9, 1.1 * a, b, families=[1]), 31e9, 0.1)
+    with pytest.raises(ValueError):
+        block_diag(g1, g2)
+    nof = GSM.from_matrix(g1.S, g1.basis1)
+    with pytest.raises(ValueError):
+        g1 @ nof
+    hb = ModeBasis.propagating(f, 0.02, 0.02, frame="H")
+    eb = hb.with_frame("E")
+    with pytest.raises(ValueError):
+        straight(hb, f, 0.1) @ straight(eb, f, 0.1)
 
 
 # ------------------------------------------------------------------------------------ transfer matrices
