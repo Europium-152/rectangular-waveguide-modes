@@ -1,0 +1,27 @@
+guide a = 2.0, b = 1.0, twist rate tau = 0.5 rad/unit (tau a = 1.0), gamma = 4.0
+  spectral k_j: [4.1528675745 4.7062051643 5.1629896646 5.2696835618 5.5431540615
+ 5.6122772221]
+  spectral convergence p = 16 -> 22: max |dk/k| = 3.1e-10
+  note    chi_max =    3 k_max (   89 modes): max |gamma_CM/gamma - 1| = 5.37e-03
+  note    chi_max =    6 k_max (  359 modes): max |gamma_CM/gamma - 1| = 2.93e-03; Richardson (1/chi) extrapolation: 7.46e-04
+  note    chi_max =   12 k_max ( 1443 modes): max |gamma_CM/gamma - 1| = 1.45e-03; Richardson (1/chi) extrapolation: 1.76e-04
+  naive   chi_max =    3 k_max (   89 modes): max |gamma_CM/gamma - 1| = 2.49e-02
+  naive   chi_max =    6 k_max (  359 modes): max |gamma_CM/gamma - 1| = 2.64e-02; Richardson (1/chi) extrapolation: 2.79e-02
+  naive   chi_max =   12 k_max ( 1443 modes): max |gamma_CM/gamma - 1| = 2.70e-02; Richardson (1/chi) extrapolation: 2.76e-02
+  swapped chi_max =    3 k_max (   89 modes): max |gamma_CM/gamma - 1| = 4.04e-02
+  swapped chi_max =    6 k_max (  359 modes): max |gamma_CM/gamma - 1| = 4.08e-02; Richardson (1/chi) extrapolation: 9.78e-02
+  swapped chi_max =   12 k_max ( 1443 modes): max |gamma_CM/gamma - 1| = 7.86e-02; Richardson (1/chi) extrapolation: 1.28e-01
+guide a = 1.0, b = 1.0, twist rate tau = 1.0 rad/unit (tau a = 1.0), gamma = 6.0
+  spectral k_j: [6.0140414783 6.7034420943 7.2483049424 7.359573737  8.4181257346
+ 8.4856554943]
+  spectral convergence p = 16 -> 22: max |dk/k| = 1.1e-10
+  note    chi_max =    3 k_max (  106 modes): max |gamma_CM/gamma - 1| = 4.96e-03
+  note    chi_max =    6 k_max (  414 modes): max |gamma_CM/gamma - 1| = 2.51e-03; Richardson (1/chi) extrapolation: 5.18e-04
+  note    chi_max =   12 k_max ( 1652 modes): max |gamma_CM/gamma - 1| = 1.24e-03; Richardson (1/chi) extrapolation: 8.53e-05
+  naive   chi_max =    3 k_max (  106 modes): max |gamma_CM/gamma - 1| = 2.09e-02
+  naive   chi_max =    6 k_max (  414 modes): max |gamma_CM/gamma - 1| = 1.86e-02; Richardson (1/chi) extrapolation: 2.06e-02
+  naive   chi_max =   12 k_max ( 1652 modes): max |gamma_CM/gamma - 1| = 1.96e-02; Richardson (1/chi) extrapolation: 2.42e-02
+  swapped chi_max =    3 k_max (  106 modes): max |gamma_CM/gamma - 1| = 3.47e-02
+  swapped chi_max =    6 k_max (  414 modes): max |gamma_CM/gamma - 1| = 4.62e-02; Richardson (1/chi) extrapolation: 5.76e-02
+  swapped chi_max =   12 k_max ( 1652 modes): max |gamma_CM/gamma - 1| = 7.14e-02; Richardson (1/chi) extrapolation: 1.26e-01
+helical eigenvalue check passed: the coupling of the note converges to the exact twisted-guide modes

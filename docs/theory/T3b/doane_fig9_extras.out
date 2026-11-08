@@ -1,0 +1,22 @@
+1. tall WR187, 16.5 GHz, triangular: effect of evanescent modes
+  cutoff_factor 1.0 ( 19 modes): TE0,1 0.0107 %, TE1,2 0.1685 %, all spurious (propagating) 0.2471 %
+  cutoff_factor 1.5 ( 44 modes): TE0,1 0.0118 %, TE1,2 0.1767 %, all spurious (propagating) 0.2613 %
+  cutoff_factor 2.0 ( 78 modes): TE0,1 0.0116 %, TE1,2 0.1778 %, all spurious (propagating) 0.2630 %
+  cutoff_factor 3.0 (182 modes): TE0,1 0.0121 %, TE1,2 0.1761 %, all spurious (propagating) 0.2614 %
+   slice convergence (propagating modes only)
+  150 slices: TE0,1 0.0107 %, TE1,2 0.1685 %, all spurious (propagating) 0.2471 %
+  600 slices: TE0,1 0.0107 %, TE1,2 0.1687 %, all spurious (propagating) 0.2474 %
+2. ordinary WR187 (a = 1.872 in, b = 0.872 in), triangular, propagating modes
+  15.0 GHz: TE0,1 0.0012 %, TE1,2 0.0000 %, all spurious (propagating) 0.0170 %
+  16.5 GHz: TE0,1 0.0107 %, TE1,2 0.0000 %, all spurious (propagating) 0.0117 %
+  18.0 GHz: TE0,1 0.0000 %, TE1,2 0.0000 %, all spurious (propagating) 0.0009 %
+3. tall WR187, triangular, propagating modes: coupling variants
+  15.0 GHz note    (unitarity defect 7.9e-15): TE0,1 0.0012 %, TE1,2 0.0796 %, all spurious (propagating) 0.1139 %
+  15.0 GHz naive   (unitarity defect 9.8e-01): TE0,1 0.0042 %, TE1,2 0.0896 %, all spurious (propagating) 0.1647 %
+  15.0 GHz swapped (unitarity defect 9.8e-15): TE0,1 0.0017 %, TE1,2 0.0772 %, all spurious (propagating) 0.1062 %
+  16.5 GHz note    (unitarity defect 1.3e-14): TE0,1 0.0107 %, TE1,2 0.1685 %, all spurious (propagating) 0.2471 %
+  16.5 GHz naive   (unitarity defect 9.9e-01): TE0,1 0.0023 %, TE1,2 0.2070 %, all spurious (propagating) 0.3779 %
+  16.5 GHz swapped (unitarity defect 1.2e-14): TE0,1 0.0093 %, TE1,2 0.1605 %, all spurious (propagating) 0.2274 %
+  18.0 GHz note    (unitarity defect 1.2e-14): TE0,1 0.0000 %, TE1,2 0.3833 %, all spurious (propagating) 0.6022 %
+  18.0 GHz naive   (unitarity defect 1.0e+00): TE0,1 0.0089 %, TE1,2 0.4991 %, all spurious (propagating) 1.0269 %
+  18.0 GHz swapped (unitarity defect 8.1e-15): TE0,1 0.0001 %, TE1,2 0.3586 %, all spurious (propagating) 0.5509 %

@@ -1,0 +1,10 @@
+1. g_ij = [[1, 0, -v*Derivative(theta(z), z)], [0, 1, u*Derivative(theta(z), z)], [-v*Derivative(theta(z), z), u*Derivative(theta(z), z), u**2*Derivative(theta(z), z)**2 + v**2*Derivative(theta(z), z)**2 + 1]]
+   det g = 1
+   g^ij = [[v**2*Derivative(theta(z), z)**2 + 1, -u*v*Derivative(theta(z), z)**2, v*Derivative(theta(z), z)], [-u*v*Derivative(theta(z), z)**2, u**2*Derivative(theta(z), z)**2 + 1, -u*Derivative(theta(z), z)], [v*Derivative(theta(z), z), -u*Derivative(theta(z), z), 1]]
+2. coordinate curl of covariant components = contravariant Cartesian curl (sqrt g = 1): ok
+3. dr/du = u_hat, dr/dv = v_hat (covariant E_t = rotating-frame components); grad z = z_hat (E^z = E.z_hat): ok
+4. d_z E_t = grad E^z + i w mu0 z x H_t - tau G E_t  is exact (= -z x F_t + tau r F_z): ok
+   with G E = grad(w.E) + r div(E x z) = z x E - (u d_v - v d_u) E: ok
+   d_z H_t = grad H^z - i w eps0 z x E_t - tau G H_t  is exact: ok
+5. on u = a/2 with E_v = E_z(cov) = 0:  E^z = tau*v*Eu(a/2, v, z)
+all symbolic checks passed
