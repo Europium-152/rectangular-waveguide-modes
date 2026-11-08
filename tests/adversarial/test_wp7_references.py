@@ -94,7 +94,10 @@ def test_loss_reference_equals_textbook(g):
     tb = np.array([ref_loss.textbook_alpha(m, a, b, f, ref_loss.SIGMA_AL) for m in basis.modes])
     assert np.max(np.abs(np.diag(A) / tb - 1)) < 1e-9
     assert np.allclose(A, A.T)
-    assert np.all(np.linalg.eigvalsh(A) > 0)                # wall loss is positive definite
+    # wall loss is positive semidefinite: one combination of the degenerate modes can have (numerically) zero loss,
+    # whose eigenvalue is +-1e-17 depending on the platform's rounding
+    ev = np.linalg.eigvalsh(A)
+    assert np.all(ev > -1e-12 * np.max(np.abs(ev)))
 
 
 def test_wp2_card_numbers_for_te10_in_aluminium():
