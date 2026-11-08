@@ -101,7 +101,7 @@ $h^2$ enter this condition; the **sign** of $g$ and $h$ is what the smooth-bend 
 
 ## 4. The discrete problem and its scattering matrix
 
-Weak form (P2 or P3 Lagrange elements, scikit-fem), with $b_m = \int_{\text{port}}w\,\phi_m\,ds$:
+Weak form (P3 by default, or P2, Lagrange elements, scikit-fem), with $b_m = \int_{\text{port}}w\,\phi_m\,ds$:
 
 ```latex
 \int\nabla w\cdot\nabla\psi - k_t^2w\psi\;+\;\sum_{\text{ports}}\sum_{m\le M}i\beta_m\,b_m(w)\,b_m(\psi)
@@ -123,6 +123,15 @@ extra de-embedding of the outline (non-zero for a miter whose mirror cuts the ou
 CONVENTIONS.md §6). The diagonal phases preserve symmetry and, for propagating modes, unitarity. The finite-element
 phase error over the arms ($\sim\beta L_p(kh)^{2p}$) enters here; it is part of the discretization error shown by the
 convergence study.
+
+For an evanescent mode the shift is $e^{|\beta|L_p}$ per index, and it multiplies the discretization error of the
+corresponding entries (the discrete mode decays at a slightly different rate than the exact one). By default the arms
+are therefore shortened, when the bases contain evanescent modes, to
+$L_p = \ln(G)/(2|\beta|_{\max})$ with $G$ = `evanescent_gain` = 10, and the modal condition then keeps every port
+mode up to the first one that decays by `port_decay` = 16 e-folds over the arm. Putting the modal ports exactly on
+the reference planes ($L_p = 0$) is not a usable alternative: the inner corner lies on both port lines, and the
+truncated modal expansion of the singular field converges slowly in $M$ (WR-90 miter, 30 GHz: the TE10 loss is
+0.4428, 0.4469, 0.4486 dB for $M$ = 40, 80, 160, against 0.44985 dB converged).
 
 ## 5. Checks
 
