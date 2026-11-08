@@ -112,7 +112,7 @@ def test_overlap_rejects_guides_that_do_not_fit():
 
 # ------------------------------------------------------------------------------------------ basics
 def test_step_is_a_component_with_frame_tagged_bases():
-    st = Step(A, B, A, 0.002, frame="H")
+    st = Step(A, B, A, 0.002, plane="H")
     assert isinstance(st, Component)
     b1, b2 = st.default_basis(10e9)
     assert (b1.a, b1.b, b2.a, b2.b) == (A, B, A, 0.002)
@@ -135,7 +135,7 @@ def test_default_basis_families():
     assert {m.m for m in b1} == {1} and len({m.n for m in b1}) > 3
     # offset in v of a step in both dimensions: the full basis
     b1, b2 = Step(A, B, 0.018, 0.008, du=0.001, dv=0.0005).default_basis(f, cutoff_factor=4)
-    assert b1 == ModeBasis.below(4 * f, A, B) and b2 == ModeBasis.below(4 * f, 0.018, 0.008)
+    assert b1 == ModeBasis.below(4 * f, A, B, frame="H") and b2 == ModeBasis.below(4 * f, 0.018, 0.008, frame="H")
 
 
 def test_identity_step_is_zero_length_straight():
@@ -307,6 +307,67 @@ def test_junction_with_complex_overlaps_stays_reciprocal():
     g = junction_gsm(bL, bS, Xc, f, symmetrize=False)
     assert g.reciprocity_defect() <= 1e-10 * np.max(np.abs(g.S))
     assert np.max(np.abs(g.S - junction_gsm(bL, bS, X, f, symmetrize=False).S)) > 1e-3   # imaginary part used
+
+
+# ------------------------------------------------------------------------------------------ in a Line (WP1)
+HS = 1.6e-3
+
+
+def _line_steps(plane):
+    """WR-90 -> 22.86 x 1.6 mm -> straight 0.1 m -> WR-90, with the steps given in the H or the E frame."""
+    from wrmodes import Line, Guide, Straight
+    if plane == "H":
+        down, up = Step(A, B, A, HS), Step(A, HS, A, B)
+    else:
+        down, up = Step(B, A, HS, A, plane="E"), Step(HS, A, B, A, plane="E")
+    return Line(Guide(A, B), [down, Straight(0.1), up]), down, up
+
+
+@pytest.mark.parametrize("f", [10e9, 30e9, 60e9])
+@pytest.mark.parametrize("plane", ["H", "E"])
+def test_step_in_line_equals_manual_cascade(f, plane):
+    """A Line with two steps equals the manual cascade of the same GSMs in the line's bases (Guide.basis rule,
+    cutoff_factor 1), including the frame changes the line inserts for E-frame steps."""
+    from wrmodes import Guide, FrameChange
+    line, down, up = _line_steps(plane)
+    gW, gS = Guide(A, B), Guide(A, HS)
+    assert down.guides == (gW, gS) and up.guides == (gS, gW)
+    bW, bS = gW.basis(f, plane=plane), gS.basis(f, plane=plane)
+    parts = [down.gsm(f, bW, bS), straight(bS, f, 0.1), up.gsm(f, bS, bW)]
+    if plane == "E":
+        bWH = gW.basis(f, plane="H")
+        parts = ([FrameChange("H", "E", gW).gsm(f, bWH, bW)] + parts + [FrameChange("E", "H", gW).gsm(f, bW, bWH)])
+        assert sum(line.inserted) == 2
+    else:
+        assert sum(line.inserted) == 0
+    manual = parts[0]
+    for p in parts[1:]:
+        manual = manual @ p
+    g = line.gsm(f)
+    assert g.basis1 == manual.basis1 and g.basis2 == manual.basis2
+    assert np.max(np.abs(g.S - manual.S)) < 1e-12
+    assert g.reciprocity_defect() < 1e-10 * np.max(np.abs(g.S)) and g.unitarity_defect() < 1e-10
+
+
+@pytest.mark.parametrize("f", [10e9, 30e9])
+def test_step_in_line_independent_of_frame(f):
+    """The same physical line built from H-frame or E-frame steps gives the same GSM at the line's ports."""
+    gH, gE = _line_steps("H")[0].gsm(f), _line_steps("E")[0].gsm(f)
+    assert gH.basis1 == gE.basis1
+    assert np.max(np.abs(gH.S - gE.S)) < 1e-10
+
+
+def test_step_in_line_is_converged():
+    """Line passes cutoff_factor = 1 bases; the Step still solves with its own truncation (union mechanism)."""
+    from wrmodes import Line, Guide
+    f = 10e9
+    for plane, st in (("H", Step(A, B, A, 0.002)), ("E", Step(B, A, 0.002, A, plane="E"))):
+        g = Line(Guide(A, B), [st]).gsm(f)
+        assert len(g.basis1) == 1 and len(g.basis2) == 1          # TE1,0 only at both ports
+        assert abs(abs(g.S11[0, 0]) - 0.675765) < 1e-6            # converged, not the zeroth-order 0.671053
+    bE1, bE2 = Guide(A, B).basis(f, plane="E"), Guide(A, 0.002).basis(f, plane="E")
+    with pytest.raises(ValueError, match="frame"):               # right sides, wrong frame tag: refused
+        Step(B, A, 0.002, A, plane="E").gsm(f, bE1.with_frame("H"), bE2.with_frame("H"))
 
 
 # ------------------------------------------------------------------------------------------ convergence

@@ -9,7 +9,7 @@ Branch `wave-1/WP4-steps`, from `main` at 223aeeb. Implementer card: `tasks/WP4-
 | Component protocol stub (byte-identical to the briefing; owned by WP1) | `src/wrmodes/components/__init__.py`, `src/wrmodes/components/base.py` |
 | Closed-form overlaps of the normalized fields of two guides, one inside the other, any offset | `src/wrmodes/modematch/overlaps.py` |
 | Symmetric mode-matching GSM of a junction | `src/wrmodes/modematch/junction.py` |
-| `Step(a1, b1, a2, b2, du, dv, frame, cutoff_factor, name, plane)` component (`gsm`, `solve`), default truncation, `convergence_study` | `src/wrmodes/modematch/step.py` |
+| `Step(a1, b1, a2, b2, du, dv, plane, cutoff_factor, name)` component (`gsm`, `solve`, `guides`), default truncation, `convergence_study` | `src/wrmodes/modematch/step.py` |
 | Marcuvitz (1951) single-mode step circuits, and conversions circuit ↔ S | `src/wrmodes/modematch/marcuvitz.py` |
 | Tests (78 + 1 strict expected failure) | `tests/test_steps.py` |
 | Example: WR-90 → 22.86 × 1.6 mm → WR-90 | `examples/strangling_step.py` |
@@ -30,7 +30,7 @@ Branch `wave-1/WP4-steps`, from `main` at 223aeeb. Implementer card: `tasks/WP4-
   $S_{11} = 2FRF^T - I$, $S_{12} = 2FR = S_{21}^T$, $S_{22} = 2R - I$. $R$ is symmetrized, so $S = S^T$ exactly. Since
   $X$ is real, the truncated equations conserve complex power exactly, so the propagating block is unitary at any
   truncation. Expansions use the same junction with the ports exchanged (same frame, no reversal signs).
-* **Bases and truncation.** Each port has a `ModeBasis` of its own cross-section, both with the Step's `frame` tag
+* **Bases and truncation.** Each port has a `ModeBasis` of its own cross-section, both with the frame tag `plane`
   (a mismatch raises). `default_basis(f, cutoff_factor)` keeps, on both sides, the modes with cutoff below
   `cutoff_factor·f` (same cutoff on both sides, so mode numbers are in proportion to the dimensions). A step that keeps
   $b$ conserves $n$ and a step that keeps $a$ conserves $m$: only the families $n$ (indices $m$) with a propagating
@@ -276,11 +276,9 @@ container.
 
 ## For other cards
 
-* **WP1:** the component stub was created byte-identical (verified with `diff` against the briefing) and has not been
-  changed since. `base.py` is left to WP1 for the protocol change (`cutoff_factor=None` = the component's own
-  default). `Step.default_basis(f, cutoff_factor=None)` already follows it. `Step.plane` ('H' by default, constructor
-  argument `plane`) gives the frame in which a, b, du, dv are given. The base-tag argument `frame` stays separate
-  (default None, untagged). See open issue 3.
+* **WP1:** `components/` is WP1's since the merge. `Step` follows the protocol: `plane` ('H' by default), `guides`,
+  and `default_basis(f, cutoff_factor=None)`. The basis frame tag follows `plane` (see "Integration with WP1's Line"
+  below). Open issue 3 is fixed by the robust `GSM.star`.
 * **WP2:** `wrmodes.modematch.junction_gsm(basis_large, basis_small, X, f, large_port)` is the reusable kernel. Any
   overlap matrix $X$ (small × large) can be passed, e.g. for impedance-walled or sheet-loaded guides once their
   modes are written in the §5 normalization.
@@ -321,4 +319,34 @@ The independent review of PR #4 found no blockers. Changes:
      on those, since it is vacuous after symmetrization; the docstring says so.
    * The $N_{12}$ finding is added to open issue 2.
 
-Test counts: `tests/test_steps.py` 78 passed, 1 xfailed (strict); full suite 171 passed, 1 xfailed.
+Test counts after the first round: `tests/test_steps.py` 78 passed, 1 xfailed (strict); full suite 171 passed, 1 xfailed.
+
+### Integration with WP1's `Line` (after the merge of WP1 and conventions update 1)
+
+The coordinator merged WP1 into this branch. `components/` is now WP1's: the protocol has `plane` and
+`default_basis(f, cutoff_factor=None)`. With the robust `GSM.star` in, the plain-star regression test passes and its
+xfail marker is gone.
+
+* **Frame tag follows `plane`.** The separate `frame` constructor argument is removed:
+  `Step(a1, b1, a2, b2, du=0, dv=0, plane='H', cutoff_factor=None, name='')`. `Step.frame` is now a read-only alias
+  of `plane`, so the default bases carry the tag `plane`, as the bases `Line` passes do (`Guide.basis(…, plane)`).
+  `gsm` and `solve` accept bases tagged `plane`, or untagged bases. Bases tagged with the other frame raise, even
+  when their sides happen to fit (square guides). The dimensions and offsets are given in the local frame
+  `plane`.
+* **`Step.guides`.** (Guide(a1, b1), Guide(a2, b2)) for 'H' and (Guide(b1, a1), Guide(b2, a2)) for 'E', in global
+  (w, h) terms with perfect walls (`sigma=None`). A line in a lossy Guide therefore refuses a Step (guide mismatch)
+  until WP2 adds wall loss.
+* **Cutoff factor 1 in Line.** `Line` passes cutoff_factor 1 bases. `Step.gsm` still solves on the union with its
+  own default basis, so the step inside the line is converged: WR-90 → 22.86 × 2 mm at 10 GHz gives |S11| =
+  0.675765 in a Line, with the step in either frame, not the zeroth-order 0.671053.
+* `Step.name` now defaults to its repr, so `Line.describe()` shows the dimensions.
+* **New tests.**
+  * `test_step_in_line_equals_manual_cascade`: WR-90 → 22.86 × 1.6 mm → Straight 0.1 m → WR-90, steps in the H
+    frame or the E frame (the line then inserts H→E and E→H frame changes), at 10, 30 and 60 GHz. Line equals the
+    manual cascade of the same GSMs to 1e-12, reciprocal and unitary.
+  * `test_step_in_line_independent_of_frame`: the H-frame and E-frame builds of the same line agree to
+    3.1e-16 / 8.0e-16 / 1.4e-15 at 10 / 30 / 60 GHz (1, 12 and 57 port modes; TE10 transmission 0.666810 /
+    0.058666 / 0.069585).
+  * `test_step_in_line_is_converged`: the converged |S11| above, and the refusal of bases with the wrong frame tag.
+
+Full suite after the integration: 232 passed.

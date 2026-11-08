@@ -42,8 +42,9 @@ class Step(Component):
     frame (u, v) of the larger one (CONVENTIONS.md section 2; side a along u, side b along v).
 
     Both reference planes are the junction plane (CONVENTIONS.md section 6). Each port has the ModeBasis of its own
-    cross-section; both carry the same frame tag `frame`. The GSM is symmetric by construction and its propagating
-    block is unitary at every truncation (see ``wrmodes.modematch.junction``).
+    cross-section; both carry the frame tag `plane` ('H' or 'E'), the local frame in which the dimensions are
+    given. The GSM is symmetric by construction and its propagating block is unitary at every truncation (see
+    ``wrmodes.modematch.junction``).
 
     `gsm(f, basis1, basis2)` always solves the matching on the union of the requested bases and `default_basis(f)`
     and returns the block of the requested port modes, so that small port bases (e.g. the propagating modes only, as
@@ -63,11 +64,10 @@ class Step(Component):
     du, dv : float
         Offset (m) of the centre of the smaller guide in the larger guide's frame.
     plane : {'H', 'E'}
-        The frame in which a1, b1, a2, b2 (and du, dv) are given (CONVENTIONS.md section 2): 'H' for the local frame
-        of the H plane (a along the global x), 'E' for that of the E plane. Metadata for the transmission-line
-        assembly; it does not change the GSM. Default 'H'.
-    frame : optional
-        Frame tag of both port bases (CONVENTIONS.md section 2), e.g. 'H' or 'E'; default None (untagged).
+        The local frame in which a1, b1, a2, b2 and du, dv are given (CONVENTIONS.md section 2): 'H' (u = x,
+        a along the global width w) or 'E' (u = y, v = -x, a along the global height h). The default bases carry
+        this frame tag, and `gsm` accepts bases tagged with it (or untagged bases). In a `wrmodes.Line`, the step's
+        global guides are `guides`; the line inserts the frame changes to `plane`. Default 'H'.
     cutoff_factor : float, optional
         Truncation used by `default_basis` when it is called without one. Both ports keep the modes with cutoff
         frequency below cutoff_factor * f (the same cutoff on both sides, so that the numbers of modes along each
@@ -85,16 +85,13 @@ class Step(Component):
     #: default lower bound on cutoff_factor
     MIN_CUTOFF_FACTOR = 3.0
 
-    def __init__(self, a1, b1, a2, b2, du=0.0, dv=0.0, frame=None, cutoff_factor=None, name="", plane="H"):
+    def __init__(self, a1, b1, a2, b2, du=0.0, dv=0.0, plane="H", cutoff_factor=None, name=""):
         self.a1, self.b1, self.a2, self.b2 = float(a1), float(b1), float(a2), float(b2)
         self.du, self.dv = float(du), float(dv)
         if plane not in ("H", "E"):
             raise ValueError(f"plane must be 'H' or 'E', got {plane!r}")
         self.plane = plane
-        self.frame = frame
         self.cutoff_factor = cutoff_factor
-        if name:
-            self.name = name
         if min(self.a1, self.b1, self.a2, self.b2) <= 0:
             raise ValueError("guide dimensions must be positive")
         grow_a = self.a2 >= self.a1 or _same(self.a1, self.a2)
@@ -111,6 +108,7 @@ class Step(Component):
         tol = 1e-12 * max(aL, bL)
         if abs(self.du) > 0.5 * (aL - aS) + tol or abs(self.dv) > 0.5 * (bL - bS) + tol:
             raise ValueError(f"offset ({du:g}, {dv:g}) puts the {aS:g} x {bS:g} guide outside the {aL:g} x {bL:g} one")
+        self.name = name or repr(self)
 
     # ------------------------------------------------------------------------------------- geometry
     def _large(self):
@@ -118,6 +116,20 @@ class Step(Component):
 
     def _small(self):
         return (self.a2, self.b2) if self.large_port == 1 else (self.a1, self.b1)
+
+    @property
+    def frame(self):
+        """Frame tag of the port bases: the step's `plane`."""
+        return self.plane
+
+    @property
+    def guides(self):
+        """(input Guide, output Guide) in the global frame (w along x, h along y), for `wrmodes.Line`: (a, b) in the
+        H frame, (b, a) in the E frame (CONVENTIONS.md section 2). Perfectly conducting walls (sigma = None)."""
+        from ..components.guide import Guide
+        if self.plane == "H":
+            return Guide(self.a1, self.b1), Guide(self.a2, self.b2)
+        return Guide(self.b1, self.a1), Guide(self.b2, self.a2)
 
     @property
     def conserves_n(self):
@@ -131,7 +143,7 @@ class Step(Component):
 
     def __repr__(self):
         off = f", du={self.du:g}, dv={self.dv:g}" if (self.du or self.dv) else ""
-        return f"Step({self.a1:g} x {self.b1:g} -> {self.a2:g} x {self.b2:g}{off})"
+        return f"Step({self.a1:g} x {self.b1:g} -> {self.a2:g} x {self.b2:g}{off}, plane={self.plane!r})"
 
     # ------------------------------------------------------------------------------------- bases
     def default_cutoff_frequency(self, f):
@@ -192,9 +204,12 @@ class Step(Component):
                 raise ValueError(f"basis{port} is for a {bb.a:g} x {bb.b:g} guide, port {port} is {a:g} x {b:g}")
         if basis1.frame != basis2.frame:
             raise ValueError(f"both ports of a step use the same frame tag (got {basis1.frame!r}, {basis2.frame!r})")
+        if basis1.frame not in (None, self.plane):
+            raise ValueError(f"the bases are in the {basis1.frame!r} frame, but the step's dimensions are given in "
+                             f"the {self.plane!r} frame")
 
     def _label(self):
-        return self.name if self.name != "step" else repr(self)
+        return self.name
 
     def solve(self, f, basis1, basis2, symmetrize=True):
         """GSM of the truncated mode-matching problem on exactly these bases (no extension).
