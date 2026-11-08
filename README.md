@@ -69,3 +69,11 @@ T_line = T_bend @ wr.straight_section(beta, 2.0) @ T_bend
 The `tests/` folder contains unit tests (`pytest`), and `benchmarks/` the scripts that reproduce the
 figures of the accompanying paper (comparison with Zhang et al. 2012 and with COMSOL Multiphysics) and the
 validation of the transfer-matrix solver.
+
+# Development of wrmodes 1.0
+
+wrmodes 1.0 extends the library from smooth bends to complete transmission lines: generalized scattering matrices
+and their cascade, ohmic loss, miter bends, steps, tapers, twists and mode filters. The conventions shared by all
+components (mode fields, amplitude normalization, frames, GSM definition) are fixed in `CONVENTIONS.md`; the work
+is organized in task cards under `tasks/`. The 0.1 API and its results are unchanged and locked by
+`tests/test_regression_v0_1.py`.

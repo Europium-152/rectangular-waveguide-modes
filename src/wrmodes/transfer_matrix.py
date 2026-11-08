@@ -104,6 +104,10 @@ def coupled_mode_matrices(f, a, b, modes):
     """
     N = len(modes)
     beta = propagation_constants(f, a, b, modes)
+    if np.any(beta.imag != 0):
+        warnings.warn("coupled_mode_matrices: evanescent modes in the expansion. The coupled-mode equations of "
+                      "wrmodes are written for propagating modes; below cutoff this function's beta is +i|beta|, "
+                      "opposite to the branch of CONVENTIONS.md (wrmodes.modes.propagation_constant).", RuntimeWarning)
     Cp = np.zeros((N, N), dtype=complex)
     Cm = np.zeros((N, N), dtype=complex)
     for i, p in enumerate(modes):
