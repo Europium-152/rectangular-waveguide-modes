@@ -202,11 +202,12 @@ class Step(Component):
         for bb, a, b, port in ((basis1, self.a1, self.b1, 1), (basis2, self.a2, self.b2, 2)):
             if not (_same(bb.a, a) and _same(bb.b, b)):
                 raise ValueError(f"basis{port} is for a {bb.a:g} x {bb.b:g} guide, port {port} is {a:g} x {b:g}")
-        if basis1.frame != basis2.frame:
-            raise ValueError(f"both ports of a step use the same frame tag (got {basis1.frame!r}, {basis2.frame!r})")
-        if basis1.frame not in (None, self.plane):
-            raise ValueError(f"the bases are in the {basis1.frame!r} frame, but the step's dimensions are given in "
-                             f"the {self.plane!r} frame")
+        # each port basis is either tagged with the step's frame or untagged (an untagged basis is read in the
+        # step's frame); bases tagged with the other frame are refused, even when their sides fit (square guides)
+        for bb, port in ((basis1, 1), (basis2, 2)):
+            if bb.frame not in (None, self.plane):
+                raise ValueError(f"basis{port} is in the {bb.frame!r} frame, but the step's dimensions are given in "
+                                 f"the {self.plane!r} frame")
 
     def _label(self):
         return self.name
