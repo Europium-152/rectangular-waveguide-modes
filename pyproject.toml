@@ -10,7 +10,7 @@ dependencies = [
   "threadpoolctl>=3.0",
 ]
 name = "wrmodes"
-version = "0.1.0"
+version = "1.0.0.dev0"
 authors = [
   { name="Daniel Hachmeister", email="daniel.hachmeister@tecnico.ulisboa.pt" },
 ]
@@ -26,6 +26,8 @@ license-files = ["LICEN[CS]E*"]
 
 [project.optional-dependencies]
 test = ["pytest"]
+# 2D modal-port solver (wave 1, WP3); optional so that the core keeps numpy/scipy only
+fem = ["scikit-fem", "gmsh"]
 
 [project.urls]
 Homepage = "https://github.com/Europium-152/rectangular-waveguide-modes"
