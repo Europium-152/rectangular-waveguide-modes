@@ -34,7 +34,8 @@ down are `tests/test_conventions.py` and `tests/test_gsm.py`. The derivation beh
 * **Turning a component around** (its port 2 becomes port 1) is the rotation by π about $\hat u$:
   $(u, v, z)\to(u, -v, -z)$. It keeps the sign of κ. Mode $p$ maps to $P_p$ times itself with
   $P = (-1)^{n+1}$ for TE and TM alike, so $S' = P\,S_{\text{swapped}}\,P$ (`GSM.reversed`, `modes.reversal_signs`).
-  The signs cancel within a family and matter for components that couple families.
+  The signs cancel within a family and matter for components that couple families. A component with an offset
+  $d_v$ turned around has its offset at $-d_v$.
 
 ### Global guide frame and plane changes
 
@@ -46,12 +47,15 @@ down are `tests/test_conventions.py` and `tests/test_gsm.py`. The derivation beh
   mode $(M, N)$ is local mode $(N, M)$ times $(-1)^M$ for TE and $(-1)^{M+1}$ for TM: TE₁₀ → −TE₀₁, TE₂₀ → +TE₀₂,
   TM₁₁ → +TM₁₁, TM₂₁ → −TM₁₂ (`modes.eplane_frame_signs`, checked against the fields in
   `tests/test_conventions.py`). The relative sign of TE and TM changes under this frame change.
-* Every `ModeBasis` may carry a **frame tag** (`'H'`, `'E'`, or a twist label). Bases with different tags are
+* Every `ModeBasis` may carry a **frame tag** (`'H'` or `'E'`). Bases with different tags are
   unequal, so the cascade refuses to join them even when the dimensions agree (square guides).
 * Frame changes are never implicit. They are explicit, lossless components (`FrameChange`, WP1) whose matrix is
   the overlap $\iint e^{\text{to}}_p\cdot e^{\text{from}}_q\,ds$ of the normalized fields, a signed permutation for
-  rotations by multiples of 90°. A twist (WP6) ends in a rotated frame and is followed by the corresponding
-  `FrameChange` if the next component expects the global frame.
+  rotations by multiples of 90°.
+* The global guide frame is attached to the guide: $x$ is always along side $w$. Bends transport it along the centre
+  line (rotation about the local $v$). A twist (WP6) rotates it together with the cross-section, so a twist's GSM
+  has the global frame at both ports and is **not** followed by a `FrameChange`. The twist angle changes only the
+  orientation in space of the components after it.
 * A bend turning the other way within the same plane uses a negative κ, not a different frame.
 
 ## 3. Modes and bases
@@ -70,11 +74,20 @@ down are `tests/test_conventions.py` and `tests/test_gsm.py`. The derivation beh
   equal; the cascade refuses to join unequal bases.
 * A **family** is the set of modes with the same $n$. Components that do not vary along $v$ (straights, coplanar
   bends, miters, steps in $a$ only, tapers of $a$ only) couple only modes of the same family, and may return one
-  GSM per family, combined with `wrmodes.gsm.block_diag`.
+  GSM per family, combined with `wrmodes.gsm.block_diag`. A step that keeps side $a$ with $d_u = 0$ also conserves
+  $m$.
+* Wall loss on the walls perpendicular to $v$ (the walls at $v = \pm b/2$) couples $n$ with $n\pm2$ (equal walls)
+  or with any $n'$ (unequal walls), so a lossy component is not strictly family-conserving. For metal walls the
+  effect is at most about 6e-6 of the power (T1b). A component that treats families separately in the presence
+  of loss says so in its docstring and bounds the neglected coupling.
 * Truncation: a basis contains the propagating modes plus the evanescent modes with cutoff below
-  `cutoff_factor × f` (`ModeBasis.propagating`). By default evanescent modes are only added to families that
-  have a propagating mode; components that conserve $n$ cannot couple the other families to anything that
-  propagates. Coupled-mode (transfer-matrix) solvers use `cutoff_factor = 1`;
+  `cutoff_factor × f`. A family is a fixed $n$ in a *local* frame. A line therefore states the rule in the global
+  frame for every frame it uses: an evanescent global mode $(M, N)$ is kept when some propagating mode has the same
+  $N$ (a live H-frame family) or the same $M$ (a live E-frame family). Every component of a line receives this one
+  basis, mapped to its local frame. Components that conserve $n$ must accept local families without a propagating
+  mode; they may treat them as uncoupled (straight modes over their length, no scattering for zero-length
+  components) and say so. `ModeBasis.propagating(..., frame=X)` used for a single component in its own frame keeps
+  only the live families of that frame. Coupled-mode (transfer-matrix) solvers use `cutoff_factor = 1`;
   solvers that need evanescent modes state their own default and show convergence in it.
 
 ## 4. Mode fields
@@ -129,7 +142,11 @@ $\tfrac12\iint(E^+_p\times H^+_q)\cdot\hat z\,ds = a_p a_q\,\delta_{pq}$.
   intersection of the two arm axes, and the component reports this distance as `arm_length`, so that a line keeps
   its centre-line geometry. The 2D solver, the mode-matching code and COMSOL models use these planes, phases
   included.
-* **Cascade**: Redheffer star product, `A @ B` or `cascade(A, B, ...)`, in the order of propagation. It requires
+* **Cascade**: Redheffer star product, `A @ B` or `cascade(A, B, ...)`, in the order of propagation. When
+  $I - A_{22}B_{11}$ is singular because a mode is trapped between the two components without coupling to the
+  outer ports (e.g. two junctions on the same plane), the product uses the pseudo-inverse, which is exact for such
+  hidden modes. If the trapped mode couples to the outer ports, the cascade is at an exact resonance and raises
+  `LinAlgError`. It requires
   `A.basis2 == B.basis1` (frame tags included) and equal frequencies; a GSM with a frequency cannot be joined to
   one without.
 * **Properties every component must have**, checked in its tests at each frequency tested:
@@ -193,8 +210,17 @@ method, within these targets (see `tasks/README.md`).
 
 ## 10. Code
 
-* Components implement `gsm(f, basis1=None, basis2=None) -> GSM`, hold no global state and do not modify their
-  inputs. A component that only couples within families documents it.
+* Components derive from `wrmodes.components.Component` and implement `gsm(f, basis1=None, basis2=None) -> GSM`
+  and `default_basis(f, cutoff_factor=None)`, where `None` means the component's own default truncation. They
+  hold no global state and do not modify their inputs. A component that only couples within families documents
+  it.
+* Every component declares a class or instance attribute `plane`: `'H'` or `'E'` for the frame in which its local
+  $a, b$ are given, or `None` only for components whose GSM is unchanged by the H↔E frame change (lossless or
+  uniform-wall straights, frame changes). `Line` raises if it is missing.
+* A component given port bases smaller than its own default truncation (e.g. propagating modes only) still solves
+  on its own default basis, or on the union of both, and returns the requested sub-block. Dropping evanescent port
+  modes assumes the neighbouring components are far enough away for those modes to decay; a component documents
+  the distance it needs.
 * New dependencies beyond numpy and scipy are optional extras (`wrmodes[fem]`). The core must import without them.
 * Public functions have docstrings that state units, conventions used and the reference (paper, equation) they
   implement.

@@ -129,14 +129,13 @@ class GSM:
         B11, B12, B21, B22 = other.S11, other.S12, other.S21, other.S22
         n = A22.shape[0]
         I = np.eye(n)
-        # multiple reflections between the two components: (I - B11 A22)^-1 and (I - A22 B11)^-1
-        X = np.linalg.solve(I - B11 @ A22, B11)          # (I - B11 A22)^-1 B11
-        Y = np.linalg.solve(I - A22 @ B11, A21)          # (I - A22 B11)^-1 A21
-        Z = np.linalg.solve(I - A22 @ B11, A22)          # (I - A22 B11)^-1 A22
-        S11 = A11 + A12 @ X @ A21
-        S12 = A12 @ np.linalg.solve(I - B11 @ A22, B12)
-        S21 = B21 @ Y
-        S22 = B22 + B21 @ Z @ B12
+        # multiple reflections between the two components: L (I - B11 A22)^-1 R and L (I - A22 B11)^-1 R
+        M1 = I - B11 @ A22
+        M2 = I - A22 @ B11
+        S11 = A11 + _outer_solve(A12, M1, B11 @ A21)
+        S12 = _outer_solve(A12, M1, B12)
+        S21 = _outer_solve(B21, M2, A21)
+        S22 = B22 + _outer_solve(B21, M2, A22 @ B12)
         f = self.f if self.f is not None else other.f
         name = " + ".join(x for x in (self.name, other.name) if x)
         return GSM(S11, S12, S21, S22, self.basis1, other.basis2, f, name)
@@ -144,6 +143,41 @@ class GSM:
     def __matmul__(self, other):
         """`A @ B` is the cascade A followed by B (same as A.star(B))."""
         return self.star(other)
+
+
+RCOND_MIN = 1e-12
+"""Reciprocal condition number below which the star product treats I - A22 B11 as singular."""
+
+
+def _outer_solve(L, M, R):
+    """L M^-1 R, robust to an exactly singular M (trapped modes between two components).
+
+    M = I - B11 A22 (or I - A22 B11) is singular when a mode between the two components is totally reflected
+    on both sides without coupling to either outer port, e.g. two junctions on the same plane. Such a trapped
+    mode is invisible from outside if its null directions satisfy L V0 = 0 or U0^H R = 0 (M = U S V^H); then the
+    pseudo-inverse gives the correct product. Otherwise the cascade is at an exact resonance of a mode that couples
+    to the ports, which has no finite scattering matrix, and a LinAlgError is raised.
+    """
+    n = M.shape[0]
+    if n == 0:
+        return np.zeros((L.shape[0], R.shape[1]), dtype=complex)
+    lu = np.linalg.cond(M, 1) if n else 1.0
+    if np.isfinite(lu) and 1.0 / lu >= RCOND_MIN:
+        return L @ np.linalg.solve(M, R)
+    U, sv, Vh = np.linalg.svd(M)
+    tol = max(sv[0], 1.0) * 1e-10
+    null = sv <= tol
+    V0, U0 = Vh[null].conj().T, U[:, null]
+    scale_L = max(np.max(np.abs(L)) if L.size else 0.0, 1.0)
+    scale_R = max(np.max(np.abs(R)) if R.size else 0.0, 1.0)
+    hidden = (np.max(np.abs(L @ V0)) if L.size else 0.0) <= 1e-8 * scale_L or \
+             (np.max(np.abs(U0.conj().T @ R)) if R.size else 0.0) <= 1e-8 * scale_R
+    if not hidden:
+        raise np.linalg.LinAlgError("star product: exact resonance of a mode trapped between the two components that "
+                                    "couples to the outer ports (I - A22 B11 is singular); the cascade has no finite "
+                                    "scattering matrix at this frequency")
+    inv = (Vh[~null].conj().T / sv[~null]) @ U[:, ~null].conj().T
+    return L @ inv @ R
 
 
 def cascade(*gsms):
