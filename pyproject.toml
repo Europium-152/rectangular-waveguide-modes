@@ -6,8 +6,8 @@ build-backend = "hatchling.build"
 dependencies = [
   "typer",
   "numpy",
-  "scipy",
-  "threadpoolctl",
+  "scipy>=1.9",
+  "threadpoolctl>=3.0",
 ]
 name = "wrmodes"
 version = "0.1.0"
