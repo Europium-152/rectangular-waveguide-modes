@@ -169,9 +169,14 @@ def test_reciprocity_and_unitarity_at_every_truncation(dims, f):
     two_d = not (st.conserves_m or st.conserves_n)
     cfs = (1.0, 1.7, 3.0, 6.0) if two_d and f > 20e9 else (1.0, 1.7, 3.0, 6.0, 12.0, 30.0)
     for cf in cfs:
-        g = st.gsm(f, *st.default_basis(f, cf))
-        assert g.reciprocity_defect() <= 1e-10 * np.max(np.abs(g.S))
-        assert g.unitarity_defect() <= 1e-10
+        b1, b2 = st.default_basis(f, cf)
+        raw = st.solve(f, b1, b2, symmetrize=False)          # the reciprocity check is not vacuous here
+        assert raw.reciprocity_defect() <= 1e-10 * np.max(np.abs(raw.S))
+        assert raw.unitarity_defect() <= 1e-10
+    # gsm: extended with the default basis, block of the requested (here propagating-only) port modes
+    g = st.gsm(f, *st.default_basis(f, 1.0))
+    assert g.reciprocity_defect() <= 1e-10 * np.max(np.abs(g.S))
+    assert g.unitarity_defect() <= 1e-10
 
 
 def test_unitarity_with_unbalanced_truncations():
@@ -179,7 +184,7 @@ def test_unitarity_with_unbalanced_truncations():
     f = 12e9
     st = Step(A, B, 0.015, 0.006, du=-0.002, dv=0.001)
     for c1, c2 in ((1.5, 8.0), (8.0, 1.5), (3.0, 3.0)):
-        g = st.gsm(f, ModeBasis.below(c1 * f, A, B), ModeBasis.below(c2 * f, 0.015, 0.006))
+        g = st.solve(f, ModeBasis.below(c1 * f, A, B), ModeBasis.below(c2 * f, 0.015, 0.006), symmetrize=False)
         assert g.reciprocity_defect() <= 1e-10 * np.max(np.abs(g.S))
         assert g.unitarity_defect() <= 1e-10
 
@@ -189,7 +194,7 @@ def test_ports_of_reduction_and_expansion():
     f = 11e9
     red, exp_ = Step(A, B, 0.017, 0.006, du=0.001, dv=0.001), Step(0.017, 0.006, A, B, du=0.001, dv=0.001)
     bL, bS = red.default_basis(f, 4.0)
-    g, h = red.gsm(f, bL, bS), exp_.gsm(f, bS, bL)
+    g, h = red.solve(f, bL, bS), exp_.solve(f, bS, bL)
     assert np.allclose(g.S11, h.S22, atol=1e-14) and np.allclose(g.S21, h.S12, atol=1e-14)
     assert np.allclose(g.S22, h.S11, atol=1e-14) and np.allclose(g.S12, h.S21, atol=1e-14)
 
@@ -202,12 +207,12 @@ def test_reversed_step_follows_conventions(du, dv):
     up = Step(0.018, 0.008, A, B, du=du, dv=dv)
     down = Step(A, B, 0.018, 0.008, du=du, dv=-dv)
     bS, bL = up.default_basis(f, 5.0)
-    rev = up.gsm(f, bS, bL).reversed()
-    direct = down.gsm(f, bL, bS)
+    rev = up.solve(f, bS, bL).reversed()
+    direct = down.solve(f, bL, bS)
     assert np.max(np.abs(rev.S - direct.S)) < 1e-12
     if dv != 0:
         # without the reversal signs the family-coupling entries would have the wrong sign
-        g = up.gsm(f, bS, bL)
+        g = up.solve(f, bS, bL)
         P1, P2 = reversal_signs(bL), reversal_signs(bS)
         assert np.max(np.abs(g.S22 - direct.S11)) > 1e-3
         assert np.max(np.abs(P1[:, None] * g.S22 * P1[None, :] - direct.S11)) < 1e-12
@@ -232,9 +237,9 @@ def test_small_large_small_at_zero_distance_is_identity(small, du, dv, f):
         bS, bL = up.default_basis(f, cf)
         X = up.overlaps(bS, bL)
         assert np.linalg.matrix_rank(X.T) == len(bS)
-        g1, g2 = up.gsm(f, bS, bL), back.gsm(f, bS, bL).reversed()
+        g1, g2 = up.solve(f, bS, bL), back.solve(f, bS, bL).reversed()
         if dv == 0:
-            assert np.max(np.abs(g2.S - up.gsm(f, bS, bL).reversed().S)) == 0
+            assert np.max(np.abs(g2.S - up.solve(f, bS, bL).reversed().S)) == 0
         c, trapped = star_zero_length(g1, g2)
         assert trapped == len(bL) - len(bS)
         m = bS.propagating_mask(f)
@@ -254,6 +259,59 @@ def test_large_small_large_is_an_iris_not_identity():
     assert 0.1 < t < 0.99                          # a thin inductive-capacitive iris, not a straight
 
 
+@pytest.mark.xfail(strict=True, reason="GSM.star silently returns wrong numbers when I - A22 B11 is singular (modes "
+                                       "trapped between two junctions on one plane); the coordinator is fixing "
+                                       "gsm.star, which will flip this test")
+def test_small_large_small_plain_star_regression():
+    """Small -> large -> small at zero length with the plain star product (no least-squares workaround)."""
+    f = 10e9
+    up = Step(A, 0.002, *WR90)
+    bS, bL = up.default_basis(f, 8.0)
+    assert len(bL) > len(bS)                               # there are trapped modes
+    c = up.solve(f, bS, bL) @ up.solve(f, bS, bL).reversed()
+    assert np.max(np.abs(c.S - port_swap_identity(len(bS)))) < 1e-10
+
+
+def test_gsm_extends_small_port_bases():
+    """Port bases with the propagating modes only must not give the zeroth-order answer (review of PR #4): gsm
+    solves on the union with the default basis and returns the requested block."""
+    f = 10e9
+    st = Step(*WR90, A, 0.002)
+    p1, p2 = ModeBasis.propagating(f, *WR90), ModeBasis.propagating(f, A, 0.002)
+    small = st.gsm(f, p1, p2)
+    full = st.gsm(f)
+    assert small.basis1 == p1 and small.basis2 == p2
+    assert abs(small.S11[0, 0] - full.S11[0, 0]) < 1e-14 and abs(small.S21[0, 0] - full.S21[0, 0]) < 1e-14
+    zeroth = st.solve(f, p1, p2)                            # the truncated problem on those bases
+    assert abs(abs(zeroth.S11[0, 0]) - 0.671053) < 1e-6 and abs(abs(full.S11[0, 0]) - 0.675765) < 1e-6
+    assert abs(20 * np.log10(abs(small.S21[0, 0])) - 20 * np.log10(abs(zeroth.S21[0, 0]))) > 0.04
+    assert small.unitarity_defect() < 1e-10 and small.reciprocity_defect() == 0
+    # a basis with an odd mode order is answered in that order
+    rev1 = ModeBasis(A, B, list(full.basis1.modes[:5])[::-1], sort=False)
+    g = st.gsm(f, rev1, p2)
+    i = [full.basis1.index(m) for m in rev1.modes]
+    assert np.allclose(g.S11, full.S11[np.ix_(i, i)], atol=1e-14)
+
+
+def test_plane_attribute():
+    assert Step.plane == "H"
+    assert Step(A, B, A, 0.002).plane == "H" and Step(B, A, 0.002, A, plane="E").plane == "E"
+    with pytest.raises(ValueError):
+        Step(A, B, A, 0.002, plane="x")
+
+
+def test_junction_with_complex_overlaps_stays_reciprocal():
+    """junction_gsm keeps complex overlaps (no silent cast to float) and is symmetric for any F."""
+    f = 12e9
+    bL, bS = ModeBasis.below(4 * f, *WR90), ModeBasis.below(4 * f, 0.015, 0.006)
+    X = overlap_matrix(bS, bL, -0.002, 0.001)
+    phase = np.exp(1j * np.linspace(0.3, 2.1, len(bS)))
+    Xc = phase[:, None] * X                                 # row scaling: complex overlaps
+    g = junction_gsm(bL, bS, Xc, f, symmetrize=False)
+    assert g.reciprocity_defect() <= 1e-10 * np.max(np.abs(g.S))
+    assert np.max(np.abs(g.S - junction_gsm(bL, bS, X, f, symmetrize=False).S)) > 1e-3   # imaginary part used
+
+
 # ------------------------------------------------------------------------------------------ convergence
 def test_convergence_of_strangling_step():
     """|S11| of TE10 in the WR-90 -> 22.86 x 2 mm step: change < 1e-4 between the two finest truncations."""
@@ -263,6 +321,7 @@ def test_convergence_of_strangling_step():
     s11 = np.abs(r["S"][:, 0, 0])
     assert abs(s11[-1] - s11[-2]) < 1e-4
     assert np.all(r["unitarity"] < 1e-10) and np.all(r["reciprocity"] < 1e-10)
+    assert r["change_complex"][-1] < 1e-4 and r["change_complex"][-1] >= r["change"][-1]
     # the default truncation is on the converged side
     g = st.gsm(10e9)
     assert abs(abs(g.S11[0, 0]) - s11[-1]) < 1e-4
@@ -328,24 +387,43 @@ def test_hplane_step_against_marcuvitz_wide_aperture(asym, aol, al):
     assert 0 < l / A < 0.02                                  # T' on the wide-guide side, l << a
 
 
-@pytest.mark.xfail(strict=True, reason="symmetric H-plane step: mode matching differs from Marcuvitz (2c) by up to "
-                                       "11 % (stated 6 %); see docs/reports/WP4.md, open issues")
-def test_hplane_symmetric_reactance_against_marcuvitz_2c():
+def _hplane_x(aol, al):
+    f = aol * cst.c / A
+    g = Step(A, B, al * A, B).gsm(f)
+    bp = propagation_constant(("TE", 1, 0), al * A, B, f).real
+    _, x, _ = M.hplane_from_s(g.S11[0, 0], g.S22[0, 0], bp)
+    return x, f
+
+
+# Independent 2D finite-difference reference (scalar E_y, Dirichlet walls, discrete modal ports, Richardson
+# extrapolation in the grid step), computed by the reviewer of PR #4 (script fd2d.py of the review, not in the
+# repository): symmetric H-plane step, a'/a = 0.8. Values and 1-sigma uncertainties:
+#   a/lambda = 0.85: X/Z0 = 11.07 +- 0.05 (stated by the reviewer)
+#   a/lambda = 1.4:  2a Z0 / (lambda_g X) = 0.1077 +- 0.0003 (Richardson estimates from the reviewer's N = 100/200/400
+#                    runs with two junction-plane placements lie in 0.10756-0.10761; the +-0.0003 is my bound)
+@pytest.mark.parametrize("aol,ref,sigma,quantity", [(0.85, 11.07, 0.05, "X"), (1.4, 0.1077, 0.0003, "2aZ0/lgX")])
+def test_hplane_symmetric_step_against_fd_reference(aol, ref, sigma, quantity):
+    x, f = _hplane_x(aol, 0.8)
+    val = x if quantity == "X" else 2 * A / (M.guide_wavelength(A, f) * x)
+    assert abs(val - ref) <= 2 * sigma
+
+
+def test_hplane_symmetric_reactance_against_marcuvitz_2c_loose():
+    """(2c) itself is inaccurate (FD reference above: (2c) is 6.4 % above it at a/lambda = 0.85, alpha = 0.8); it is
+    kept as a loose check, 12 %, instead of the stated 6 %. Mode matching is 4.3-11.3 % below (2c)."""
     for aol in (0.7, 0.85, 0.95):
         for al in (0.75, 0.8, 0.9, 0.95):
-            f = aol * cst.c / A
-            g = Step(A, B, al * A, B).gsm(f)
-            bp = propagation_constant(("TE", 1, 0), al * A, B, f).real
-            _, x, _ = M.hplane_from_s(g.S11[0, 0], g.S22[0, 0], bp)
+            x, f = _hplane_x(aol, al)
             _, xc, _ = M.hplane_step_circuit_approx(A, al * A, f, "c")
-            assert abs(xc / x - 1) < 0.06
+            assert abs(xc / x - 1) < 0.12
 
 
 # ------------------------------------------------------------------------------------------ exp(theta K)
 def test_exp_theta_k_data_file():
     d = np.load(DATA)
     meta = json.loads(str(d["meta"]))
-    for key in ("wrmodes_version", "git_commit", "created", "generator", "parameters"):
+    for key in ("wrmodes_version", "git_commit", "created", "generator", "parameters", "reference_planes",
+                "arm_length"):
         assert key in meta
     for plane in ("H", "E"):
         assert np.all(d[f"unitarity_{plane}"] < 1e-10) and np.all(d[f"reciprocity_{plane}"] < 1e-10)

@@ -3,6 +3,9 @@
 A bend of angle theta whose length tends to zero at fixed kappa L = theta has the transfer matrix
 Phi = exp(theta K), with K the curvature coupling matrix of the coupled-mode equations dy/dz = (D + kappa K) y
 (wrmodes.transfer_matrix.coupled_mode_matrices, propagating modes of one family, CONVENTIONS.md section 6).
+Its reference planes are both at the intersection of the arm axes (zero length). A miter GSM with the reference
+planes of CONVENTIONS.md section 6 (through the inner corner, arm_length = (a/2) tan(theta/2) from that intersection)
+corresponds to straight(arm_length) @ exp(theta K) @ straight(arm_length).
 This script converts Phi with wrmodes.gsm.from_transfer_matrix for a WR-90 90 degree bend in the H plane and in
 the E plane, records the unitarity and reciprocity of the GSM and the mode conversion versus frequency, and stores
 everything in benchmarks/data/exp_theta_k_wr90.npz (format of CONVENTIONS.md section 9), for comparison with the
@@ -96,6 +99,13 @@ def main(out=OUT):
                            "frames": {"H": "local u = x, a = w, b = h, family n = 0, input TE1,0",
                                       "E": "local u = y, a = h, b = w, family n = 1, input TE0,1 (= -global TE10)"},
                            "curvature_sign": "+", "excluded": "frequencies within 1e-4 relative of a cutoff"},
+            "reference_planes": "Zero length: both ports at the intersection of the arm axes. The GSM of a miter with "
+                                "the reference planes of CONVENTIONS.md section 6 (through the inner corner, "
+                                "arm_length = (a/2) tan(theta/2) from the axis intersection, a the local side in the "
+                                "bend plane) corresponds to straight(arm_length) @ exp(theta K) @ "
+                                "straight(arm_length); compare with that, not with this GSM alone, or the comparison "
+                                "mixes in a phase error.",
+            "arm_length": {plane: c["a"] / 2 * np.tan(THETA / 2) for plane, c in CASES.items()},
             "layout": "S_<plane>[i] is the full 2 nmax x 2 nmax matrix [[S11, S12], [S21, S22]] padded with NaN; "
                       "modes_<plane>[i] are the port-basis mode names (same at both ports); transmitted = |S21| "
                       "of the input mode squared, reflected = total reflected power, converted = power in other "

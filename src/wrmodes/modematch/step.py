@@ -6,6 +6,7 @@ from ..components import Component
 from ..modes import Mode, ModeBasis
 from .overlaps import overlap_matrix
 from .junction import junction_gsm
+from ..gsm import GSM
 
 __all__ = ["Step", "convergence_study"]
 
@@ -44,6 +45,13 @@ class Step(Component):
     cross-section; both carry the same frame tag `frame`. The GSM is symmetric by construction and its propagating
     block is unitary at every truncation (see ``wrmodes.modematch.junction``).
 
+    `gsm(f, basis1, basis2)` always solves the matching on the union of the requested bases and `default_basis(f)`
+    and returns the block of the requested port modes, so that small port bases (e.g. the propagating modes only, as
+    a cascade may request) do not degrade the accuracy of the junction itself. Leaving evanescent modes out of the
+    port bases assumes that the neighbouring components are far enough from the junction for those modes to have
+    decayed (they are treated as matched). `solve(f, basis1, basis2)` solves on exactly the given bases (the
+    truncated mode-matching problem, as used by `convergence_study`).
+
     Mode coupling: a step that keeps b (then dv = 0) only couples modes of the same family n; a step that keeps a
     with du = 0 only couples modes of the same m. Steps in b, or with dv != 0, couple families, and their bases
     keep every family.
@@ -54,8 +62,12 @@ class Step(Component):
         Cross-sections (m) of guide 1 (port 1) and guide 2 (port 2).
     du, dv : float
         Offset (m) of the centre of the smaller guide in the larger guide's frame.
+    plane : {'H', 'E'}
+        The frame in which a1, b1, a2, b2 (and du, dv) are given (CONVENTIONS.md section 2): 'H' for the local frame
+        of the H plane (a along the global x), 'E' for that of the E plane. Metadata for the transmission-line
+        assembly; it does not change the GSM. Default 'H'.
     frame : optional
-        Frame tag of both port bases (CONVENTIONS.md section 2), e.g. 'H' or 'E'.
+        Frame tag of both port bases (CONVENTIONS.md section 2), e.g. 'H' or 'E'; default None (untagged).
     cutoff_factor : float, optional
         Truncation used by `default_basis` when it is called without one. Both ports keep the modes with cutoff
         frequency below cutoff_factor * f (the same cutoff on both sides, so that the numbers of modes along each
@@ -63,6 +75,8 @@ class Step(Component):
     """
 
     name = "step"
+    #: frame ('H' or 'E') in which the dimensions are given; overridden per instance by the constructor
+    plane = "H"
     #: default truncation of steps in one dimension: half-periods across the smallest feature (see
     #: `default_cutoff_frequency`)
     MIN_INDEX_1D = 20
@@ -71,9 +85,12 @@ class Step(Component):
     #: default lower bound on cutoff_factor
     MIN_CUTOFF_FACTOR = 3.0
 
-    def __init__(self, a1, b1, a2, b2, du=0.0, dv=0.0, frame=None, cutoff_factor=None, name=""):
+    def __init__(self, a1, b1, a2, b2, du=0.0, dv=0.0, frame=None, cutoff_factor=None, name="", plane="H"):
         self.a1, self.b1, self.a2, self.b2 = float(a1), float(b1), float(a2), float(b2)
         self.du, self.dv = float(du), float(dv)
+        if plane not in ("H", "E"):
+            raise ValueError(f"plane must be 'H' or 'E', got {plane!r}")
+        self.plane = plane
         self.frame = frame
         self.cutoff_factor = cutoff_factor
         if name:
@@ -121,9 +138,11 @@ class Step(Component):
         """Default truncation (Hz): max(MIN_CUTOFF_FACTOR f, M c / (2 d)), i.e. M half-periods across d.
 
         * Step in one dimension (a or b): M = MIN_INDEX_1D and d is the smallest feature along that dimension:
-          the side of the smaller guide or the smallest non-zero gap between its walls and the larger guide's
-          (bounded below by a quarter of the side), so that the edge fields of nearly flush and of strong steps
-          are both resolved.
+          the side of the smaller guide or the smallest non-zero gap between its walls and the larger guide's,
+          but never less than a quarter of the side of the smaller guide. Strong reductions are thus resolved
+          across the small side; for nearly flush steps (gaps below a quarter of the side) the narrow gap itself
+          is not resolved down to its width, which bounds the cost; their convergence is checked in
+          docs/reports/WP4.md.
         * Step in both dimensions: M = MIN_INDEX_2D and d is the smaller side of the smaller guide (the number of
           modes grows with the square of M).
 
@@ -167,23 +186,48 @@ class Step(Component):
         bL, bS = (basis1, basis2) if self.large_port == 1 else (basis2, basis1)
         return overlap_matrix(bS, bL, self.du, self.dv)
 
-    def gsm(self, f, basis1=None, basis2=None):
-        """GSM (wrmodes.gsm.GSM) of the step at f (Hz); None bases mean `default_basis(f)`.
-
-        The bases must have the cross-sections of guides 1 and 2 and the same frame tag.
-        """
-        if basis1 is None or basis2 is None:
-            d1, d2 = self.default_basis(f)
-            basis1 = d1 if basis1 is None else basis1
-            basis2 = d2 if basis2 is None else basis2
+    def _check(self, basis1, basis2):
         for bb, a, b, port in ((basis1, self.a1, self.b1, 1), (basis2, self.a2, self.b2, 2)):
             if not (_same(bb.a, a) and _same(bb.b, b)):
                 raise ValueError(f"basis{port} is for a {bb.a:g} x {bb.b:g} guide, port {port} is {a:g} x {b:g}")
         if basis1.frame != basis2.frame:
             raise ValueError(f"both ports of a step use the same frame tag (got {basis1.frame!r}, {basis2.frame!r})")
+
+    def _label(self):
+        return self.name if self.name != "step" else repr(self)
+
+    def solve(self, f, basis1, basis2, symmetrize=True):
+        """GSM of the truncated mode-matching problem on exactly these bases (no extension).
+
+        The truncation is that of the bases: the result converges as they grow (`convergence_study`). The bases must
+        have the cross-sections of guides 1 and 2 and the same frame tag. `symmetrize` is passed to
+        ``junction_gsm``.
+        """
+        self._check(basis1, basis2)
         bL, bS = (basis1, basis2) if self.large_port == 1 else (basis2, basis1)
         X = overlap_matrix(bS, bL, self.du, self.dv)
-        return junction_gsm(bL, bS, X, f, large_port=self.large_port, name=self.name if self.name != "step" else repr(self))
+        return junction_gsm(bL, bS, X, f, large_port=self.large_port, name=self._label(), symmetrize=symmetrize)
+
+    def gsm(self, f, basis1=None, basis2=None):
+        """GSM (wrmodes.gsm.GSM) of the step at f (Hz) on the port bases basis1, basis2 (None: `default_basis(f)`).
+
+        The matching is solved on the union of each requested basis with `default_basis(f)`, and the block of the
+        requested port modes is returned (in their order). Port modes left out are treated as matched: for
+        evanescent modes this assumes that the neighbouring component is far enough away for them to decay.
+        """
+        d1, d2 = self.default_basis(f)
+        basis1 = d1 if basis1 is None else basis1
+        basis2 = d2 if basis2 is None else basis2
+        self._check(basis1, basis2)
+        u1 = ModeBasis(basis1.a, basis1.b, set(basis1.modes) | set(d1.modes), frame=basis1.frame)
+        u2 = ModeBasis(basis2.a, basis2.b, set(basis2.modes) | set(d2.modes), frame=basis2.frame)
+        if u1 == basis1 and u2 == basis2:
+            return self.solve(f, basis1, basis2)
+        g = self.solve(f, u1, u2)
+        i1 = [u1.index(m) for m in basis1.modes]
+        i2 = [u2.index(m) for m in basis2.modes]
+        return GSM(g.S11[np.ix_(i1, i1)], g.S12[np.ix_(i1, i2)], g.S21[np.ix_(i2, i1)], g.S22[np.ix_(i2, i2)],
+                   basis1, basis2, f, g.name)
 
     def convergence_study(self, f, cutoff_factors):
         """See :func:`convergence_study`."""
@@ -196,7 +240,9 @@ def convergence_study(component, f, cutoff_factors):
     Parameters
     ----------
     component : Component
-        Any component whose `default_basis(f, cutoff_factor)` adds evanescent modes as cutoff_factor grows.
+        Any component whose `default_basis(f, cutoff_factor)` adds evanescent modes as cutoff_factor grows. If it
+        has a `solve(f, basis1, basis2)` method (the truncated problem on exactly these bases, as `Step`), that is
+        used instead of `gsm`.
     f : float
         Frequency (Hz).
     cutoff_factors : sequence of float
@@ -210,6 +256,7 @@ def convergence_study(component, f, cutoff_factors):
         'modes1', 'modes2' : names of the propagating modes of port 1 and port 2
         'S' : (K, P, P) complex array, propagating block of S (ports 1 then 2) at each truncation
         'change' : (K,) array, max |(|S_k| - |S_{k-1}|)| over the propagating block (nan for k = 0)
+        'change_complex' : (K,) array, max |S_k - S_{k-1}| (complex entries) over the propagating block
         'unitarity', 'reciprocity' : (K,) arrays, defects of each GSM
     """
     cfs = np.asarray(cutoff_factors, dtype=float)
@@ -217,7 +264,8 @@ def convergence_study(component, f, cutoff_factors):
     names = None
     for cf in cfs:
         b1, b2 = component.default_basis(f, cutoff_factor=cf)
-        g = component.gsm(f, b1, b2)
+        # a component that extends its bases internally (Step.gsm) exposes the truncated problem as `solve`
+        g = component.solve(f, b1, b2) if hasattr(component, "solve") else component.gsm(f, b1, b2)
         m1, m2 = g.propagating()
         nm = ([md.name for md, p in zip(b1.modes, m1) if p], [md.name for md, p in zip(b2.modes, m2) if p])
         if names is not None and nm != names:
@@ -230,7 +278,9 @@ def convergence_study(component, f, cutoff_factors):
         rec.append(g.reciprocity_defect() / np.max(np.abs(g.S)))
     S = np.array(S_list)
     change = np.full(len(cfs), np.nan)
+    change_c = np.full(len(cfs), np.nan)
     for k in range(1, len(cfs)):
         change[k] = np.max(np.abs(np.abs(S[k]) - np.abs(S[k - 1])))
+        change_c[k] = np.max(np.abs(S[k] - S[k - 1]))
     return {"cutoff_factor": cfs, "n_modes": np.array(n_modes), "modes1": names[0], "modes2": names[1], "S": S,
-            "change": change, "unitarity": np.array(uni), "reciprocity": np.array(rec)}
+            "change": change, "change_complex": change_c, "unitarity": np.array(uni), "reciprocity": np.array(rec)}

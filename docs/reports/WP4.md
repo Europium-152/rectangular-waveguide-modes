@@ -9,9 +9,9 @@ Branch `wave-1/WP4-steps`, from `main` at 223aeeb. Implementer card: `tasks/WP4-
 | Component protocol stub (byte-identical to the briefing; owned by WP1) | `src/wrmodes/components/__init__.py`, `src/wrmodes/components/base.py` |
 | Closed-form overlaps of the normalized fields of two guides, one inside the other, any offset | `src/wrmodes/modematch/overlaps.py` |
 | Symmetric mode-matching GSM of a junction | `src/wrmodes/modematch/junction.py` |
-| `Step(a1, b1, a2, b2, du, dv, frame, cutoff_factor)` component, default truncation, `convergence_study` | `src/wrmodes/modematch/step.py` |
+| `Step(a1, b1, a2, b2, du, dv, frame, cutoff_factor, name, plane)` component (`gsm`, `solve`), default truncation, `convergence_study` | `src/wrmodes/modematch/step.py` |
 | Marcuvitz (1951) single-mode step circuits, and conversions circuit ↔ S | `src/wrmodes/modematch/marcuvitz.py` |
-| Tests (72 + 1 expected failure) | `tests/test_steps.py` |
+| Tests (78 + 1 strict expected failure) | `tests/test_steps.py` |
 | Example: WR-90 → 22.86 × 1.6 mm → WR-90 | `examples/strangling_step.py` |
 | exp(θK) study, data | `benchmarks/exp_theta_k_study.py`, `benchmarks/data/exp_theta_k_wr90.npz` |
 | Public name | `wrmodes.Step` (one import line at the end of `src/wrmodes/__init__.py`) |
@@ -38,6 +38,11 @@ Branch `wave-1/WP4-steps`, from `main` at 223aeeb. Implementer card: `tasks/WP4-
   the Step's own rule applies: $f_\max = \max(3f,\ M c/2d)$ with $M = 20$ half-periods across the smallest feature
   $d$ (the small side or the smallest wall gap, at least a quarter of the side) for steps in one dimension, and
   $M = 16$ across the smaller side of the small guide for steps in both dimensions.
+* **Requested port bases (after review).** `Step.gsm(f, basis1, basis2)` solves on the union of each requested basis
+  with `default_basis(f)` and returns the block of the requested port modes, so a cascade asking for propagating
+  modes only still gets the converged junction. Port modes left out are treated as matched: for evanescent modes
+  this assumes the neighbouring component is far enough away for them to decay. `Step.solve(f, basis1, basis2)` is
+  the truncated problem on exactly the given bases (used by `convergence_study` and by the truncation tests).
 
 ## Results
 
@@ -146,6 +151,14 @@ Converged values (m = 1 modes only, cutoff factor up to 800): at $b/\lambda_g = 
 +1.02 %, marginally outside the stated 1 %. At $b/\lambda_g = 0.95$, $b'/b = 0.7$ it gives +0.52 %, and at
 $b/\lambda_g = 0.2$, $b'/b = 0.9$ it gives +0.06 %. The test allows 1.05 % for the first case only.
 
+**H-plane, independent FD reference (added after review).** The reviewer of PR #4 solved the symmetric
+H-plane step with a 2D finite-difference model (scalar $E_y$, Dirichlet walls, discrete modal ports, Richardson
+extrapolation in the grid step). For α = 0.8 it found $X/Z_0 = 11.07 \pm 0.05$ at a/λ = 0.85 and
+$2aZ_0/(\lambda_g X) = 0.1077$ at a/λ = 1.4. The reviewer's N = 100/200/400 runs with two junction-plane placements
+extrapolate to 0.10756–0.10761, so I use ±0.0003. Mode matching gives 11.019 (converged; 11.021 with the default
+basis) and 0.10767. Both are within 2σ, and this is now a passing test. On the same cases (2c) gives 11.78 (+6.4 %
+above FD), and Fig. 5-24-3 gives 0.094 at a/λ = 1.4.
+
 **H-plane, wide-aperture forms (default truncation).**
 
 | Case | a/λ | β | Z0'/Z0 mode matching, (c), diff. | X/Z0 mode matching, (c), diff. | l/a mode matching |
@@ -195,6 +208,9 @@ with `meta` as in CONVENTIONS §9.
   2.7 % of the power stays in TE10. In the E plane the power kept in the input mode varies between 0 and 0.89
   above 20 GHz.
   Whether and how far this differs from a real miter is for the comparison with WP3 at Gate A.
+* **Reference planes:** the stored GSM has zero length, with both planes at the arm-axis intersection. A miter with
+  the §6 planes (through the inner corner) corresponds to `straight(arm_length) @ exp(θK) @ straight(arm_length)`,
+  arm_length = (a/2)·tan(θ/2). This is stated in the npz `meta` (`reference_planes`, `arm_length`).
 
 ## Acceptance tests
 
@@ -209,18 +225,22 @@ with `meta` as in CONVENTIONS §9.
 | E-plane step vs Marcuvitz (2a), symmetric and asymmetric, $b/\lambda_g < 1$ | 1 % | pass, with one marginal case | ≤ 0.95 % (default truncation), 1.02 % converged at $b/\lambda_g = 0.8$, $b'/b = 0.9$ |
 | H-plane asymmetric step vs (4c), (5c) | 10 % | pass | Z ≤ 1.8 %, X ≤ 3.9 % |
 | H-plane symmetric step vs (1c) | 6 % | pass | ≤ 2.3 % |
-| H-plane symmetric step vs (2c) | 6 % | **fail** at most points | 4.3–11.3 % (xfail test) |
+| H-plane symmetric step vs independent FD (review) | 2σ of FD | pass | 11.019 vs 11.07 ± 0.05; 0.10767 vs 0.1077 ± 0.0003 |
+| H-plane symmetric step vs (2c) | 6 % stated; (2c) itself is 6.4 % off FD | loose check at 12 % passes | 4.3–11.3 % |
 | Convergence of \|S11\|, WR-90 → 22.86 × 2 mm, two finest truncations | < 1e-4 | pass | 1.4e-6 (cutoff factors 160 → 320 in the test); 5.6e-8 at 640 → 1280 |
 
-Full suite: 165 passed, 1 xfailed (`PYTHONPATH=$PWD/src python3 -m pytest -q`). `tests/test_steps.py` takes about
-35 s on the shared container.
+Full suite after the review fixes: 171 passed, 1 xfailed (`PYTHONPATH=$PWD/src python3 -m pytest -q`). The xfail
+is the strict `GSM.star` regression test (open issue 3). `tests/test_steps.py` takes about 1.5 min on the shared
+container.
 
 ## Open issues
 
 1. **Symmetric H-plane step vs Marcuvitz (2c):** mode matching gives a reactance X/Z0 4–11 % below (2c). Marcuvitz
-   states 6 %. Mode matching is converged, the same code agrees with the E-plane (2a) to 1 % and with the asymmetric
-   H-plane (5c) to 4 %, and it agrees roughly with Fig. 5-24-3. The deviation is not settled. It needs WP7 (D6
-   transcription, checked by the second L1 agent) and the WP3 2D solver.
+   states 6 %. Review evidence says (2c) is the inaccurate side. The reviewer's independent 2D FD solution gives
+   X/Z0 = 11.07 ± 0.05 at α = 0.8, a/λ = 0.85; mode matching gives 11.02 and (2c) gives 11.78 (+6.4 %). At α = 0.8,
+   a/λ = 1.4, FD gives 2aZ0/(λgX) = 0.1077, mode matching 0.1077 and Fig. 5-24-3 0.094. The reviewer also reproduced
+   S11 with its own mode-matching code. (2c) is kept as a loose 12 % check. The WP3 2D solver remains the
+   in-repository confirmation.
 2. **Marcuvitz full H-plane formulas (1a)–(3a), (4a)–(6a)** as transcribed agree with his small-aperture forms in the
    quasi-static limit for α ≤ 0.2: $Z_0'/Z_0 \to 1.750$, (2b) within 4 %, (3b) within 2 %. But the frequency-dependent terms
    $N_{11}, N_{22}, N_{12}$ make $X/Z_0$ blow up and change sign for a/λ ≳ 0.7. For example, at α = 0.7, a/λ = 1.4
@@ -228,16 +248,19 @@ Full suite: 165 passed, 1 xfailed (`PYTHONPATH=$PWD/src python3 -m pytest -q`). 
    suspicious: $\lambda_g$ (not $\lambda_g'$) in the denominator of (2a), and $1+3\alpha^2$ under $16\alpha^2R_2$ in
    $N_{22}$ of Sec. 5.24b. The book gives no expression for $X_{12}$, only $X_0 \approx A' - C^2/A$. Simple rescalings
    of the N terms do not fix it. This is either a misprint in the book or a transcription error I could not find,
-   so these formulas are not used for acceptance. **L1 (D6) and WP7 should check them independently.**
+   so these formulas are not used for acceptance. The review located the blow-up in $N_{12}$: at α = 0.9, a/λ = 0.6
+   it is 35 times $\sqrt{N_{11}N_{22}}$ (I confirm: 0.04458 against 0.00103 and 0.00157). With $N_{12} = 0$ the
+   formula gives 18.35/10.27/26.91 for the reviewer's three cases, against mode-matching values 18.82/11.02/27.74. A
+   misprint in $N_{12}$ is the probable cause. **L1 (D6) and WP7 should check this independently.**
 3. **Zero-distance cascades in `GSM.star` (for WP1):** joining two junctions on the same plane (S → L → S with
    no straight between) makes $I - A_{22}B_{11}$ exactly singular: the trapped modes of the middle guide reflect with
    −1 on both sides. `np.linalg.solve` then returns wrong numbers without raising. The same can happen at the
-   resonances of modes that are exactly decoupled from the outer ports. WP1 may want a condition check or a
-   least-squares fallback (see `star_zero_length` in `tests/test_steps.py`).
-4. **Default truncation in a cascade:** `Step.default_basis(f, cutoff_factor=None)` applies the Step's own rule. If
-   WP1's cascade passes `cutoff_factor=1.0` (the default of the protocol stub), a step gets no evanescent modes, and
-   its result is then only the zeroth-order mode-matching answer (e.g. |S11| = 0.6711 with cutoff factor 3 instead of 0.6758 for the 2 mm
-   step). A cascade should leave the truncation of mode-matching components to them, or pass a large factor.
+   resonances of modes that are exactly decoupled from the outer ports. A least-squares fallback is
+   `star_zero_length` in `tests/test_steps.py`. `test_small_large_small_plain_star_regression` (strict xfail)
+   records the failure with the plain `@`: the error is 0.80 instead of < 1e-10. The coordinator is fixing
+   `gsm.star`, which will flip that test; the xfail marker should then be removed.
+4. **Default truncation in a cascade:** resolved in review. `Step.gsm` now always solves with at least
+   `default_basis(f)`. Small port bases select the returned modes and do not set the truncation.
 5. 2D steps (both sides change) converge slowly: about 1e-4 in |S| needs thousands of modes. The cost is dominated by
    $F^TF$. Symmetry reduction (parity classes for centred steps) is not implemented.
 6. A frequency exactly at the cutoff of any basis mode raises (from `wave_admittance`, CONVENTIONS §3).
@@ -253,12 +276,49 @@ Full suite: 165 passed, 1 xfailed (`PYTHONPATH=$PWD/src python3 -m pytest -q`). 
 
 ## For other cards
 
-* **WP1:** the component stub was created byte-identical (verified with `diff` against the briefing). `Step` derives
-  from `Component`; `Step.default_basis(f, cutoff_factor=None)`. See open issues 3 and 4.
+* **WP1:** the component stub was created byte-identical (verified with `diff` against the briefing) and has not been
+  changed since. `base.py` is left to WP1 for the protocol change (`cutoff_factor=None` = the component's own
+  default). `Step.default_basis(f, cutoff_factor=None)` already follows it. `Step.plane` ('H' by default, constructor
+  argument `plane`) gives the frame in which a, b, du, dv are given. The base-tag argument `frame` stays separate
+  (default None, untagged). See open issue 3.
 * **WP2:** `wrmodes.modematch.junction_gsm(basis_large, basis_small, X, f, large_port)` is the reusable kernel. Any
   overlap matrix $X$ (small × large) can be passed, e.g. for impedance-walled or sheet-loaded guides once their
   modes are written in the §5 normalization.
 * **WP7 / L1:** Marcuvitz transcription notes above. The asymmetric E-plane case is Sec. 5.26b with $\lambda_g/2$.
   Asymmetric means one broad wall continuous, i.e. $d_v = \pm(b-b')/2$.
 * **WP3 (Gate A):** the exp(θK) data are in `benchmarks/data/exp_theta_k_wr90.npz`; the layout is described in its
-  `meta`.
+  `meta`. That GSM has zero length: both planes are at the arm-axis intersection. Compare a miter GSM with the §6
+  planes (inner corner) against `straight(arm_length) @ exp(θK) @ straight(arm_length)`, with
+  arm_length = (a/2)·tan(θ/2) (11.43 mm for H, 5.08 mm for E at 90°). Otherwise a phase error enters the comparison.
+
+## Review fixes
+
+The independent review of PR #4 found no blockers. Changes:
+
+1. **Small port bases.** `Step.gsm` solves on the union of the requested bases and `default_basis(f)` and returns
+   the requested block. Before, propagating-only bases gave the zeroth-order answer for WR-90 → 22.86 × 2 mm at
+   10 GHz: |S11| = 0.671053 and T = −2.5988 dB, against 0.675765 and −2.6493 dB (0.05 dB). Now both give the
+   converged value. The truncated problem on exactly the given bases is `Step.solve`; `convergence_study` uses it
+   when present. Dropped evanescent port modes are documented as matched, which assumes the neighbour is far enough
+   away. `default_basis(f, cutoff_factor=None)` means the component's own default. The class attribute
+   `Step.plane = 'H'` was added, with a constructor argument `plane` ('H' or 'E'). `base.py` is unchanged and left
+   to WP1. Tests: `test_gsm_extends_small_port_bases`, `test_plane_attribute`.
+2. **H-plane (2c).** The strict xfail is replaced by `test_hplane_symmetric_step_against_fd_reference`, which
+   compares with the reviewer's FD values within 2σ. (2c) is kept as a loose 12 % check. Open issue 1 is updated.
+3. **Complex overlaps.** `junction_gsm` keeps complex X (`dtype=complex`; before, the imaginary part was silently
+   dropped). The docstring now restricts the unitarity argument to real X. Test:
+   `test_junction_with_complex_overlaps_stays_reciprocal` (row-scaled complex X, reciprocity of the
+   unsymmetrized output ≤ 1e-10, and the result differs from real X).
+4. **Plain star regression.** `test_small_large_small_plain_star_regression` (strict xfail) records `GSM.star`'s
+   silent failure for small → large → small at zero length.
+5. **exp(θK) reference planes.** `meta` now has `reference_planes` and `arm_length`, and the report states the
+   comparison rule. The data were regenerated from a clean tree; the arrays are unchanged.
+6. **Minor.**
+   * The `default_cutoff_frequency` docstring now states the quarter-side floor on the feature size and what it
+     means for nearly flush steps.
+   * `convergence_study` also returns `change_complex` = max |S_k − S_{k−1}|.
+   * `junction_gsm(…, symmetrize=False)` returns the unsymmetrized matrices. The truncation tests check reciprocity
+     on those, since it is vacuous after symmetrization; the docstring says so.
+   * The $N_{12}$ finding is added to open issue 2.
+
+Test counts: `tests/test_steps.py` 78 passed, 1 xfailed (strict); full suite 171 passed, 1 xfailed.
