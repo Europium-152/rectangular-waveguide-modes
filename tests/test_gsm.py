@@ -186,3 +186,44 @@ def test_block_diag_of_families():
     k = g.basis1.index(("TE", 0, 1))
     assert g.S21[k, i] == 0                                   # different families do not couple
     assert g.reciprocity_defect() < 1e-12 and g.unitarity_defect() < 1e-12
+
+
+# ------------------------------------------------------------------------------------ trapped modes
+def _trapped_pair(f=None):
+    """Two GSMs with a two-mode middle basis: mode 0 passes, mode 1 is totally reflected on both sides and
+    decoupled from the outer ports, so I - A22 B11 is exactly singular (as for two junctions on the same plane)."""
+    outer = ModeBasis(0.02, 0.01, [("TE", 1, 0)])
+    middle = ModeBasis(0.02, 0.01, [("TE", 1, 0), ("TE", 2, 0)])
+    t, r = 0.6, 0.8j                                   # |t|^2 + |r|^2 = 1, symmetric lossless 2x2 for the passing mode
+    A11 = np.array([[r]]); A12 = np.array([[t, 0]]); A21 = A12.T.copy(); A22 = np.array([[r, 0], [0, -1]])
+    A = GSM(A11, A12, A21, A22, outer, middle, f)
+    B = GSM(A22, A21, A12, A11, middle, outer, f)
+    return A, B, t, r
+
+
+def test_star_handles_hidden_trapped_modes():
+    A, B, t, r = _trapped_pair()
+    M = np.eye(2) - B.S11 @ A.S22
+    assert np.linalg.matrix_rank(M) == 1               # exactly singular
+    C = A @ B
+    # the passing mode alone: two lossless 2-ports, closed form with one round trip series
+    S21 = t * t / (1 - r * r)
+    S11 = r + t * r * t / (1 - r * r)
+    assert np.isclose(C.S21[0, 0], S21) and np.isclose(C.S11[0, 0], S11)
+    assert np.isfinite(C.S).all() and C.reciprocity_defect() < 1e-14
+
+
+def test_star_raises_on_a_resonance_visible_from_outside():
+    A, B, t, r = _trapped_pair()
+    # couple the trapped mode weakly to the outer port of A: now the singular direction is visible
+    A2 = GSM(A.S11, np.array([[t, 1e-3]]), np.array([[t], [1e-3]]), A.S22, A.basis1, A.basis2, None)
+    with pytest.raises(np.linalg.LinAlgError):
+        A2 @ B
+
+
+def test_star_unchanged_for_regular_cascades():
+    basis = ModeBasis.propagating(60e9, *WR90)
+    A, B = random_reciprocal_lossy(basis), random_reciprocal_lossy(basis)
+    M = np.eye(len(basis)) - B.S11 @ A.S22
+    X = np.linalg.solve(M, B.S11)
+    assert np.allclose((A @ B).S11, A.S11 + A.S12 @ X @ A.S21, atol=1e-13)

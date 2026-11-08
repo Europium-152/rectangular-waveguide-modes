@@ -64,15 +64,16 @@ Verified by: <card or role> · Time box: <days> (then status review)
 | Card | Wave | Role | Depends on | Status |
 | --- | --- | --- | --- | --- |
 | T0 field convention | 0 | Theory | — | done (`docs/theory/T0-field-convention.md`) |
-| WP0 foundations | 0 | Coordinator | — | in review (this PR) |
-| [T1 wall impedance](T1-wall-impedance.md) | 1 | Theory | T0 | ready |
-| [T2 taper coupling](T2-taper-coupling.md) | 1 | Theory | T0 | ready |
-| [T3 twist coupling](T3-twist-coupling.md) | 1 | Theory | T0 | ready |
-| [L1 literature data](L1-literature-data.md) | 1 | Literature | — | ready |
-| [WP1 cascade](WP1-cascade.md) | 1 | Implementer | WP0 | ready |
+| WP0 foundations | 0 | Coordinator | — | merged (#1) |
+| Conventions update 1 | 1 | Coordinator | WP1/WP4 reviews, T1b | this PR |
+| [T1 wall impedance](T1-wall-impedance.md) | 1 | Theory (T1 + T1b) | T0 | T1b done (#2, for comparison); T1 running |
+| [T2 taper coupling](T2-taper-coupling.md) | 1 | Theory (T2 + T2b) | T0 | running |
+| [T3 twist coupling](T3-twist-coupling.md) | 1 | Theory (T3 + T3b) | T0 | running |
+| [L1 literature data](L1-literature-data.md) | 1 | Literature (L1a + L1b) | — | both done (#5, #6); merge in progress, supersedes #5 and #6 |
+| [WP1 cascade](WP1-cascade.md) | 1 | Implementer | WP0 | PR #3, review fixes in progress |
 | [WP2 ohmic loss and filters](WP2-loss-and-filters.md) | 1 | Implementer | WP0, T1 | waits for T1 |
-| [WP3 2D modal-port solver](WP3-2d-solver.md) | 1 | Implementer | WP0, WP1 (interface only) | ready |
-| [WP4 steps and mode matching](WP4-steps.md) | 1 | Implementer | WP0 | ready |
-| [WP7 verification, wave 1](WP7-verification-wave1.md) | 1 | Verifier + COMSOL scripter | WP0, L1 | ready |
+| [WP3 2D modal-port solver](WP3-2d-solver.md) | 1 | Implementer | WP0, WP1 (interface only) | running |
+| [WP4 steps and mode matching](WP4-steps.md) | 1 | Implementer | WP0 | PR #4, review fixes in progress |
+| [WP7 verification, wave 1](WP7-verification-wave1.md) | 1 | Verifier + COMSOL scripter | WP0, L1 | running |
 
 Wave 2 cards (all miters, Alessandri segmentation, tapers, twists, COMSOL campaign 2) are written at Gate A.
