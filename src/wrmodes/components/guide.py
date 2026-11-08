@@ -93,7 +93,11 @@ class Guide:
         return self.sigma is None
 
     def require_lossless(self, what="this component"):
-        """Raise NotImplementedError if the guide has a wall conductivity (for components without wall loss)."""
+        """Raise NotImplementedError if the guide has a wall conductivity (for components without wall loss).
+
+        Lossless-only components that take their guide from the line (`with_guide`, no `guides` attribute), such as
+        miters, must call it in `gsm` (or in `with_guide`). Components with a `guides` attribute (steps) are refused
+        by `wrmodes.Line` itself when the line's guide has a conductivity."""
         if self.sigma is not None:
             raise NotImplementedError(f"{what}: ohmic wall loss (Guide.sigma = {self.sigma:g} S/m) is not supported "
                                       f"by this component in wrmodes 1.0 (lossless walls only); use a guide with "

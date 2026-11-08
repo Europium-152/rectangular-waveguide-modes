@@ -82,8 +82,10 @@ class SmoothBend(Component):
     families : 'separate' or 'coupled'
         Wall loss only (lossless bends always treat the families separately, which is exact for them).
         'separate' (default): one coupled-mode system per local family n, as for a lossless bend; 'coupled': one
-        system with all propagating modes, which keeps the coupling of the families by the lossy broad walls (see
-        Wall loss). 'coupled' costs about 10-40 times more (96-105 s instead of 2-7 s per SPARC bend at 90 GHz).
+        system with all propagating modes of even n and one with those of odd n (the walls are equal, so Lambda
+        does not couple n of different parity), which keeps the coupling of the families by the lossy walls
+        v = +-b/2 (see Wall loss). 'coupled' costs 5-15 times more at 90 GHz (34-37 s per SPARC bend). Use it
+        for multimode method-vs-method validation (CONVENTIONS.md section 8).
 
     Method
     ------
@@ -104,11 +106,13 @@ class SmoothBend(Component):
     propagating modes it carries a genuine O(ka Z/eta0) correction of the attenuation (T1 section 5; e.g. +1.4e-3
     of alpha for TE1,0 from the broad walls at 90 GHz, which brings it within 3e-4 of the exact Leontovich value).
     Measured for the SPARC bends in aluminium WR-90 (40 cm 90 deg sech, 60 cm 60 deg constant, H and E plane),
-    'separate' vs 'coupled', largest change of any |S_ij|^2 of the propagating block: 4e-6 (30 GHz), 6.3e-5
-    (60 GHz), 1.3e-4 (90 GHz, near-cutoff modes); of the TE1,0 (global) column: 1.2e-5 at 60 GHz and 2.4e-5 at
-    90 GHz in the H plane (its in-mode loss, about 1e-4 dB), below 1e-7 in the E plane (docs/reports/WP2.md). Use
-    families='coupled' when this matters. In an E-plane bend the local walls v = +-b/2 are the narrow walls of the
-    guide.
+    'separate' vs 'coupled', against the targets of CONVENTIONS.md section 8 (1e-4 of the input power for every
+    converted mode): for TE1,0 input the default is within 1e-4 (40 cm 90 deg sech H-plane bend at 90 GHz: largest
+    change in the TE1,0 column 1.8e-5, i.e. 1.3e-4 dB on its own transmission, and at most 2.4e-5 for the 60 cm
+    bend; below 1e-7 in the E plane). The largest
+    change of any |S_ij|^2 of the propagating block, 1.0-1.3e-4 at 90 GHz (6.3e-5 at 60 GHz, 4e-6 at 30 GHz), occurs
+    for near-cutoff modes, where it is below the error of the first-order model itself (about 2.8e-4, T1 section
+    5). In an E-plane bend the local walls v = +-b/2 are the narrow walls of the guide.
 
     **Evanescent modes** in the basis (needed next to miters and steps) are not coupled: they are propagated as
     uncoupled straight modes, exp(-i beta L) = exp(-|beta| L), over the centre-line length, with no reflection.
@@ -192,7 +196,8 @@ class SmoothBend(Component):
         """GSM at f (Hz) in the local basis of the bend's plane (same basis at both ports).
 
         Each GSM carries `info`, a dict family n -> solver diagnostics (n_slices, error_estimate, success), with
-        None for families that are straight sections (key 'all' with families='coupled' in a lossy guide).
+        None for families that are straight sections (keys 'even' and 'odd', the parity of n, with
+        families='coupled' in a lossy guide).
         """
         if basis1 is None:
             basis1 = self.default_basis(f)[0]
@@ -217,8 +222,14 @@ class SmoothBend(Component):
 
         prop = basis1.propagating_mask(f)
         parts, info = [], {}
-        groups = ([("all", list(range(N)))] if (lossm is not None and self.families == "coupled")
-                  else [(n, basis1.family(n)) for n in basis1.families()])
+        if lossm is not None and self.families == "coupled":
+            # equal walls: Lambda0 and Lambda1 vanish exactly between even and odd n (and K couples equal n only),
+            # so the coupled system splits into the even-n and the odd-n modes
+            groups = [(key, [i for i, md in enumerate(basis1.modes) if md.n % 2 == par])
+                      for key, par in (("even", 0), ("odd", 1))]
+            groups = [g for g in groups if g[1]]
+        else:
+            groups = [(n, basis1.family(n)) for n in basis1.families()]
         for key, idx in groups:
             pidx = [i for i in idx if prop[i]]
             eidx = [i for i in idx if not prop[i]]

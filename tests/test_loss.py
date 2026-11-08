@@ -566,3 +566,131 @@ def test_sheet_filter_at_kt_zero():
     f6 = 6 * cst.c / (2 * b)              # k = 6 pi / b; sheets at b/3 and 2b/3 are nodes of n = 6
     with pytest.raises(ValueError, match="self-orthogonal"):
         ResistiveSheetFilter(0.10, 56.0, positions=[-b / 6, b / 6]).gsm(f6, Guide(W, b).basis(f6))
+
+
+# ============================================================================ review fixes: surface waves
+def _winding(F, R, npts=40000):
+    """Number of zeros of the entire function F inside |s| = R (argument principle)."""
+    th = np.linspace(0, 2 * np.pi, npts + 1)
+    v = F(R * np.exp(1j * th))
+    dphi = np.angle(v[1:] / v[:-1])
+    assert np.max(np.abs(dphi)) < 1.0                      # sampled finely enough
+    return int(round(np.sum(dphi) / (2 * np.pi)))
+
+
+def _check_count(roots, F, exclude_zero=False):
+    """All zeros of F with |s| < R must be among `roots` (the count lowest by Re s), for R < Re of the last root.
+    exclude_zero: the root s = 0 is not a zero of F (removed by the division of F by k_t)."""
+    if exclude_zero:
+        roots = roots[np.abs(roots) > 1e-6 * np.max(np.abs(roots))]
+    mags = np.sort(np.abs(roots))
+    lim = 0.6 * roots[-1].real
+    inner = mags[mags < lim]
+    gaps = np.diff(inner)
+    R = 0.5 * (inner[np.argmax(gaps)] + inner[np.argmax(gaps) + 1]) if len(gaps) else lim
+    assert _winding(F, R) == np.sum(np.abs(roots) < R) > 0
+
+
+@pytest.mark.parametrize("Z", [250 + 250j, 100 + 300j, 100 + 100j])
+def test_inductive_walls_surface_waves(Z):
+    """Inductive walls carry surface waves bound to each wall: an even/odd pair degenerate to about exp(-|Im k_u| a).
+    They must all be found (argument principle on the B6 dispersion function of t1lib), and the filter must be
+    passive (review of PR #16: family n = 1, 10 cm, 75 GHz gave singular values 1.545 and 1.169 before the fix)."""
+    f = 75e9
+    k = 2 * np.pi * f / cst.c
+    sc = (np.pi / W) ** 2
+    for kind in ("LSE", "LSM"):
+        s = impedance_wall_modes(f, W, Z, Z, kind, 30)
+
+        def F(x, kind=kind):
+            ku = np.sqrt(x)
+            return t1lib.lsu_dispersion_scaled(ku, k, W, Z, Z, kind) / ku
+        _check_count(s, F)
+        if Z == 250 + 250j and kind == "LSM":       # mpmath roots quoted by the reviewer: 115.2 i (pi/a)^2 (pair)
+            assert np.sum(np.abs(s / sc - 115.2j) < 0.1) == 2
+        if Z == 100 + 300j and kind == "LSM":       # -73.7 + 55.3 i (pi/a)^2 (pair)
+            assert np.sum(np.abs(s / sc - (-73.7 + 55.3j)) < 0.1) == 2
+    basis = WR90.basis(f)
+    b1 = basis.subset(basis.family(1))
+    g = LossyWallFilter(0.10, Z).gsm(f, b1)
+    check_lossy(g, rtol=1e-12)
+    g = LossyWallFilter(0.10, {"u+": Z, "u-": 0.5 * Z}).gsm(f, b1)      # unequal walls: one problem on [0, a]
+    check_lossy(g, rtol=1e-12)
+    for kind in ("LSE", "LSM"):
+        s = impedance_wall_modes(f, W, Z, 0.5 * Z, kind, 30)
+
+        def F(x, kind=kind):
+            ku = np.sqrt(x)
+            return t1lib.lsu_dispersion_scaled(ku, k, W, Z, 0.5 * Z, kind) / ku
+        _check_count(s, F)
+
+
+def test_nearly_equal_reactive_walls_raise_rather_than_return():
+    """A pair of surface waves on nearly (not exactly) equal reactive walls is degenerate to round-off: the modes
+    cannot be resolved, and the filter raises instead of returning a non-passive GSM."""
+    from wrmodes.filters import RootFindingError
+    f = 75e9
+    basis = WR90.basis(f)
+    b1 = basis.subset(basis.family(1))
+    Z = 250 + 250j
+    with pytest.raises(RootFindingError):
+        LossyWallFilter(0.10, {"u+": Z, "u-": Z * (1 + 1e-9)}).gsm(f, b1)
+    g = LossyWallFilter(0.10, {"u+": Z, "u-": Z * (1 + 1e-14)}).gsm(f, b1)     # treated as equal walls
+    assert np.array_equal(g.S, LossyWallFilter(0.10, Z).gsm(f, b1).S)
+
+
+@pytest.mark.parametrize("R", [20 + 150j, 56 - 300j, 5 + 500j])
+def test_reactive_sheets(R):
+    """Reactive sheets (complex R_sheet): all roots found (argument principle on the closed form B7 of t1lib) and the
+    filter passive, for one centred sheet, one off-centre sheet and three equidistant sheets."""
+    f = 75e9
+    k = 2 * np.pi * f / cst.c
+    xi = R / ETA0
+    for v0 in (0.5 * H, 0.3 * H):
+        for kind in ("LSM", "LSE"):
+            s = sheet_modes(f, H, R, [v0], kind, 24)
+
+            def F(x, kind=kind, v0=v0):
+                kv = np.sqrt(x)
+                val = t1lib.sheet_dispersion_closed(kv, k, H, xi, v0, kind)
+                return val / kv if kind == "LSM" else val / x     # LSE: F has the trivial zero s = 0 (Y = 0)
+            if kind == "LSM":           # s = 0 is an exact LSM^v root (TE_m0), divided out of F by kv
+                assert np.min(np.abs(s)) < 1e-6 * (np.pi / H) ** 2
+            _check_count(s, F, exclude_zero=(kind == "LSM"))
+    basis = WR90.basis(f)
+    for flt in (ResistiveSheetFilter(0.10, R), ResistiveSheetFilter(0.10, R, v0=0.2 * H),
+                ResistiveSheetFilter(0.10, R, n_sheets=3)):
+        check_lossy(flt.gsm(f, basis), rtol=1e-12)
+
+
+def test_loss_matrix_argument_forms():
+    """loss_matrix: an array or nested lists (Lambda0_full alone), or the pair (Lambda0_full, Lambda1_full)."""
+    f, L = 40e9, 0.4
+    sub = WR90_AL.basis(f).subset(WR90_AL.basis(f).family(0))
+    L0, L1 = loss.bend_loss_matrices(sub, f, loss.surface_impedance(f, AL))
+    kw = dict(coupled_modes=sub.legacy_modes(f), atol=1e-8, error_control="full", profile=False)
+    curv = SechCurvature(90, L)
+    run = lambda lm: solve_transfer_matrix(f, W, H, ("TE", 1, 0), L, curv, loss_matrix=lm, **kw)[1].transfer_matrix
+    ref0, ref01 = run(L0), run((L0, L1))
+    assert np.array_equal(run(L0.tolist()), ref0)               # nested lists are Lambda0, not a pair
+    assert np.array_equal(run([L0, L1]), ref01) and np.array_equal(run((L0, None)), ref0)
+    assert np.max(np.abs(ref0 - ref01)) > 0
+    with pytest.raises(ValueError):
+        run(L0[:-1, :-1])
+
+
+def test_coupled_families_split_by_parity_of_n():
+    """families='coupled' solves the even-n and odd-n modes separately (Lambda vanishes between them for equal
+    walls); the result equals the single system of all propagating modes."""
+    f = 30e9
+    b = WR90_AL.basis(f)
+    bend = SmoothBend(0.4, SechCurvature(90, 0.4), guide=WR90_AL, families="coupled")
+    g = bend.gsm(f, b)
+    assert set(g.info) == {"even", "odd"}
+    L0, L1 = loss.bend_loss_matrices(b, f, loss.surface_impedance(f, AL))
+    par = np.array([m.n % 2 for m in b.modes] * 2)
+    assert not np.any(L0[np.not_equal.outer(par, par)]) and not np.any(L1[np.not_equal.outer(par, par)])
+    idx = np.flatnonzero(b.propagating_mask(f))
+    sel = np.r_[idx, idx + len(b)]
+    gall, _ = bend._solve(b.subset(idx), f, (L0[np.ix_(sel, sel)], L1[np.ix_(sel, sel)]))
+    assert np.max(np.abs(g.S - gall.S)) < 1e-12

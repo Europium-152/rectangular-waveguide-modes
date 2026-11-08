@@ -90,44 +90,86 @@ def _collocation_eigenvalues(breaks, rows, npts):
     return np.linalg.eigvals(A)
 
 
-def _polish(res, s0, scale, maxit=60):
-    """Vectorized Newton iteration on res(s) (central differences); returns (s, converged)."""
+RESIDUAL_TOL = 1e-10
+"""Accept a root when |F(s)| <= RESIDUAL_TOL x (size of the terms that cancel in F), see `_roots`."""
+
+MAX_DECAY = 60.0
+"""Largest |Im k_t| x width of a loaded-mode profile handled (surface waves grow like exp(|Im k_t| u))."""
+
+
+class RootFindingError(RuntimeError):
+    """The LS modes of a loaded guide could not be resolved reliably (raised instead of returning a wrong GSM)."""
+
+
+def _polish(res, s0, scale, maxit=80):
+    """Vectorized Newton iteration on res(s) -> (F, size of the terms of F), central differences.
+
+    Returns (s, normalized residual |F| / size) after the iteration; the caller accepts roots by the residual."""
     s = np.array(s0, dtype=complex)
-    ok = np.zeros(s.shape, bool)
+    done = np.zeros(s.shape, bool)
     for _ in range(maxit):
         h = 1e-7 * (np.abs(s) + scale)
-        r = res(s)
-        dr = (res(s + h) - res(s - h)) / (2 * h)
-        step = np.where(ok, 0.0, r / np.where(dr == 0, 1.0, dr))
+        r, _ = res(s)
+        dr = (res(s + h)[0] - res(s - h)[0]) / (2 * h)
+        step = np.where(done | (dr == 0), 0.0, r / np.where(dr == 0, 1.0, dr))
         s = s - step
-        ok |= np.abs(step) <= 1e-13 * (np.abs(s) + scale)
-        if ok.all():
+        done |= np.abs(step) <= 1e-14 * (np.abs(s) + scale)
+        if done.all():
             break
-    return s, ok
+    r, size = res(s)
+    return s, np.abs(r) / np.where(size == 0, 1.0, size)
 
 
-def _roots(res, eigs, count, scale):
-    """The `count` roots of res with the smallest Re s, from the collocation eigenvalues `eigs` as starting values."""
+def _roots(res, eigs, count, scale, what="loaded guide"):
+    """The `count` roots of res with the smallest Re s, from the collocation eigenvalues `eigs` as starting values.
+
+    Every candidate is polished by Newton's method and accepted by its normalized residual (|F| relative to the
+    size of the terms that cancel in F, `RESIDUAL_TOL`), not by the Newton step, which stalls at nearly double
+    roots. A candidate whose real part lies below that of the count-th accepted root and that does not converge,
+    or converges to a root already found (two collocation eigenvalues, one root), means that a root may be missing:
+    RootFindingError is raised instead of returning an incomplete set.
+    """
     eigs = eigs[np.isfinite(eigs)]
     cand = eigs[np.argsort(eigs.real)][: count + max(8, count // 4)]
-    s, ok = _polish(res, cand, scale)
-    s = s[ok]
-    s = s[np.argsort(s.real)]
-    keep = []
-    for x in s:
-        if all(abs(x - y) > 1e-8 * (abs(x) + scale) for y in keep):
+    s, resid = _polish(res, cand, scale)
+    ok = resid <= RESIDUAL_TOL
+    keep, bad = [], []
+    for x, c, good in zip(s, cand, ok):
+        if not good:
+            bad.append((c, "did not converge"))
+        elif any(abs(x - y) <= 1e-10 * (abs(x) + scale) for y in keep):
+            bad.append((c, "converged to a root already found"))
+        else:
             keep.append(x)
+    keep = sorted(keep, key=lambda z: z.real)
     if len(keep) < count:
-        raise RuntimeError(f"collocation found {len(keep)} of the {count} roots needed; increase the resolution")
-    return np.array(keep[:count])
+        raise RootFindingError(f"{what}: found {len(keep)} of the {count} transverse wavenumbers needed")
+    roots = np.array(keep[:count])
+    limit = roots[-1].real
+    for c, why in bad:
+        if c.real < limit - 1e-8 * (abs(limit) + scale):
+            raise RootFindingError(
+                f"{what}: the collocation eigenvalue k_t^2 = {c:.6g} 1/m^2 {why}; a mode may be missing. This happens "
+                f"for nearly degenerate pairs of surface waves (strongly reactive, unequal walls or sheets); the "
+                f"filter is not computed rather than returned with a wrong set of modes")
+    return roots
 
 
-def _advance(Y, dY, s, d):
-    """(Y, Y') after a distance d of -Y'' = s Y; entire in s (no branch of sqrt(s) enters)."""
+def _advance(Y, dY, s, d, mY=None, mdY=None):
+    """(Y, Y') after a distance d of -Y'' = s Y; entire in s (no branch of sqrt(s) enters).
+
+    With mY, mdY (bounds of |Y|, |Y'| of the terms so far) it also returns the bounds of the new values, used to
+    normalize dispersion residuals."""
     q = np.sqrt(s + 0j)
     c = np.cos(q * d)
     sn = d * np.sinc(q * d / np.pi)                  # sin(q d) / q, also at q = 0
-    return c * Y + sn * dY, -s * sn * Y + c * dY
+    Yn, dYn = c * Y + sn * dY, -s * sn * Y + c * dY
+    if mY is None:
+        return Yn, dYn
+    # round-off scale: |cos|, |q sin| <= E = exp|Im q d| whatever the cancellation inside cos and sin
+    E = np.exp(np.abs((q * d).imag))
+    aq = np.maximum(np.abs(q), 1 / max(abs(d), 1e-300))
+    return Yn, dYn, E * (mY + mdY / aq), E * (aq * mY + mdY)
 
 
 def _gamma(g2):
@@ -142,20 +184,81 @@ def _wavenumber(f):
 
 
 # ============================================================================== impedance walls (B6)
-def _lsu_start(kind, k, Zm):
-    """(X(0), X'(0)) satisfying the Leontovich (Robin) condition at u' = 0 (T1 box B6)."""
-    if kind == "LSE":                       # Z- X'(0) = i k eta0 X(0)
-        return complex(Zm), 1j * k * ETA0
-    return complex(ETA0), 1j * k * Zm       # LSM: eta0 X'(0) = i k Z- X(0)
+def _robin(kind, k, Z):
+    """Coefficients (of X, of X') of the Leontovich condition at a wall u = +a/2 with impedance Z (T1 box B6):
+    LSE^u: Z X' + i k eta0 X = 0;  LSM^u: eta0 X' + i k Z X = 0. At u = -a/2 the sign of i k is reversed."""
+    return (1j * k * ETA0, Z) if kind == "LSE" else (1j * k * Z, ETA0)
 
 
-def _lsu_residual(kind, k, a, Zp, Zm):
-    X0, dX0 = _lsu_start(kind, k, Zm)
+def _equal_walls(Zp, Zm):
+    return abs(Zp - Zm) <= 1e-12 * max(abs(Zp), abs(Zm))
+
+
+def _lsu_problems(kind, k, a, Zp, Zm):
+    """The 1D eigenproblems whose roots are the LS^u modes: (start u', (X0, X0'), interval, rows, residual).
+
+    Equal walls (Zp == Zm): the even and odd modes about the axis, each on [a/2, a] with X'(a/2) = 0 or
+    X(a/2) = 0 (the two factors of B6), so that the pairs of surface waves bound to the two walls, degenerate to
+    about exp(-|Im k_u| a), are simple roots. Unequal walls: one problem on [0, a] started from the condition at
+    u' = 0."""
+    cp = _robin(kind, k, Zp)
+    if _equal_walls(Zp, Zm):
+        out = []
+        for start, (X0, dX0) in (("even", (1.0 + 0j, 0j)), ("odd", (0j, 1.0 + 0j))):
+            row0 = [(0, 0, 0.0, 1.0)] if start == "even" else [(0, 0, 1.0, 0.0)]
+            out.append((a / 2, (X0, dX0), (a / 2, a), [row0, [(0, 1, cp[0], cp[1])]]))
+        return out
+    cm = _robin(kind, k, Zm)
+    X0, dX0 = cm[1], cm[0]                  # -cm[0] X(0) + cm[1] X'(0) = 0 (normal reversed at u' = 0)
+    return [(0.0, (complex(X0), complex(dX0)), (0.0, a), [[(0, 0, -cm[0], cm[1])], [(0, 1, cp[0], cp[1])]])]
+
+
+def _wall_residual(kind, k, Zp, start_state, length):
+    cp = _robin(kind, k, Zp)
+    X0, dX0 = start_state
 
     def res(s):
-        X, dX = _advance(X0, dX0, s, a)
-        return Zp * dX + 1j * k * ETA0 * X if kind == "LSE" else ETA0 * dX + 1j * k * Zp * X
+        X, dX, mX, mdX = _advance(X0, dX0, s, length, abs(X0), abs(dX0))
+        return cp[0] * X + cp[1] * dX, abs(cp[0]) * mX + abs(cp[1]) * mdX
     return res
+
+
+def _lsu_roots(f, a, Zp, Zm, kind, count, resolution=None):
+    """(s, start u', X0, X0') of the `count` LS^u modes with the smallest Re s (see `impedance_wall_modes`)."""
+    if kind not in ("LSE", "LSM"):
+        raise ValueError("kind must be 'LSE' or 'LSM'")
+    k = _wavenumber(f)
+    Zp, Zm = complex(Zp), complex(Zm)
+    problems = _lsu_problems(kind, k, a, Zp, Zm)
+    per = count if len(problems) == 1 else count // 2 + 4
+    while True:
+        parts, tops = [], []
+        for u0, st, (x0, x1), rows in problems:
+            npts = resolution or int(2 * per * a / (x1 - x0) * (x1 - x0) / a) + 48
+            eigs = _collocation_eigenvalues([x0, x1], rows, [npts])
+            r = _roots(_wall_residual(kind, k, Zp, st, x1 - u0), eigs, per, (np.pi / a) ** 2,
+                       f"{kind}^u modes, Z+ = {Zp:.4g}, Z- = {Zm:.4g} ohm")
+            parts += [(x, u0, st[0], st[1]) for x in r]
+            tops.append(r[-1].real)
+        parts.sort(key=lambda p: p[0].real)
+        parts = parts[:count]
+        # each parity list holds all its roots up to its last one: the merged set is complete below min(tops)
+        if len(problems) == 1 or parts[-1][0].real <= min(tops):
+            break
+        per += count // 4 + 4
+    decay = max(abs(np.sqrt(p[0]).imag) for p in parts) * a
+    if decay > MAX_DECAY:
+        raise RootFindingError(f"{kind}^u modes, Z+ = {Zp:.4g}, Z- = {Zm:.4g} ohm: a surface wave decays by "
+                               f"|Im k_u| a = {decay:.1f} across the guide, beyond the range handled (exp overflow)")
+    if len(problems) == 1:
+        # unequal walls: the profile is computed from both walls and joined where it peaks (`_join`), so that it
+        # is always integrated in the direction in which it grows (surface waves bound to one wall)
+        cp = _robin(kind, k, Zp)
+        right = (a, complex(cp[1]), complex(-cp[0]))           # cp[0] X(a) + cp[1] X'(a) = 0
+        parts = [(x, ((u0, X0, dX0), right)) for x, u0, X0, dX0 in parts]
+    else:
+        parts = [(x, ((u0, X0, dX0),)) for x, u0, X0, dX0 in parts]
+    return parts
 
 
 def impedance_wall_modes(f, a, Zp, Zm, kind, count, resolution=None):
@@ -166,20 +269,27 @@ def impedance_wall_modes(f, a, Zp, Zm, kind, count, resolution=None):
         LSM^u (H_u = 0):  eta0 X'(0) = i k Z- X(0),   eta0 X'(a) = -i k Z+ X(a),
     Z+ (Zp) on the wall u = +a/2, Z- (Zm) on u = -a/2 (ohm, any complex value, 0 = perfect conductor). The roots
     are the zeros of the dispersion function F of B6 (here as the residual of the right-hand condition after a
-    transfer of (X, X') across the guide). Returns the `count` values of s with the smallest real part; for
-    Z -> 0 they tend to (m pi / a)^2, m = 1, 2, ... (LSE) or m = 0, 1, ... (LSM). The propagation constant of
-    family n is gamma = sqrt(k^2 - (n pi/b)^2 - s), Im gamma <= 0.
+    transfer of (X, X') across the guide). For equal walls the even and odd factors of B6 are solved separately.
+    Inductive walls (Im Z > 0 for LSE^u) carry surface waves bound to the walls (Re s < 0 or large Im s); they
+    are found like the other roots. Returns the `count` values of s with the smallest real part; for Z -> 0 they
+    tend to (m pi / a)^2, m = 1, 2, ... (LSE) or m = 0, 1, ... (LSM). The propagation constant of family n is
+    gamma = sqrt(k^2 - (n pi/b)^2 - s), Im gamma <= 0. Raises RootFindingError rather than return an incomplete
+    set (see `_roots`).
     """
-    k = _wavenumber(f)
-    npts = resolution or (2 * count + 48)
-    if kind == "LSE":
-        rows = [[(0, 0, -1j * k * ETA0, Zm)], [(0, 1, 1j * k * ETA0, Zp)]]
-    elif kind == "LSM":
-        rows = [[(0, 0, -1j * k * Zm, ETA0)], [(0, 1, 1j * k * Zp, ETA0)]]
-    else:
-        raise ValueError("kind must be 'LSE' or 'LSM'")
-    eigs = _collocation_eigenvalues([0.0, a], rows, [npts])
-    return _roots(_lsu_residual(kind, k, a, Zp, Zm), eigs, count, (np.pi / a) ** 2)
+    return np.array([p[0] for p in _lsu_roots(f, a, Zp, Zm, kind, count, resolution)])
+
+
+def _join(YL, dYL, YR, dYR):
+    """One profile from two exact solutions of the same mode, integrated from the left and from the right end.
+
+    Each is accurate where it was integrated in the direction of growth: the left one up to the peak of the mode,
+    the right one beyond it. They are joined (rescaled) at the point where |YL YR| is largest. Arrays: modes x points.
+    """
+    p = np.argmax(np.abs(YL * YR), axis=1)
+    rows = np.arange(YL.shape[0])
+    scale = (YL[rows, p] / YR[rows, p])[:, None]
+    right = np.arange(YL.shape[1])[None, :] > p[:, None]
+    return np.where(right, scale * YR, YL), np.where(right, scale * dYR, dYL)
 
 
 class _LoadedModes:
@@ -197,28 +307,30 @@ def _lsu_family(f, a, b, n, Zp, Zm, M, quad):
     k = _wavenumber(f)
     kn = n * np.pi / b
     out = _LoadedModes()
-    kinds, s = [], []
+    kinds, roots = [], []
     for kind, cnt in (("LSE", M), ("LSM", M + 1 if n >= 1 else 0)):
         if cnt:
-            r = impedance_wall_modes(f, a, Zp, Zm, kind, cnt)
+            r = _lsu_roots(f, a, Zp, Zm, kind, cnt)
             kinds += [kind] * cnt
-            s.append(r)
+            roots += r
     out.kind = np.array(kinds)
-    out.s = np.concatenate(s)
+    out.s = np.array([r[0] for r in roots])
     g2 = k * k - kn * kn - out.s
     if np.any(np.abs(k * k - out.s) < 1e-10 * k * k):
         raise ValueError(f"family n = {n}: a loaded mode has k_u = k (its LS field is self-orthogonal); change the "
                          f"frequency slightly")
     out.gamma = _gamma(g2)
-    # profiles X(u'), X'(u') on the quadrature points
+    # profiles X(u'), X'(u') on the quadrature points: from the axis for equal walls, else from both walls
     up, wu = quad["u"]
     X = np.empty((len(out.s), len(up)), complex)
     dX = np.empty_like(X)
-    for kind in ("LSE", "LSM"):
-        sel = out.kind == kind
-        if np.any(sel):
-            X0, dX0 = _lsu_start(kind, k, Zm)
-            X[sel], dX[sel] = _advance(X0, dX0, out.s[sel][:, None], up[None, :])
+    for i, (x, starts) in enumerate(roots):
+        prof = [_advance(X0, dX0, x, up - u0) for u0, X0, dX0 in starts]
+        if len(prof) == 1:
+            X[i], dX[i] = prof[0]
+        else:
+            Xi, dXi = _join(prof[0][0][None], prof[0][1][None], prof[1][0][None], prof[1][1][None])
+            X[i], dX[i] = Xi[0], dXi[0]
     IX = (X * X) @ wu                          # unconjugated
     g, sk = out.gamma, k * k - out.s
     lse = out.kind == "LSE"
@@ -282,6 +394,25 @@ def _sheet_states(kind, k, b, xis, pos, s):
     return starts, _advance(Y, dY, s, b - here)
 
 
+def _sheet_states_right(kind, k, b, xis, pos, s):
+    """(Y, Y') at the right end of every sub-interval, integrated from v' = b towards v' = 0 (the reverse of
+    `_sheet_states`, with the inverse jumps at the sheets)."""
+    s = np.asarray(s, dtype=complex)
+    Y, dY = (np.ones_like(s), np.zeros_like(s)) if kind == "LSM" else (np.zeros_like(s), np.ones_like(s))
+    breaks = np.concatenate([[0.0], pos, [b]])
+    ends = [None] * (len(pos) + 1)
+    ends[-1] = (Y, dY)
+    for d in range(len(pos), 0, -1):
+        Y, dY = _advance(Y, dY, s, breaks[d] - breaks[d + 1])
+        xi = xis[d - 1]
+        if kind == "LSM":
+            Y = Y + 1j * dY / (k * xi)
+        else:
+            dY = dY - 1j * k * Y / xi
+        ends[d - 1] = (Y, dY)
+    return ends
+
+
 def _sheet_geometry(b, R_sheet, positions):
     pos = np.asarray(positions, dtype=float)
     R = np.broadcast_to(np.asarray(R_sheet, dtype=complex), pos.shape)
@@ -312,9 +443,19 @@ def sheet_modes(f, b, R_sheet, positions, kind, count, resolution=None):
     eigs = _collocation_eigenvalues(breaks, _sheet_conditions(kind, k, b, xis, pos), npts)
 
     def res(s):
-        _, (Y, dY) = _sheet_states(kind, k, b, xis, pos, s)
-        return dY if kind == "LSM" else Y
-    return _roots(res, eigs, count, (np.pi / b) ** 2)
+        s = np.asarray(s, dtype=complex)
+        Y, dY = (np.ones_like(s), np.zeros_like(s)) if kind == "LSM" else (np.zeros_like(s), np.ones_like(s))
+        mY, mdY, here = np.abs(Y), np.abs(dY), 0.0
+        for xi, p in zip(xis, pos):
+            Y, dY, mY, mdY = _advance(Y, dY, s, p - here, mY, mdY)
+            here = p
+            if kind == "LSM":
+                Y, mY = Y - 1j * dY / (k * xi), mY + mdY / abs(k * xi)
+            else:
+                dY, mdY = dY + 1j * k * Y / xi, mdY + k * mY / abs(xi)
+        Y, dY, mY, mdY = _advance(Y, dY, s, b - here, mY, mdY)
+        return (dY, mdY) if kind == "LSM" else (Y, mY)
+    return _roots(res, eigs, count, (np.pi / b) ** 2, f"{kind}^v modes of the sheet-loaded guide")
 
 
 def _sheet_family(f, a, b, m, xis, pos, Nn, vq):
@@ -343,12 +484,18 @@ def _sheet_family(f, a, b, m, xis, pos, Nn, vq):
     for kind in ("LSM", "LSE"):
         sel = np.flatnonzero(out.kind == kind)
         if len(sel):
+            ss = out.s[sel][:, None]
             starts, _ = _sheet_states(kind, k, b, xis, pos, out.s[sel])
-            for d, (Y0, dY0) in enumerate(starts):
-                pts = seg == d
-                yy, dd = _advance(Y0[:, None], dY0[:, None], out.s[sel][:, None], (vp[pts] - breaks[d])[None, :])
-                Y[np.ix_(sel, np.flatnonzero(pts))] = yy
-                dY[np.ix_(sel, np.flatnonzero(pts))] = dd
+            ends = _sheet_states_right(kind, k, b, xis, pos, out.s[sel])
+            YL = np.empty((len(sel), len(vp)), complex)
+            dYL, YR, dYR = np.empty_like(YL), np.empty_like(YL), np.empty_like(YL)
+            for d in range(len(breaks) - 1):
+                pts = np.flatnonzero(seg == d)
+                YL[:, pts], dYL[:, pts] = _advance(starts[d][0][:, None], starts[d][1][:, None], ss,
+                                                   (vp[pts] - breaks[d])[None, :])
+                YR[:, pts], dYR[:, pts] = _advance(ends[d][0][:, None], ends[d][1][:, None], ss,
+                                                   (vp[pts] - breaks[d + 1])[None, :])
+            Y[sel], dY[sel] = _join(YL, dYL, YR, dYR)       # integrated towards growth on both sides of the peak
     IY = (Y * Y) @ wv
     g, sk = out.gamma, k * k - out.s
     lsm = out.kind == "LSM"
@@ -377,6 +524,21 @@ def _sheet_fields(md, up):
 
 
 # ============================================================================== filter sections
+ORTHO_TOL = 1e-6
+"""Largest |O - I| of the reaction matrix O_ij = (1/2) int (E_i x H_j).z of the normalized loaded modes accepted."""
+
+
+def _check_orthogonality(Eu, Ev, Hu, Hv, W, what):
+    """The loaded modes must be orthonormal in the unconjugated reaction; a defect means inaccurate modes."""
+    O = 0.5 * (np.einsum("iuv,juv->ij", Eu * W, Hv) - np.einsum("iuv,juv->ij", Ev * W, Hu))
+    dev = np.max(np.abs(O - np.eye(len(O)))) if len(O) else 0.0
+    if not dev <= ORTHO_TOL:
+        raise RootFindingError(f"{what}: the loaded-guide modes are not orthogonal (max |O - I| = {dev:.1e}); they "
+                               f"cannot be computed reliably here (e.g. a nearly degenerate pair of surface waves on "
+                               f"nearly equal reactive walls: make the walls exactly equal, or change them)")
+    return dev
+
+
 def _section(f, ideal, loaded, Eu, Ev, eu, ev, W, length, name):
     """GSM (ideal-guide modes at both ports) of junction * loaded section * reversed junction (T1 box B9)."""
     X = (np.einsum("iuv,puv->ip", Eu * W, eu) + np.einsum("iuv,puv->ip", Ev * W, ev)) / np.sqrt(2.0)
@@ -531,7 +693,8 @@ class LossyWallFilter(_Filter):
             ideal = ModeBasis(a, b, ([Mode("TE", m, n) for m in range(0 if n else 1, M + 1)]
                                      + ([Mode("TM", m, n) for m in range(1, M + 1)] if n else [])))
             loaded = _lsu_family(f, a, b, n, Zp, Zm, M, {"u": (up, wu)})
-            Eu, Ev, _, _ = _lsu_fields(loaded, vp[None, None, :])
+            Eu, Ev, Hu, Hv = _lsu_fields(loaded, vp[None, None, :])
+            _check_orthogonality(Eu, Ev, Hu, Hv, np.outer(wu, wv), f"{self.name}, family n = {n}")
             U, V = np.meshgrid(up - a / 2, vp - b / 2, indexing="ij")
             eu, ev = _ideal_fields(ideal, U, V)
             blocks.append(_section(f, ideal, loaded, Eu, Ev, eu, ev, np.outer(wu, wv), self.length, self.name))
@@ -625,7 +788,8 @@ class ResistiveSheetFilter(_Filter):
             ideal = ModeBasis(a, b, ([Mode("TE", m, 0)] if m else []) + [Mode("TE", m, n) for n in range(1, Nn + 1)]
                               + ([Mode("TM", m, n) for n in range(1, Nn + 1)] if m else []))
             loaded = _sheet_family(f, a, b, m, xis, pos, Nn, vq)
-            Eu, Ev, _, _ = _sheet_fields(loaded, up)
+            Eu, Ev, Hu, Hv = _sheet_fields(loaded, up)
+            _check_orthogonality(Eu, Ev, Hu, Hv, np.outer(wu, vq[1]), f"{self.name}, index m = {m}")
             U, V = np.meshgrid(up - a / 2, vq[0] - b / 2, indexing="ij")
             eu, ev = _ideal_fields(ideal, U, V)
             blocks.append(_section(f, ideal, loaded, Eu, Ev, eu, ev, np.outer(wu, vq[1]), self.length, self.name))

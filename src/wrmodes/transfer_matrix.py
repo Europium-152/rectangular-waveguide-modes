@@ -317,10 +317,16 @@ def _solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes, m
     N = len(modes)
     D, K, beta = coupled_mode_matrices(f, a, b, modes)
     if loss_matrix is not None:
-        L0, L1 = loss_matrix if isinstance(loss_matrix, (tuple, list)) else (loss_matrix, None)
-        L0 = np.asarray(L0, dtype=complex)
-        if L0.shape != D.shape or (L1 is not None and np.shape(L1) != D.shape):
-            raise ValueError(f"loss_matrix must be {D.shape} (the mode set has {N} modes)")
+        if isinstance(loss_matrix, tuple) and len(loss_matrix) == 2 and loss_matrix[1] is None:
+            loss_matrix = loss_matrix[0]
+        lm = np.asarray(loss_matrix, dtype=complex)
+        if lm.shape == D.shape:                                  # Lambda0_full alone (array or nested lists)
+            L0, L1 = lm, None
+        elif lm.shape == (2,) + D.shape:                         # the pair (Lambda0_full, Lambda1_full)
+            L0, L1 = lm[0], lm[1]
+        else:
+            raise ValueError(f"loss_matrix must be Lambda0_full {D.shape} or the pair (Lambda0_full, Lambda1_full), "
+                             f"got shape {lm.shape} (the mode set has {N} modes)")
         D = D - L0
         if L1 is not None:
             K = K - np.asarray(L1, dtype=complex)
