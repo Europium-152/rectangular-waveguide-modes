@@ -38,12 +38,12 @@ def test_guide_is_immutable_and_sigma_is_a_hook():
         WR90.w = 1.0
     lossy = Guide(WR90.w, WR90.h, sigma=3.5e7)
     assert lossy.sigma == 3.5e7 and not lossy.lossless
+    # WP2: lossy straights, bends and lines are passive (the loss itself is tested in tests/test_loss.py)
+    for g in (Straight(0.1, guide=lossy).gsm(30e9), SmoothBend(0.3, 1.0, guide=lossy).gsm(30e9),
+              wr.Line(lossy, [Straight(0.1)]).gsm(30e9)):
+        assert 0 < g.passivity_margin() < 1e-2
     with pytest.raises(NotImplementedError):
-        Straight(0.1, guide=lossy).gsm(30e9)
-    with pytest.raises(NotImplementedError):
-        SmoothBend(0.3, 1.0, guide=lossy).gsm(30e9)
-    with pytest.raises(NotImplementedError):
-        wr.Line(lossy, [Straight(0.1)]).gsm(30e9)
+        lossy.require_lossless("a lossless-only component")
 
 
 # ------------------------------------------------------------------------------------------ Straight
@@ -249,14 +249,16 @@ def test_empty_bases_below_the_first_cutoff():
 
 
 class LossyStraight(Straight):
-    """Test double: a straight with a given (symmetric) attenuation matrix, to check the WP2 hook."""
+    """Test double: a straight with a given (symmetric) Lambda_full = [[L+, L-], [-L-, -L+]], to check the hook."""
 
     def _loss_matrix(self, basis, f):
         n = len(basis)
-        lam = np.diag(np.linspace(0.1, 0.3, n)).astype(complex)
+        lp = np.diag(np.linspace(0.1, 0.3, n)).astype(complex)
+        lm = np.zeros((n, n), complex)
         if n > 1:
-            lam[0, 1] = lam[1, 0] = 0.02
-        return lam
+            lp[0, 1] = lp[1, 0] = 0.02
+            lm[0, 1] = lm[1, 0] = 0.01j
+        return np.block([[lp, lm], [-lm, -lp]])
 
 
 def test_loss_matrix_hook_of_straight():
@@ -266,14 +268,14 @@ def test_loss_matrix_hook_of_straight():
     g = s.gsm(f)
     b = g.basis1
     lam = s._loss_matrix(b, f)
-    assert np.allclose(g.S21, expm(-(np.diag(1j * b.beta(f)) + lam) * L), atol=1e-14, rtol=0)
-    assert g.reciprocity_defect() < 1e-15 and g.passivity_margin() > 0
+    D = np.diag(np.concatenate([-1j * b.beta(f), 1j * b.beta(f)]))
+    assert np.allclose(g.S, from_transfer_matrix(expm((D - lam) * L), b, f).S, atol=1e-13, rtol=0)
+    assert g.reciprocity_defect() < 1e-12 and g.passivity_margin() > 0
     assert not np.any(Straight(L, guide=WR90)._loss_matrix(b, f))
 
 
-def test_smooth_bend_loss_hook_refuses_nonzero_loss():
-    class LossyBend(SmoothBend):
-        def _loss_matrix(self, basis, f):
-            return 0.1 * np.eye(len(basis))
-    with pytest.raises(NotImplementedError):
-        LossyBend(0.3, 1.0, guide=WR90).gsm(30e9)
+def test_smooth_bend_loss_hook():
+    assert SmoothBend(0.3, 1.0, guide=WR90)._loss_matrix(WR90.basis(30e9), 30e9) is None
+    lossy = Guide(WR90.w, WR90.h, sigma=3.5e7)
+    L0, L1 = SmoothBend(0.3, 1.0, guide=lossy)._loss_matrix(lossy.basis(30e9), 30e9)
+    assert L0.shape == L1.shape == (2 * len(lossy.basis(30e9)),) * 2 and np.any(L0) and np.any(L1)

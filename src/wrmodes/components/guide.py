@@ -44,9 +44,11 @@ class Guide:
     w, h : float
         Inner width and height (m). For SPARC, WR-90: w = 22.86 mm, h = 10.16 mm; TE1,0 has E along y.
     sigma : float or None
-        Wall conductivity (S/m). Ohmic wall loss is added by WP2 (wrmodes 1.0 wave 1). Until then a Guide with a
-        conductivity can be built, but every component that is asked for a GSM in such a guide raises
-        NotImplementedError instead of silently returning the lossless result (see `require_lossless`).
+        Wall conductivity (S/m) of all four walls, or None for perfectly conducting walls. There is no default
+        material: the SPARC baseline is aluminium, sigma = 3.5e7 S/m (CONVENTIONS.md section 1); copper is 5.8e7.
+        Straight sections and smooth bends include the ohmic loss (wrmodes.loss, WP2). Components that do not
+        support wall loss (steps and miters in wrmodes 1.0 wave 1) refuse a lossy guide with NotImplementedError
+        (`require_lossless`) instead of silently returning the lossless result.
 
     A Guide is immutable and hashable.
     """
@@ -91,10 +93,18 @@ class Guide:
         return self.sigma is None
 
     def require_lossless(self, what="this component"):
-        """Hook for WP2: raise NotImplementedError if the guide has a wall conductivity."""
+        """Raise NotImplementedError if the guide has a wall conductivity (for components without wall loss)."""
         if self.sigma is not None:
-            raise NotImplementedError(f"{what}: ohmic wall loss (Guide.sigma = {self.sigma:g} S/m) is not "
-                                      f"implemented yet (WP2); use sigma=None for perfectly conducting walls")
+            raise NotImplementedError(f"{what}: ohmic wall loss (Guide.sigma = {self.sigma:g} S/m) is not supported "
+                                      f"by this component in wrmodes 1.0 (lossless walls only); use a guide with "
+                                      f"sigma=None for it")
+
+    def wall_impedance(self, f):
+        """Surface impedance Z_s = (1 + i) R_s (ohm) of the walls at f (Hz), or None for perfect walls."""
+        if self.sigma is None:
+            return None
+        from ..loss import surface_impedance
+        return complex(surface_impedance(f, self.sigma))
 
     def dims(self, plane="H"):
         """Local sides (a, b) of the cross-section in the frame of `plane` (CONVENTIONS.md section 2)."""

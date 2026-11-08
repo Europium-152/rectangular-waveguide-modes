@@ -223,7 +223,8 @@ class TransferMatrixResult:
 # ----------------------------------------------------------------------------------------- solver
 def solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes=None, maximum_modes=None,
                           atol=1e-6, error_control='input', initial_slices=8, max_slices=4096, breakpoints=None,
-                          max_phase_per_slice=np.pi, z_eval=None, profile=True, verbose=False, blas_threads=1):
+                          max_phase_per_slice=np.pi, z_eval=None, profile=True, verbose=False, blas_threads=1,
+                          loss_matrix=None):
     """Solve the coupled-mode equations of a bent rectangular waveguide with the transfer-matrix method.
 
     Parameters
@@ -279,6 +280,14 @@ def solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes=Non
         on machines with many cores it can make the solver several times slower. The limit is applied with
         threadpoolctl (if installed) and restored on return; None leaves the BLAS threading unchanged. To use
         several cores, run different frequencies in parallel processes instead.
+    loss_matrix : array or (array, array), optional
+        Ohmic wall loss (wrmodes 1.0, docs/theory/T1-wall-impedance.md box B4b): Lambda0_full, or the pair
+        (Lambda0_full, Lambda1_full), 2N x 2N in the order of the mode set (e.g. from
+        `wrmodes.loss.bend_loss_matrices`). The system becomes
+        dy/dz = [(D - Lambda0_full) + kappa(z) (K - Lambda1_full)] y; it keeps the form "constant + kappa(z) x
+        constant", so the Magnus integrator, the error estimate and the adaptive slicing apply unchanged (the
+        minimum number of slices also counts the pairs coupled by kappa Lambda1). None (default) is the lossless
+        wrmodes 0.1 solver, bit for bit.
 
     Returns
     -------
@@ -290,11 +299,12 @@ def solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes=Non
     with _blas_limit(blas_threads):
         return _solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes, maximum_modes, atol,
                                       error_control, initial_slices, max_slices, breakpoints, max_phase_per_slice,
-                                      z_eval, profile, verbose)
+                                      z_eval, profile, verbose, loss_matrix)
 
 
 def _solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes, maximum_modes, atol, error_control,
-                           initial_slices, max_slices, breakpoints, max_phase_per_slice, z_eval, profile, verbose):
+                           initial_slices, max_slices, breakpoints, max_phase_per_slice, z_eval, profile, verbose,
+                           loss_matrix=None):
     if error_control not in ('input', 'full'):
         raise ValueError("error_control must be 'input' or 'full'")
     modes = select_coupled_modes(f, a, b, mode_in, coupled_modes=coupled_modes, maximum_modes=maximum_modes)
@@ -306,6 +316,14 @@ def _solve_transfer_matrix(f, a, b, mode_in, length, curvature, coupled_modes, m
     j = names.index(name_in)
     N = len(modes)
     D, K, beta = coupled_mode_matrices(f, a, b, modes)
+    if loss_matrix is not None:
+        L0, L1 = loss_matrix if isinstance(loss_matrix, (tuple, list)) else (loss_matrix, None)
+        L0 = np.asarray(L0, dtype=complex)
+        if L0.shape != D.shape or (L1 is not None and np.shape(L1) != D.shape):
+            raise ValueError(f"loss_matrix must be {D.shape} (the mode set has {N} modes)")
+        D = D - L0
+        if L1 is not None:
+            K = K - np.asarray(L1, dtype=complex)
     if verbose:
         print(f"{N} coupled modes at {f/1e9:.3f} GHz: {', '.join(names)}")
 
