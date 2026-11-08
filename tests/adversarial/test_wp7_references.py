@@ -227,3 +227,60 @@ def test_marcuvitz_comparison_plumbing(monkeypatch):
     assert all(r["ok"] for r in rows)
     rows = C.compare_marcuvitz(lambda f, a, b, b2: 1.03 * L.marcuvitz_eplane_step(f, a, b, b2)[2])
     assert not all(r["ok"] for r in rows)
+
+
+# ----------------------------------------------------------------------------------------- coupled wall loss
+def test_coupled_first_order_straight_reference():
+    """Eigenmode solution = matrix exponential (1 m); diag L+ = (1+i) alpha; reciprocal (S21 symmetric); passive."""
+    from scipy.linalg import expm
+    a, b, f, L_ = 0.02, 0.02, 30e9, 1.0
+    basis = ModeBasis.propagating(f, a, b)
+    Zs = (1 + 1j) * ref_loss.surface_resistance(f, ref_loss.SIGMA_AL)
+    Lp, Lm = ref_loss.first_order_matrices(basis, f, Zs)
+    A, _ = ref_loss.loss_matrix(basis, f, ref_loss.SIGMA_AL)
+    assert np.allclose(np.diag(Lp), (1 + 1j) * np.diag(A), rtol=1e-12, atol=0)
+    assert np.max(np.abs(Lp - Lp.T)) < 1e-15 and np.max(np.abs(Lm - Lm.T)) < 1e-15
+    R, T = ref_loss.straight_gsm_blocks(basis, f, Lp, Lm, L_)
+    N, beta = len(basis), basis.beta(f)
+    Phi = expm(np.block([[np.diag(-1j * beta) - Lp, -Lm], [Lm, np.diag(1j * beta) + Lp]]) * L_)
+    Rx = -np.linalg.solve(Phi[N:, N:], Phi[N:, :N])
+    assert np.max(np.abs(T - (Phi[:N, :N] + Phi[:N, N:] @ Rx))) < 1e-10 and np.max(np.abs(R - Rx)) < 1e-12
+    assert np.max(np.abs(T - T.T)) < 1e-11
+    assert np.linalg.norm(np.block([[R, T], [T, R]]), 2) < 1
+
+
+def test_exact_leontovich_root_reduces_to_ideal_mode():
+    """Z -> 0: the exact root tends to m pi / a, and the first-order LSE^u attenuation 2 m^2 pi^2 Re Z /
+    (k a^3 eta0 beta) (Butterweck eq. 21 for TE_m0, independent of the wall-integral code) is reached."""
+    a, b, f = 0.02286, 0.01016, 40e9
+    k = 2 * np.pi * f / 299792458.0
+    for m in (1, 3):
+        Z = 1e-3 * (1 + 1j)
+        g, ku = ref_loss.exact_gamma(f, a, b, m, 0, "LSE", Z, Z)
+        beta = np.sqrt(k * k - (m * np.pi / a) ** 2)
+        assert abs(ku - m * np.pi / a) < 1e-4 * m * np.pi / a
+        first = 2 * m * m * np.pi ** 2 * Z.real / (k * a ** 3 * ref_loss.ETA0 * beta)
+        assert abs(-g.imag / first - 1) < 1e-4
+        Lp, _ = ref_loss.first_order_matrices(ModeBasis(a, b, [("TE", m, 0)]), f, {"u-": Z, "u+": Z})
+        assert abs(Lp[0, 0].real / first - 1) < 1e-10
+
+
+@pytest.mark.parametrize("walls", ["u", "v"])
+def test_coupled_first_order_is_closer_to_exact_leontovich_than_group_blocks(walls):
+    """Aluminium on one pair of WR-90 walls at 90 GHz (72 groups): the full first-order coupled system is within
+    1e-3 of the exact attenuation for every group with fc/f < 0.9 (median about 4e-4); the group-block-only reference
+    is off by up to 3.8e-3 (TE0,1, side walls) and 1.7e-3 (TE1,0, broad walls)."""
+    rows = ref_loss.one_pair_comparison(*WR90, 90e9, ref_loss.SIGMA_AL, walls)
+    far = [r for r in rows if r["fc_over_f"] < 0.9]
+    assert max(r["coupled"] for r in far) < 1e-3
+    assert np.median([r["coupled"] for r in far]) < 5e-4
+    assert max(r["group"] for r in far) > 1.5e-3
+
+
+def test_backward_coupling_matters_near_cutoff():
+    """20 mm square guide, side walls only, 30 GHz: TE0,4/TE4,0 at fc/f = 0.9993. Without the forward-backward block
+    the decay is off by 1.8 %, with it (alone or in the full system) by < 1e-3."""
+    rows = ref_loss.one_pair_comparison(0.02, 0.02, 30e9, ref_loss.SIGMA_AL, "u")
+    r = next(r for r in rows if "TE0,4" in r["modes"])
+    assert r["fc_over_f"] > 0.999
+    assert r["group"] > 1e-2 and r["group_back"] < 1e-3 and r["coupled"] < 1e-3

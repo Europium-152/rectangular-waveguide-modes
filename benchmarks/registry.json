@@ -1,6 +1,11 @@
 {
   "description": "Benchmark registry of wrmodes 1.0 (CONVENTIONS.md section 9). One entry per benchmark: what it checks, the reference and its type, the data file, the tolerance and the test or script that applies it. Created by WP7 (wave 1). status: 'reference ready' = reference data and comparison exist, waiting for the implementation; 'waiting for data' = needs L1 or COMSOL output; 'self-check' = validates a WP7 reference itself.",
-  "reference_types": ["independent method", "COMSOL", "literature", "closed form"],
+  "reference_types": [
+    "independent method",
+    "COMSOL",
+    "literature",
+    "closed form"
+  ],
   "entries": [
     {
       "id": "wp7-line-v01",
@@ -70,14 +75,25 @@
     },
     {
       "id": "wp2-alpha-surface-integral",
-      "component": "WP2 per-mode attenuation and lossy Straight",
+      "component": "WP2 per-mode attenuation",
       "card": "WP2 acceptance: lossy straight vs WP7 surface-integral reference",
       "reference_type": "independent method",
       "reference": "P_loss/(2P) with P_loss = (1/2) R_s oint |H_tan|^2 dl from transverse_field (ref_loss.py); WR-90 and 20 mm square, aluminium and copper; degenerate groups by eigenvalues of the wall-loss matrix",
       "data_file": "benchmarks/validation_v1/data/loss_reference.npz",
-      "tolerance": "1e-6 relative on alpha for every mode (every degenerate group)",
-      "test": "tests/adversarial/test_wp2_adversarial.py; benchmarks/validation_v1/compare_wp2_loss.py",
-      "status": "reference ready (WP2's attenuation function name is not fixed by its card: wire it in ref_interfaces.attenuation_function)"
+      "tolerance": "1e-6 relative on alpha for every mode",
+      "test": "tests/adversarial/test_wp2_adversarial.py::test_alpha_of_all_129_modes_at_90GHz, ::test_alpha_just_above_cutoff; compare_wp2_loss.py",
+      "status": "passes against WP2 (2e-12, coordinator)"
+    },
+    {
+      "id": "wp2-lossy-straight-coupled",
+      "component": "WP2 lossy Straight (all propagating modes)",
+      "card": "WP2 acceptance: lossy straight vs WP7 reference",
+      "reference_type": "independent method",
+      "reference": "WP7 first-order coupled system (own derivation = T1 B3-B4: all pairs through the walls, forward and backward blocks), solved by eigenmodes (ref_loss.first_order_matrices, straight_gsm_blocks); physics checked against exact Leontovich modes with one pair of impedance walls (ref_loss.one_pair_comparison)",
+      "data_file": null,
+      "tolerance": "1e-8 absolute on S11 and S21 (implementation agreement); physical accuracy of the first-order model vs exact: 1e-3 (fc/f < 0.9), 2.5e-3 near cutoff",
+      "test": "tests/adversarial/test_wp2_adversarial.py::test_20m_lossy_straight_at_90GHz, ::test_square_guide_degenerate_groups_in_a_lossy_straight; compare_wp2_loss.py; self-checks in test_wp7_references.py",
+      "status": "reference ready; replaces the group-block comparison (docs/discrepancies/2026-11-08-wp2-wp7-straight-attenuation.md)"
     },
     {
       "id": "wp3-ma1997-table1",

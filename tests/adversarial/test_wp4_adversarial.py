@@ -64,7 +64,11 @@ def test_offset_small_large_small_is_identity(du, dv):
     s2 = _step(A, B, a2, b2, du=du, dv=dv)
     big = ModeBasis.propagating(f, A, B, cutoff_factor=12.0, evanescent_families="all")
     small = ModeBasis.propagating(f, a2, b2)
-    g = s1.gsm(f, small, big) @ s2.gsm(f, big, small)
+    # At zero distance the exact identity holds for the mode-matching problem truncated on exactly these bases
+    # (Step.solve). Step.gsm solves on its own converged basis and returns a sub-block (CONVENTIONS.md 10), which
+    # assumes the neighbour is far enough for the dropped evanescent modes to decay: not the case at zero distance.
+    solve = getattr(s1, "solve", None)
+    g = (s1.solve(f, small, big) @ s2.solve(f, big, small)) if solve else (s1.gsm(f, small, big) @ s2.gsm(f, big, small))
     assert np.max(np.abs(g.S21 - np.eye(len(small)))) <= 1e-6
     assert np.max(np.abs(g.S11)) <= 1e-6
 

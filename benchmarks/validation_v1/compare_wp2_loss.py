@@ -6,12 +6,11 @@ Acceptance (tasks/WP2-loss-and-filters.md): "Lossy straight vs WP7 surface-integ
 alpha for every mode". Two comparisons, for WR-90 and a 20 mm square guide, aluminium and copper:
 
 1. WP2's per-mode attenuation function (located by ref_interfaces.attenuation_function) against diag(A).
-2. A lossy straight, Line(Guide(w, h, sigma), [Straight(L)]).gsm(f), L = 1 m. For a non-degenerate mode,
-   alpha_eff = -ln|S21_pp| / L. For a degenerate group (TE_mn/TM_mn, and TE_mn/TE_nm in a square guide) the
-   singular values of the group's S21 block are compared with exp(-lambda L), lambda the eigenvalues of the
-   reference matrix A on the group (the reactive part of Z_s, which WP2 may or may not include, does not change
-   them). Couplings between non-degenerate modes are phase-mismatched and change alpha_eff only at second order;
-   the script reports that size from the reference matrix itself.
+2. A lossy straight, Line(Guide(w, h, sigma), [Straight(L)]).gsm(f), L = 1 m, against the WP7 first-order coupled
+   system (ref_loss.first_order_matrices, straight_gsm_blocks): every propagating pair coupled through the walls,
+   forward and backward blocks, Z_s = (1+i) R_s. Same theory, independent derivation and implementation:
+   tolerance 1e-8 absolute on S11 and S21. (Until 2026-11-08 this compared decay rates with each degenerate group's
+   own block; see docs/discrepancies/2026-11-08-wp2-wp7-straight-attenuation.md for why that was wrong.)
 
 Exits with status 0 and a message when WP2 is not merged yet. Writes results/wp2_comparison.json.
 """
@@ -31,6 +30,7 @@ import ref_loss  # noqa: E402
 from wrmodes.modes import Mode, ModeBasis  # noqa: E402
 
 TOL_REL = 1e-6
+TOL_S = 1e-8
 
 
 def degenerate_groups(basis, f, rtol=1e-9):
@@ -84,6 +84,9 @@ def compare_function(data):
 
 
 def compare_straight(data, L=1.0):
+    """WP2's lossy straight against the WP7 first-order coupled reference (ref_loss.straight_gsm_blocks): every
+    propagating pair coupled through the walls, forward and backward blocks (resolution of
+    docs/discrepancies/2026-11-08-wp2-wp7-straight-attenuation.md). Tolerance 1e-8 absolute on S11 and S21."""
     Guide, Straight, Line = I.get("Guide"), I.get("Straight"), I.get("Line")
     rows = []
     for g, (a, b) in ref_loss.GUIDES.items():
@@ -91,23 +94,16 @@ def compare_straight(data, L=1.0):
             line = Line(Guide(a, b, sigma=sigma), [Straight(L)])
             for f in ref_loss.FREQUENCIES[g]:
                 key = f"{g}/{mat}/{f / 1e9:g}"
-                A = data[f"{key}/A"]
-                basis = ModeBasis(a, b, [Mode.parse(str(m)) for m in data[f"{key}/modes"]], sort=False)
+                basis = ModeBasis.propagating(f, a, b)
+                Zs = (1 + 1j) * ref_loss.surface_resistance(f, sigma)
+                Lp, Lm = ref_loss.first_order_matrices(basis, f, Zs)
+                R, T = ref_loss.straight_gsm_blocks(basis, f, Lp, Lm, L)
                 gsm = line.gsm(f, cutoff_factor=1.0)
-                idx = np.array([gsm.basis1.index(m) for m in basis.modes])
-                S21 = gsm.S21[np.ix_(idx, idx)]
-                worst, worst_g = 0.0, None
-                for grp, lam in zip(degenerate_groups(basis, f), reference_group_alphas(A, degenerate_groups(basis, f))):
-                    sv = np.linalg.svd(S21[np.ix_(grp, grp)], compute_uv=False)
-                    a_eff = np.sort(-np.log(sv) / L)
-                    rel = float(np.max(np.abs(a_eff / lam - 1)))
-                    if rel > worst:
-                        worst, worst_g = rel, [basis.modes[i].name for i in grp]
-                second = second_order_size(A, basis, f, L)
-                rows.append(dict(case=key, max_rel=worst, worst_group=worst_g, second_order=second,
-                                 ok=bool(worst <= TOL_REL)))
-                print(f"straight {key:28s} max rel. dev. of alpha {worst:.2e} ({worst_g}); "
-                      f"2nd-order size {second:.1e}")
+                i1 = np.array([gsm.basis1.index(m) for m in basis.modes])
+                i2 = np.array([gsm.basis2.index(m) for m in basis.modes])
+                dev = max(np.max(np.abs(gsm.S21[np.ix_(i2, i1)] - T)), np.max(np.abs(gsm.S11[np.ix_(i1, i1)] - R)))
+                rows.append(dict(case=key, max_abs_dS=float(dev), ok=bool(dev <= TOL_S)))
+                print(f"straight {key:28s} max |dS| vs coupled first-order reference {dev:.2e}")
     return rows
 
 
