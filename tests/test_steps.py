@@ -403,8 +403,13 @@ def test_marcuvitz_transcription_internal_consistency():
     assert abs(0.05 * (Apq - C ** 2 / Aq) / np.pi / (0.0084 * 0.05 * (1 - 1.5 * 0.05 ** 2)) - 1) < 0.03
 
 
-EPLANE_CASES = [(r, al, asym) for r in (0.2, 0.5, 0.8) for al in (0.1, 0.3, 0.5, 0.7, 0.9) for asym in (False, True)
-                if (2 * r if asym else r) < 1]
+# b / lambda_g = 0.5 exactly puts TE1,1 of the wide guide at cutoff (beta_10 = pi / b gives k = chi_11), a real
+# degeneracy whose numerical treatment depends on rounding; 0.45 tests the same regime away from it
+# The asymmetric cases are tested at b / lambda_g = 0.2 only, as before (the effective ratio is 2 b / lambda_g). Nearly
+# flush asymmetric steps (b'/b = 0.9) at an effective ratio of 0.8-0.96 differ from (2a) by 1.0-1.25 %, the same edge
+# effect as the symmetric 0.8/0.9 case below (docs/reports/WP4.md).
+EPLANE_CASES = [(r, al, asym) for r in (0.2, 0.45, 0.8) for al in (0.1, 0.3, 0.5, 0.7, 0.9) for asym in (False, True)
+                if (not asym) or r < 0.3]
 
 
 @pytest.mark.parametrize("ratio,al,asym", EPLANE_CASES)
@@ -504,3 +509,16 @@ def test_exp_theta_k_recomputed_point():
         S = d[f"S_{plane}"][i]
         assert np.allclose(S[nmax:nmax + N, :N], g.S21, atol=1e-12)
         assert list(d[f"modes_{plane}"][i][:N]) == g.basis1.names
+
+
+def test_untagged_basis_on_one_port_is_read_in_the_step_frame():
+    """One port given an untagged basis, the other the step's default (tagged) basis: accepted, same result as with
+    both untagged (regression for WP7's adversarial test with a long thin section)."""
+    f = 40e9
+    s = Step(A, B, A, 1.6e-3)
+    thin = ModeBasis.propagating(f, A, 1.6e-3, cutoff_factor=3.0, evanescent_families="all")
+    g1 = s.gsm(f, None, thin)
+    g2 = s.gsm(f, s.default_basis(f)[0].with_frame(None), thin)
+    assert np.allclose(g1.S, g2.S, atol=1e-13)
+    with pytest.raises(ValueError, match="frame"):
+        s.gsm(f, None, thin.with_frame("E"))
