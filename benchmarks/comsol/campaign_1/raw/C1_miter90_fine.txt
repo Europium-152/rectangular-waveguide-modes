@@ -1,0 +1,10 @@
+% Model:              C1_miter90_fine.mph
+% Version:            COMSOL 6.2.0.415
+% Date:               Nov 10 2026, 06:36
+% Dimension:          2
+% Nodes:              1
+% Expressions:        4
+% Description:        S11, S21
+% Length unit:        m
+% X                       Y                        emw.S11 (1) @ freq=30                             emw.S21 (1) @ freq=30                             emw.S11 (1) @ freq=90                             emw.S21 (1) @ freq=90
+0                         -0.02                    -0.021116984935096988-0.03133976271910897i        -0.4570312153640558+0.8323629298917007i           -0.007053358372020732+6.470542309258516E-4i       -0.4693625898742194-0.8700425689982687i

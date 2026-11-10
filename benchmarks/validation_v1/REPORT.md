@@ -61,12 +61,36 @@ absolute on S11 and S21. The per-mode α tests keep 1e-6. The physical accuracy 
 | COMSOL scripts run on Daniel's version without edits | not yet run: written for COMSOL 6.2.0.415 (version of the existing export); compiled and dry-run against stand-ins |
 | Every WP1–WP4 acceptance number citing WP7 has a registry entry | pass, 16 entries in `benchmarks/registry.json` |
 
-## COMSOL campaign 1 (for Daniel)
+## COMSOL campaign 1 — Gate A (10 Nov 2026)
 
-See `benchmarks/comsol/README_WP7.md`. Scripts: `WP7_C0_probe.java` (dumps port property names, run first),
-`WP7_C1_h_miter.java` (WR-90 plain 90° H-plane miter), `WP7_C2_sech_bend_aluminium.java` (18–38 GHz only; at
-90 GHz the 60 cm model is too large), `WP7_C3_strangling_step.java`. S-parameters are taken by projecting E and
-H on wrmodes' own mode fields, so COMSOL's port sign conventions do not matter.
+Daniel ran `benchmarks/comsol/CAMPAIGN_1.md` in COMSOL 6.2 from the GUI (the WP7 Java scripts were not used).
+Data, Java models and the comparison script are in `benchmarks/comsol/campaign_1/`; the full tables are in
+`campaign_1/RESULTS.md` (`python benchmarks/comsol/campaign_1/compare_campaign_1.py --out ...`). Criterion: within
+the COMSOL error (mesh check where available) + 0.02 dB in |S21|.
+
+| Case | Points | Result |
+| --- | --- | --- |
+| C1 90° plain H-plane miter (2D) | 23 | 19 within 0.02 dB (14 within 0.005); at 30 and 90 GHz, against the fine mesh, ≤ 0.0012 dB. **4 open**: 26.3 (0.12 dB), 52.5 (0.05), 53.0 (0.04), 46 (0.03 dB) |
+| C1b 60° and 120° optical-mirror miters (2D) | 6 | pass, ≤ 0.005 dB against the fine mesh: confirms the optical-mirror definition (CONVENTIONS §6) |
+| C2 sech 60° 15 cm E-plane bend, Al 3.774e7 S/m | 22 | pass: total ≤ 0.0074 dB (the 30 GHz PEC Fig. 6 deviation, unchanged); ohmic part (Al − PEC) ≤ 0.0004 dB |
+| C2 constant 60° 15 cm E-plane bend, Al | 22 | ohmic part pass: same-model Al − PEC 0.0178 / 0.0274 / 0.0414 dB at 18 / 40 / 60 GHz, wrmodes 0.0178 / 0.0272 / 0.0412. The lossless conversion of this model is 0.021–0.026 dB below the paper's PEC model, which wrmodes matches to ≤ 0.0035 dB (open, COMSOL side) |
+| C3a WR-90 → h = 2.0, 1.6 mm centred steps (3D) | 6 | pass: \|S21\| ≤ 0.005 dB, \|S11\| 0.010–0.023 dB against the fine mesh, which moves COMSOL towards wrmodes; COMSOL \|S11\|²+\|S21\|² = 1.001–1.003 (fine), 1.002–1.005 (coarse) |
+| C3b 1.6 mm × 100 mm strangled section (3D) | 3 | explained: \|S11\| 0.06–0.11 dB off; the section is a resonator with \|Γ\| ≈ 0.73 at each step, and a 1° round-trip phase error (wrmodes, length changed by 55 µm) reproduces COMSOL at 10 GHz exactly (0.7527 / 0.6584 vs COMSOL 0.7548 / 0.6586); C3a shows 0.3–0.4° per reflection. COMSOL's power sum is 1.0034 (10 GHz) and 1.014 (30 GHz, unphysical) |
+
+Findings:
+
+* **Solver tolerance is not a factor**: the stationary relative tolerance 1e-2 → 1e-4 changes the C2 and C3
+  values by < 2e-5 (the coordinator's hypothesis was wrong); the C3 power excess is discretization error.
+* **C1 open points**: all four lie less than 0.1 GHz above a TE_m0 cutoff (TE40 26.23, TE70 45.90, TE80
+  52.46 GHz), where that mode's guide wavelength (40–155 mm) is much longer than the 2 cm PML, whose scaling is
+  set by the free-space wavelength. wrmodes moves by < 0.001 dB under mesh density ×2, order 2 and arm length a.
+  Check requested: the same frequencies with 15 cm PMLs.
+* **C2 constant, lossless offset**: the new constant-curvature model and the paper's model
+  (`constant_E_bend_60_deg_lowfreq_15cm.mph`) differ by 0.02–0.03 dB with PEC walls; not a wall-loss question.
+  Requested: the paper model's Java, to diff.
+* Phase: S21 agrees modulo 180° (COMSOL's port-mode sign) to 0.01–1.2°, growing with frequency in the 15 cm
+  bends (COMSOL mesh dispersion, about 1e-4 of the total phase).
+* C3 was solved as a full model (not the quarter model of the instructions); no effect on the comparison.
 
 ## Open issues
 
