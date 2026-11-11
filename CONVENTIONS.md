@@ -198,7 +198,10 @@ no propagating mode, so LS solvers leave it out (the default basis already does)
 and complex-orthogonal ($QQ^T = I$) below it, so a GSM computed in the LS basis
 converts to the TE/TM basis as $S_{TE/TM} = Q^T S_{LS} Q$ (applied per port) and stays symmetric. Solvers in
 the LS basis return their result converted to TE/TM; the TE/TM basis is the only one exchanged between
-components.
+components. A solver whose LSE unknown is the potential $\phi \propto H_v$ must negate the LSE **reflection**
+coefficients before the rotation: $H_v$ changes sign between the forward and the backward wave, while the §5
+amplitudes follow the transverse electric field. Magnitudes, reciprocity and unitarity do not reveal a missing
+sign; a phase check does (WP4b report, against Marcuvitz's E-plane corner).
 
 ## 8. Tolerances and validation
 
