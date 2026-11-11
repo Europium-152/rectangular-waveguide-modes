@@ -45,3 +45,9 @@ pdfimages -f 4 -l 4 -png "Reiter and Arndt - 1995 ....pdf" rt4          # 339 dp
 Then `scripts/prepare.py` makes the deskewed Alessandri pages and the Doane crop. The scripts contain absolute paths of that scratch folder (`/home/claude/wt/L1a-scratch`). Change the paths to rerun
 them. Calibration always uses the printed tick marks or grid lines located in pixels, never the tick labels. The
 calibration points are listed in each CSV header.
+
+## Card L2 files
+
+`alimenti1994_*.csv` and `kotik1965_*.csv` in this folder are not by L1a: they are pass a of card L2 (agent L2, 2026-11-11),
+written by `benchmarks/literature/scripts/l2/` (`kotik_a.py`, `alimenti_a.py`). Method and calibration are in each
+file header and in `docs/reports/L2.md`.

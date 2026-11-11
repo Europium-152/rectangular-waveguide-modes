@@ -943,7 +943,7 @@ def write_readme(allstats):
         else:
             w(f'| {src} | {fig} | `{fn}` | {curves} | - | identical where both transcribed (see header) |')
     w('')
-    w('Not done: card item D8 (Kotik & Sivov 1965, H-plane miter loss); the scan has not arrived.')
+    w('Card item D8 (Kotik & Sivov 1965) was done by card L2, with Alimenti et al. 1994: see the L2 section at the end.')
     w('')
     w('## Agreement of the two digitizations, per curve')
     w('')
@@ -1027,8 +1027,12 @@ def write_readme(allstats):
       '`raw/b` (numpy only). `scripts/spot_check.py` re-reads three points per figure on the page images (needs the '
       'reference PDFs). `scripts/marcuvitz_checks.py` evaluates the Marcuvitz formulas (numpy, scipy). The raw '
       'digitizers\' scripts in `raw/a/scripts` and `raw/b/scripts` need the PDFs and their scratch paths.')
-    with open(os.path.join(LIT, 'README.md'), 'w') as fh:
-        fh.write('\n'.join(L) + '\n')
+    # keep the section written by scripts/l2_merge.py (card L2) at the end of the file
+    path = os.path.join(LIT, 'README.md')
+    old = open(path).read() if os.path.exists(path) else ''
+    l2 = old[old.index('<!-- L2 begin'):] if '<!-- L2 begin' in old else ''
+    with open(path, 'w') as fh:
+        fh.write('\n'.join(L) + '\n' + ('\n' + l2 if l2 else ''))
 
 
 if __name__ == '__main__':

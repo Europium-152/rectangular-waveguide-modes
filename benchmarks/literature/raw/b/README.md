@@ -29,3 +29,9 @@ Transcriptions (D5-D7) are in `docs/literature/raw/b/`. D8 (Kotik & Sivov 1965) 
 (`pdftoppm -r 300`) from the L1b scratch directory, which are not in the repository (copyright); to rerun, render the
 pages named in each CSV header into the parent directory of `scripts/` under the names used in the scripts
 (`ales-2.png`, `doane-7.png` cropped as stated, `ma-4.png`, `ma-5.png`, `ma-6.png`, `rei-4.png`).
+
+## Card L2 files
+
+`alimenti1994_*.csv` and `kotik1965_*.csv` in this folder are not by L1b: they are pass b of card L2 (agent L2, 2026-11-11),
+written by `benchmarks/literature/scripts/l2/` (`kotik_b.py`, `alimenti_b.py`). Method and calibration are in each
+file header and in `docs/reports/L2.md`.

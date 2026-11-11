@@ -1,0 +1,132 @@
+# Source: F. Alimenti, M. Mongiardo, R. Sorrentino, "Design of mitered H-plane bends in rectangular waveguides by combined mode matching and finite differences", Proc. 24th European Microwave Conference (1994), vol. 1, pp. 289-293, doi:10.1109/EUMA.1994.337223
+# Figure: Fig. 6, p. 292 (PDF p. 4): "Reflection coefficient of a H-plane 90 deg mitered bend for t/a=0.386", MMFD (line) and BCMM (Reiter & Arndt 1994, line with diamonds); dotted line at -30 dB
+# Axes: x = f/fc, linear, axis 1..2; y = |S11| in dB, linear, axis 0..-40 dB; the zeros lie below the frame
+# Geometry: 90 deg H-plane bend, 45 deg miter, t/a = 0.386, d/a = 0.980. t = length of the outer wall that is left between the end of the 45 deg miter and the plane of the other arm's inner wall (dimension arrows of the inset of Fig. 4, text p. 291; the arrows end on the miter corner and on the thin line that continues the inner wall). The cut along each outer wall, measured from the removed outer corner, is c = a - t (Ma et al. 1997 c), and the CONVENTIONS.md section 6 chamfer distance from the inner corner is d/a = (1 + t/a)/sqrt(2): t/a = 0 is the fully mitered bend of Fig. 3 (d/a = 1/sqrt(2), the optical mirror), t/a = 1 the unmitered corner (d/a = sqrt(2)).
+# Curves: MMFD = thin line; three branches separated by zeros below the frame (between f/fc 1.68 and 1.775, and at 1.943 +- 0.006); for f/fc < 1.65 MMFD and BCMM coincide within the stroke width and the same points are given in both files; peak of the middle lobe touches the dotted -30 dB line and was read from the lower edge of the stroke
+# Columns: curve, x, y, uncertainty, x_uncertainty, source. uncertainty = y uncertainty in the units of y; x_uncertainty = 0 for lines (regular grid; x reading errors are converted into the y uncertainty), x uncertainty for markers (one row per printed symbol). source = ab (both passes), a or b (one pass only, uncertainty doubled).
+# Merge (card L2, 2026-11-11, scripts/l2_merge.py, rules of card L1): lines interpolated on a grid of step 0.005 in x inside each pass's traced segments (no interpolation across gaps > 0.031, nor across a gap wider than 1.5 grid steps whose both ends lie within 6 dB of the bottom frame, i.e. a reflection zero below the frame); y = mean of a and b; uncertainty = max(|y_a - y_b|/2, u_a, u_b); one pass only: its y, uncertainty doubled. Markers paired by mutual nearest neighbour (axis-normalized distance <= 0.03); x, y = means, uncertainties = max(half difference, u_a, u_b); unpaired: one pass, doubled.
+# Agreement of the two digitizations (y units; grid points or paired markers covered by both): MMFD: n_ab=112, a-only=2, b-only=4, rms(a-b)=0.0969, max|a-b|=0.575, mean(a-b)=-0.0201, points with |a-b| > sqrt(u_a^2+u_b^2): 0.
+# Calibration L2a (raw/a): x ticks px 1154.5->1, 1361.0->1.2, 1566.0->1.4, 1772.0->1.6, 1977.0->1.8, 2184.0->2; y ticks px 2841.0->0, 3021.5->-10, 3202.0->-20, 3382.5->-30, 3562.5->-40; fit x = 0.0009720211*px + -0.1223877 (rms residual 0.000429, max 0.000702), y = -0.05543482*py + 157.4959 (rms residual 0.0077, max 0.0112); axis tilt dx/dy +0.00129, dy/dx -0.00137 corrected as a shear
+# Method L2a: 400 dpi pdftoppm render; ridge follower (2 px steps along the tangent, ink centroid on the normal profile, direction search at sharp turns) in hand-seeded segments; dashed lines: each dash component near a coarse hand-placed guide cut into 3 px slices along its principal axis; markers: maxima of the ink distance transform within 8 px of the line that exceed the local stroke half-width by >= 1.75 px (1.5 px for the open diamonds of Fig. 6, holes filled); points within a few px of another curve of the figure dropped; binned in x; uncertainty = sqrt((max(1 px, w/4)/|cos|)^2 + cal_y^2 + (slope cal_x)^2) with w the stroke width, cos of the tangent angle (>= 0.12), cal the rms tick-fit residuals; markers: 2 px in each axis combined with the tick-fit residual
+# Calibration L2b (raw/b): 6 x ticks (0 minor) and 21 y ticks (16 minor) on the native scan; fit x = 0.00129665*px + -0.1227396 (rms residual 0.000396), y = -0.07409323*py + 157.9002 (rms residual 0.0316); no tilt correction
+# Method L2b: embedded 300 ppi page scan (pdfimages); column-run scan (ink-weighted centre of the vertical ink run nearest a linear prediction or a coarse hand-placed guide polyline) in hand-seeded segments; dashed line: components larger than twice the median dash (the squares) dropped; markers: correlation of the ink (holes filled for open symbols) with a disc of the symbol radius, maximum within 9 px of a position placed by eye; points within a few px of another curve dropped; binned in x; uncertainty = sqrt((max(1, L/4) px)^2 + cal_y^2 + (slope cal_x)^2), L the run length; markers: 1.5 px in each axis combined with the tick-fit residual
+# Digitizers: L2 passes a and b (raw files benchmarks/literature/raw/a/alimenti1994_fig6_mmfd.csv and raw/b/alimenti1994_fig6_mmfd.csv; scripts in benchmarks/literature/scripts/l2/, they need the reference PDFs); merged by scripts/l2_merge.py, 2026-11-11; overlay check scripts/l2_check.py.
+curve,x,y,uncertainty,x_uncertainty,source
+MMFD,1.2300,-16.785,0.084,0.0000,ab
+MMFD,1.2350,-16.971,0.085,0.0000,ab
+MMFD,1.2400,-17.158,0.091,0.0000,ab
+MMFD,1.2450,-17.316,0.082,0.0000,ab
+MMFD,1.2500,-17.411,0.083,0.0000,ab
+MMFD,1.2550,-17.561,0.096,0.0000,ab
+MMFD,1.2600,-17.732,0.179,0.0000,ab
+MMFD,1.2650,-17.890,0.160,0.0000,ab
+MMFD,1.2700,-17.887,0.191,0.0000,ab
+MMFD,1.2750,-18.058,0.123,0.0000,ab
+MMFD,1.2800,-18.250,0.125,0.0000,ab
+MMFD,1.2850,-18.390,0.127,0.0000,ab
+MMFD,1.2900,-18.528,0.142,0.0000,ab
+MMFD,1.2950,-18.660,0.134,0.0000,ab
+MMFD,1.3000,-18.788,0.128,0.0000,ab
+MMFD,1.3050,-18.908,0.139,0.0000,ab
+MMFD,1.3100,-19.031,0.144,0.0000,ab
+MMFD,1.3150,-19.105,0.191,0.0000,ab
+MMFD,1.3200,-19.221,0.248,0.0000,ab
+MMFD,1.3250,-19.416,0.220,0.0000,ab
+MMFD,1.3300,-19.640,0.148,0.0000,ab
+MMFD,1.3350,-19.815,0.161,0.0000,ab
+MMFD,1.3400,-19.982,0.152,0.0000,ab
+MMFD,1.3450,-20.112,0.126,0.0000,ab
+MMFD,1.3500,-20.251,0.109,0.0000,ab
+MMFD,1.3550,-20.423,0.115,0.0000,ab
+MMFD,1.3600,-20.590,0.116,0.0000,ab
+MMFD,1.3650,-20.789,0.169,0.0000,ab
+MMFD,1.3700,-20.899,0.230,0.0000,ab
+MMFD,1.3750,-20.954,0.181,0.0000,ab
+MMFD,1.3800,-21.209,0.110,0.0000,ab
+MMFD,1.3850,-21.399,0.092,0.0000,ab
+MMFD,1.3900,-21.556,0.086,0.0000,ab
+MMFD,1.3950,-21.695,0.083,0.0000,ab
+MMFD,1.4000,-21.850,0.089,0.0000,ab
+MMFD,1.4050,-22.028,0.091,0.0000,ab
+MMFD,1.4100,-22.182,0.085,0.0000,ab
+MMFD,1.4150,-22.342,0.088,0.0000,ab
+MMFD,1.4200,-22.517,0.085,0.0000,ab
+MMFD,1.4250,-22.683,0.086,0.0000,ab
+MMFD,1.4300,-22.850,0.089,0.0000,ab
+MMFD,1.4350,-22.984,0.083,0.0000,ab
+MMFD,1.4400,-23.160,0.083,0.0000,ab
+MMFD,1.4450,-23.309,0.088,0.0000,ab
+MMFD,1.4500,-23.454,0.088,0.0000,ab
+MMFD,1.4550,-23.639,0.086,0.0000,ab
+MMFD,1.4600,-23.823,0.090,0.0000,ab
+MMFD,1.4650,-24.026,0.109,0.0000,ab
+MMFD,1.4700,-24.266,0.170,0.0000,ab
+MMFD,1.4750,-24.377,0.265,0.0000,ab
+MMFD,1.4800,-24.500,0.212,0.0000,ab
+MMFD,1.4850,-24.810,0.152,0.0000,ab
+MMFD,1.4900,-25.017,0.121,0.0000,ab
+MMFD,1.4950,-25.194,0.111,0.0000,ab
+MMFD,1.5000,-25.370,0.100,0.0000,ab
+MMFD,1.5050,-25.547,0.090,0.0000,ab
+MMFD,1.5100,-25.737,0.105,0.0000,ab
+MMFD,1.5150,-25.995,0.096,0.0000,ab
+MMFD,1.5200,-26.186,0.084,0.0000,ab
+MMFD,1.5250,-26.359,0.108,0.0000,ab
+MMFD,1.5300,-26.717,0.165,0.0000,ab
+MMFD,1.5350,-26.877,0.114,0.0000,ab
+MMFD,1.5400,-27.043,0.089,0.0000,ab
+MMFD,1.5450,-27.267,0.095,0.0000,ab
+MMFD,1.5500,-27.524,0.092,0.0000,ab
+MMFD,1.5550,-27.804,0.091,0.0000,ab
+MMFD,1.5600,-28.052,0.107,0.0000,ab
+MMFD,1.5650,-28.310,0.123,0.0000,ab
+MMFD,1.5700,-28.598,0.086,0.0000,ab
+MMFD,1.5750,-28.871,0.091,0.0000,ab
+MMFD,1.5800,-29.160,0.094,0.0000,ab
+MMFD,1.5850,-29.428,0.098,0.0000,ab
+MMFD,1.5900,-29.765,0.113,0.0000,ab
+MMFD,1.5950,-30.153,0.208,0.0000,ab
+MMFD,1.6000,-30.445,0.110,0.0000,ab
+MMFD,1.6050,-30.808,0.121,0.0000,ab
+MMFD,1.6100,-31.204,0.121,0.0000,ab
+MMFD,1.6150,-31.577,0.112,0.0000,ab
+MMFD,1.6200,-31.964,0.121,0.0000,ab
+MMFD,1.6250,-32.353,0.136,0.0000,ab
+MMFD,1.6300,-32.768,0.142,0.0000,ab
+MMFD,1.6350,-33.233,0.157,0.0000,ab
+MMFD,1.6400,-33.727,0.151,0.0000,ab
+MMFD,1.6450,-34.273,0.175,0.0000,ab
+MMFD,1.6500,-34.836,0.162,0.0000,ab
+MMFD,1.6550,-35.446,0.193,0.0000,ab
+MMFD,1.6600,-36.137,0.212,0.0000,ab
+MMFD,1.6650,-36.828,0.194,0.0000,ab
+MMFD,1.6700,-37.512,0.197,0.0000,ab
+MMFD,1.6750,-38.330,0.222,0.0000,ab
+MMFD,1.6800,-39.335,0.637,0.0000,b
+MMFD,1.7750,-38.479,0.285,0.0000,ab
+MMFD,1.7800,-37.666,0.199,0.0000,ab
+MMFD,1.7850,-36.948,0.206,0.0000,ab
+MMFD,1.7900,-36.195,0.203,0.0000,ab
+MMFD,1.7950,-35.584,0.155,0.0000,ab
+MMFD,1.8000,-35.048,0.397,0.0000,a
+MMFD,1.8050,-34.550,0.310,0.0000,a
+MMFD,1.8750,-30.534,0.176,0.0000,b
+MMFD,1.8800,-30.416,0.098,0.0000,ab
+MMFD,1.8850,-30.415,0.087,0.0000,ab
+MMFD,1.8900,-30.434,0.083,0.0000,ab
+MMFD,1.8950,-30.534,0.123,0.0000,ab
+MMFD,1.9000,-30.731,0.088,0.0000,ab
+MMFD,1.9050,-30.905,0.101,0.0000,ab
+MMFD,1.9100,-31.250,0.143,0.0000,ab
+MMFD,1.9150,-31.751,0.169,0.0000,ab
+MMFD,1.9200,-32.475,0.228,0.0000,ab
+MMFD,1.9250,-33.477,0.310,0.0000,ab
+MMFD,1.9300,-34.819,0.489,0.0000,ab
+MMFD,1.9350,-37.406,0.842,0.0000,ab
+MMFD,1.9500,-39.564,0.715,0.0000,b
+MMFD,1.9550,-35.987,3.705,0.0000,b
+MMFD,1.9600,-29.037,1.276,0.0000,ab
+MMFD,1.9650,-24.858,0.911,0.0000,ab
+MMFD,1.9700,-21.064,1.065,0.0000,ab
+MMFD,1.9750,-16.565,1.013,0.0000,ab
+MMFD,1.9800,-12.128,0.892,0.0000,ab

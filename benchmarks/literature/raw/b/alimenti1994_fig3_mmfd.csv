@@ -1,0 +1,19 @@
+# source: F. Alimenti, M. Mongiardo, R. Sorrentino, "Design of mitered H-plane bends in rectangular waveguides by combined mode matching and finite differences", Proc. 24th European Microwave Conference (1994), vol. 1, pp. 289-293, doi:10.1109/EUMA.1994.337223
+# figure: Fig. 3, p. 291 (PDF p. 3): "Reflection coefficient of a fully mitered H-plane 90 deg bend", MM (line) and MMFD (line with diamonds)
+# axes: x = f/fc, linear, axis 1..2; y = |S11| in dB, linear, axis 0..-70 dB
+# geometry: fully mitered 90 deg H-plane bend (inset: the miter joins the two outer-wall points that face the inner corner): t/a = 0, d/a = 1/sqrt(2) = 0.707, the optical mirror (CONVENTIONS.md section 6 plain miter). t = length of the outer wall that is left between the end of the 45 deg miter and the plane of the other arm's inner wall (dimension arrows of the inset of Fig. 4, text p. 291; the arrows end on the miter corner and on the thin line that continues the inner wall). The cut along each outer wall, measured from the removed outer corner, is c = a - t (Ma et al. 1997 c), and the CONVENTIONS.md section 6 chamfer distance from the inner corner is d/a = (1 + t/a)/sqrt(2): t/a = 0 is the fully mitered bend of Fig. 3 (d/a = 1/sqrt(2), the optical mirror), t/a = 1 the unmitered corner (d/a = sqrt(2)).
+# curves: MMFD markers = the 10 diamonds of the MMFD line (one row per symbol); MMFD line: see alimenti1994_fig3_mm.csv
+# calibration (L2b): 13 x ticks (8 minor) and 17 y ticks (9 minor) on the native scan; fit x = 0.001282957*px + -0.1763727 (rms residual 0.00199), y = -0.1285814*py + 63.66803 (rms residual 0.171); no tilt correction
+# method (L2b): embedded 300 ppi page scan (pdfimages); column-run scan (ink-weighted centre of the vertical ink run nearest a linear prediction or a coarse hand-placed guide polyline) in hand-seeded segments; dashed line: components larger than twice the median dash (the squares) dropped; markers: correlation of the ink (holes filled for open symbols) with a disc of the symbol radius, maximum within 9 px of a position placed by eye; points within a few px of another curve dropped; binned in x; uncertainty = sqrt((max(1, L/4) px)^2 + cal_y^2 + (slope cal_x)^2), L the run length; markers: 1.5 px in each axis combined with the tick-fit residual
+# digitizer: L2 (pass b), 2026-11-11
+curve,x,y,uncertainty,x_uncertainty
+MMFD markers,1.25520,-3.33310,0.25770,0.00277
+MMFD markers,1.33285,-4.47016,0.25770,0.00277
+MMFD markers,1.41277,-5.53745,0.25770,0.00277
+MMFD markers,1.48679,-6.71602,0.25770,0.00277
+MMFD markers,1.56491,-8.25742,0.25770,0.00277
+MMFD markers,1.63722,-9.74564,0.25770,0.00277
+MMFD markers,1.71430,-11.79364,0.25770,0.00277
+MMFD markers,1.79626,-14.14130,0.25770,0.00277
+MMFD markers,1.87274,-18.23226,0.25770,0.00277
+MMFD markers,1.93133,-23.42634,0.25770,0.00277

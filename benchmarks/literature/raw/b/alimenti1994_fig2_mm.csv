@@ -1,0 +1,19 @@
+# source: F. Alimenti, M. Mongiardo, R. Sorrentino, "Design of mitered H-plane bends in rectangular waveguides by combined mode matching and finite differences", Proc. 24th European Microwave Conference (1994), vol. 1, pp. 289-293, doi:10.1109/EUMA.1994.337223
+# figure: Fig. 2, p. 290 (PDF p. 2): "Reflection coefficient of a H-plane corner in rectangular waveguide" (unmitered right-angle H-plane corner), MM (mode matching, line with dots) and MMFD (line); MMFD with M = 5 TEn0 modes and a 200x200 finite-difference mesh (text p. 290)
+# axes: x = normalized frequency f/fc (fc = TE10 cut-off), linear, axis 1..2; y = |S11| in dB, linear, axis 0..-10 dB
+# geometry: unmitered 90 deg H-plane corner (inset: square corner, both arms of width a): t/a = 1 in the convention of Figs. 4-6, d/a = sqrt(2) = 1.414 (CONVENTIONS.md section 6). t = length of the outer wall that is left between the end of the 45 deg miter and the plane of the other arm's inner wall (dimension arrows of the inset of Fig. 4, text p. 291; the arrows end on the miter corner and on the thin line that continues the inner wall). The cut along each outer wall, measured from the removed outer corner, is c = a - t (Ma et al. 1997 c), and the CONVENTIONS.md section 6 chamfer distance from the inner corner is d/a = (1 + t/a)/sqrt(2): t/a = 0 is the fully mitered bend of Fig. 3 (d/a = 1/sqrt(2), the optical mirror), t/a = 1 the unmitered corner (d/a = sqrt(2)).
+# curves: MM markers = the 10 dots of the MM line (one row per dot)
+# calibration (L2b): 6 x ticks (0 minor) and 19 y ticks (13 minor) on the native scan; fit x = 0.001278853*px + -0.1841389 (rms residual 0.00131), y = -0.01779792*py + 36.56834 (rms residual 0.0231); no tilt correction
+# method (L2b): embedded 300 ppi page scan (pdfimages); column-run scan (ink-weighted centre of the vertical ink run nearest a linear prediction or a coarse hand-placed guide polyline) in hand-seeded segments; dashed line: components larger than twice the median dash (the squares) dropped; markers: correlation of the ink (holes filled for open symbols) with a disc of the symbol radius, maximum within 9 px of a position placed by eye; points within a few px of another curve dropped; binned in x; uncertainty = sqrt((max(1, L/4) px)^2 + cal_y^2 + (slope cal_x)^2), L the run length; markers: 1.5 px in each axis combined with the tick-fit residual
+# digitizer: L2 (pass b), 2026-11-11
+curve,x,y,uncertainty,x_uncertainty
+MM markers,1.25458,-8.18326,0.03532,0.00232
+MM markers,1.33488,-8.52091,0.03532,0.00232
+MM markers,1.40629,-8.36075,0.03532,0.00232
+MM markers,1.48787,-7.69997,0.03532,0.00232
+MM markers,1.55672,-6.70765,0.03532,0.00232
+MM markers,1.63891,-5.06103,0.03532,0.00232
+MM markers,1.71344,-3.06106,0.03532,0.00232
+MM markers,1.79263,-1.04103,0.03532,0.00232
+MM markers,1.87055,0.03700,0.03532,0.00232
+MM markers,1.94269,-0.51619,0.03532,0.00232
