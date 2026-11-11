@@ -212,17 +212,71 @@ class Step(Component):
     def _label(self):
         return self.name
 
-    def solve(self, f, basis1, basis2, symmetrize=True):
+    def _class_key(self):
+        """Key of the mode classes that the step does not couple, or None.
+
+        For a centred step (du = 0, resp. dv = 0) the fields of both guides have the parity (-1)^(m+1) under
+        u -> -u (resp. (-1)^(n+1) under v -> -v), so only modes of equal parity of m (resp. n) overlap. A step that
+        keeps a with du = 0 conserves m itself, one that keeps b (dv = 0) conserves n. The key is a function
+        mode -> (index or parity along u, index or parity along v); None if neither direction gives classes.
+        """
+        cen_u = abs(self.du) <= _REL * max(self.a1, self.a2)
+        cen_v = abs(self.dv) <= _REL * max(self.b1, self.b2)
+        ku = "m" if (self.conserves_m and cen_u) else ("m%2" if cen_u else None)
+        kv = "n" if self.conserves_n else ("n%2" if cen_v else None)
+        if ku is None and kv is None:
+            return None
+
+        def key(md):
+            u = None if ku is None else (md.m if ku == "m" else md.m % 2)
+            v = None if kv is None else (md.n if kv == "n" else md.n % 2)
+            return (u, v)
+        return key
+
+    def solve(self, f, basis1, basis2, symmetrize=True, reduce=True):
         """GSM of the truncated mode-matching problem on exactly these bases (no extension).
 
         The truncation is that of the bases: the result converges as they grow (`convergence_study`). The bases must
         have the cross-sections of guides 1 and 2 and the same frame tag. `symmetrize` is passed to
         ``junction_gsm``.
+
+        reduce=True (default) solves the classes of modes that the step does not couple separately (`_class_key`:
+        parities of m and n for centred steps, m or n itself when conserved): the same GSM as the full solve
+        (equal to 1e-12, tests/test_modematch_miter.py), faster by about the cube of the number of classes in the
+        solve and by their number in the overlaps (docs/reports/WP4b.md). reduce=False is the full solve.
         """
         self._check(basis1, basis2)
         bL, bS = (basis1, basis2) if self.large_port == 1 else (basis2, basis1)
-        X = overlap_matrix(bS, bL, self.du, self.dv)
-        return junction_gsm(bL, bS, X, f, large_port=self.large_port, name=self._label(), symmetrize=symmetrize)
+        key = self._class_key() if reduce else None
+        if key is None:
+            X = overlap_matrix(bS, bL, self.du, self.dv)
+            return junction_gsm(bL, bS, X, f, large_port=self.large_port, name=self._label(),
+                                symmetrize=symmetrize)
+        NL, NS = len(bL), len(bS)
+        S_LL = np.zeros((NL, NL), dtype=complex)
+        S_LS = np.zeros((NL, NS), dtype=complex)
+        S_SS = np.zeros((NS, NS), dtype=complex)
+        groups = {}
+        for i, md in enumerate(bL.modes):
+            groups.setdefault(key(md), ([], []))[0].append(i)
+        for i, md in enumerate(bS.modes):
+            groups.setdefault(key(md), ([], []))[1].append(i)
+        for iL, iS in groups.values():
+            if not iS:                      # large-guide modes that no small-guide mode sees: S_LL = -I
+                S_LL[iL, iL] = -1.0
+                continue
+            if not iL:                      # small-guide modes that no large-guide mode sees: S_SS = +I
+                S_SS[iS, iS] = 1.0
+                continue
+            sL, sS = bL.subset(iL), bS.subset(iS)
+            g = junction_gsm(sL, sS, overlap_matrix(sS, sL, self.du, self.dv), f, large_port=1,
+                             symmetrize=symmetrize)
+            S_LL[np.ix_(iL, iL)] = g.S11
+            S_LS[np.ix_(iL, iS)] = g.S12
+            S_SS[np.ix_(iS, iS)] = g.S22
+        if self.large_port == 1:
+            return GSM(S_LL, S_LS, S_LS.T, S_SS, bL, bS, f, self._label())
+        return GSM(S_SS, S_LS.T, S_LS, S_LL, bS, bL, f, self._label())
 
     def gsm(self, f, basis1=None, basis2=None):
         """GSM (wrmodes.gsm.GSM) of the step at f (Hz) on the port bases basis1, basis2 (None: `default_basis(f)`).
