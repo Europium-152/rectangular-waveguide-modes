@@ -336,3 +336,294 @@ def test_core_imports_without_fem_extra():
     code = "import sys, wrmodes; print('skfem' in sys.modules, 'gmsh' in sys.modules)"
     out = subprocess.check_output([sys.executable, "-c", code], text=True).strip()
     assert out == "False False"
+
+
+# ========================================================================================= WP3b
+from wrmodes.fem2d import chained_miter_outline                       # noqa: E402
+from wrmodes.fem2d.solver import Discretization                       # noqa: E402
+from wrmodes.fem2d.geometry import build_mesh                         # noqa: E402
+from wrmodes.filters import LossyWallFilter, impedance_wall_modes      # noqa: E402
+from wrmodes.gsm import cascade                                       # noqa: E402
+from wrmodes.loss import surface_impedance, loss_matrices             # noqa: E402
+
+ALU = 3.5e7
+
+
+def _alu(f):
+    return complex(surface_impedance(f, ALU))
+
+
+# ----------------------------------------------------------------------------------------- impedance walls
+def test_wall_impedance_arguments():
+    o = straight_outline(W, 0.02)
+    for bad in (-1.0, "copper", np.inf, -1 + 1j):
+        with pytest.raises(ValueError):
+            Coplanar2D(o, H, wall_impedance=bad)
+    with pytest.raises(ValueError):                             # 'guide' needs a guide
+        Coplanar2D(o, H, wall_impedance="guide").gsm(10e9)
+    with pytest.raises(ValueError):                             # a callable must give a passive value
+        Coplanar2D(o, H, wall_impedance=lambda f: -1.0).gsm(10e9)
+    with pytest.raises(ValueError):                             # impedance walls need perfect arms
+        Coplanar2D(o, H, wall_impedance=1.0, port_distance=0.0).gsm(10e9)
+    # Z = 0 and 'guide' with a perfect guide are the lossless solver, bitwise
+    g0 = Coplanar2D(o, H).gsm(20e9)
+    for z in (0.0, lambda f: 0.0):
+        assert np.array_equal(Coplanar2D(o, H, wall_impedance=z).gsm(20e9).S, g0.S)
+    assert np.array_equal(Miter(90, guide=WR90, wall_impedance="guide").gsm(20e9).S, Miter(90, guide=WR90).gsm(20e9).S)
+    # a lossy guide is still refused without wall_impedance, and accepted with it
+    lossy = Guide(W, H, sigma=ALU)
+    with pytest.raises(NotImplementedError):
+        Miter(90, guide=lossy).gsm(10e9)
+    g = Miter(90, guide=lossy, wall_impedance="guide").gsm(10e9)
+    assert g.fem_info["wall_impedance"] == _alu(10e9)
+    assert "wall_impedance" in repr(Miter(90, wall_impedance=1.0))
+
+
+def test_wall_coupling_matrix_is_antisymmetric_on_free_unknowns():
+    """C_ij = int w_i dw_j/ds over the impedance walls is antisymmetric where psi is free (the wall ends are
+    constrained), the condition for the complex-symmetric coupled system (WP3-normalization.md section 6.4)."""
+    o, mirror = miter_outline(H, np.pi / 2, 0.9)
+    md = build_mesh(o, H / 6, H / 4, refine_factor=0.05)
+    disc = Discretization(md, order=3)
+    Mw, C = disc.wall_matrices()
+    free = np.setdiff1d(np.arange(disc.n), disc.arm_wall_dofs)
+    Cf = C.toarray()[np.ix_(free, free)]
+    assert np.max(np.abs(Cf)) > 0.1
+    assert np.max(np.abs(Cf + Cf.T)) < 1e-11 * np.max(np.abs(Cf))
+    # the wall mass matrix integrates to the length of the core walls
+    ones = np.ones(disc.n)
+    length = sum(np.hypot(*np.subtract(o.vertices[(i + 1) % len(o.vertices)], o.vertices[i]))
+                 for i in range(len(o.vertices))) - 2 * H
+    assert abs(ones @ Mw @ ones - length) < 1e-12 * length
+
+
+@pytest.mark.parametrize("Z, tol", [(0.1 + 0.1j, 5e-4), (25.0, 3e-3)])
+def test_lossy_straight_matches_lossy_wall_filter(Z, tol):
+    """A straight outline with impedance walls is the lossy-wall section between perfect guides of
+    `LossyWallFilter` (exact LS^u modes, T1 B6 + B9, WP2): every propagating entry of every family, 30 GHz, 5 cm.
+    Families n >= 1 need the LSM-LSE coupling of the wall condition; with it reversed, TE1,1 and TM1,1 are off by
+    20-120 % in attenuation (checked when this test was written). At 25 ohm the largest difference is the
+    reflection of TE0,2 (1.7 % above cutoff, |S21| = 0.45), where both methods converge slowly towards each other
+    (FEM 0.0167 / 0.0159 / 0.0155 with mesh refinement, filter 0.0146 / 0.0149 with 80 / 160 modes)."""
+    f, L = 30e9, 0.05
+    g = Coplanar2D(straight_outline(W, L), H, wall_impedance=Z).gsm(f)
+    ref = LossyWallFilter(L, Z, guide=WR90).gsm(f, g.basis1, g.basis2)
+    assert g.basis1.families() == [0, 1, 2]
+    assert np.max(np.abs(g.S - ref.S)) < tol
+    att = lambda G: 1 - np.abs(np.diag(G.S21))
+    assert np.max(np.abs(att(g) - att(ref)) / att(ref)) < 5 * tol
+    assert rel_reciprocity(g) < 1e-10
+    assert np.linalg.svd(g.S, compute_uv=False).max() <= 1 + 1e-12
+
+
+def test_lossy_attenuation_equals_exact_leontovich_roots():
+    """alpha of TE1,0 with aluminium narrow walls (10 GHz) from the transfer-matrix eigenvalues of two lossy
+    straights (0.5 m and 2 m, extrapolated in 1/L to remove the junction discretization error) equals the exact
+    root of T1 box B6 to 1e-6 relative, and differs from the first-order wrmodes.loss value by the O(Z / (eta0 k a))
+    term that the exact solution also has."""
+    f = 10e9
+    Z = _alu(f)
+    b = ModeBasis(W, H, [Mode("TE", 1, 0)], frame="H")
+    al = []
+    for L in (0.5, 2.0):
+        g = Coplanar2D(straight_outline(W, L), H, wall_impedance=Z, mesh_density=12).gsm(f, b, b)
+        s11, s12, s21, s22 = g.S11[0, 0], g.S12[0, 0], g.S21[0, 0], g.S22[0, 0]
+        lam = np.linalg.eigvals(np.array([[s21 - s22 * s11 / s12, s22 / s12], [-s11 / s12, 1 / s12]]))
+        al.append(-np.log(np.min(np.abs(lam))) / L)
+    alpha = (2.0 * al[1] - 0.5 * al[0]) / 1.5
+    k = 2 * np.pi * f / cst.c
+    gam = np.sqrt(k * k - impedance_wall_modes(f, W, Z, Z, "LSE", 1)[0] + 0j)
+    exact = abs(gam.imag)
+    assert abs(alpha / exact - 1) < 1e-6
+    first = loss_matrices(b, f, {"u+": Z, "u-": Z})[0][0, 0].real
+    assert abs(alpha / first - 1) < 3e-4
+    assert abs((alpha - first) - (exact - first)) < 1e-6 * exact
+
+
+def test_butterweck_lossy_wall_filter():
+    """Butterweck's filter (75 GHz, 250 ohm on both narrow walls, 15 cm): TE1,0 / TE2,0 / TE3,0 losses equal WP2's
+    exact LossyWallFilter (0.5688 / 2.3147 / 5.3366 dB at 160 modes per family) to 0.1 %. Butterweck's quoted
+    0.6 / 2.5 / 5.4 dB are within 8 % (the exact value of every method is 5 / 7.5 / 1 % below them; see the WP3b
+    report)."""
+    f = 75e9
+    b = WR90.basis(f, 1.0, plane="H")
+    b0 = b.subset(b.family(0))
+    g = Coplanar2D(straight_outline(W, 0.15), H, wall_impedance=250.0).gsm(f, b0, b0)
+    for (m, wp2, butter) in ((1, 0.5688, 0.6), (2, 2.3147, 2.5), (3, 5.3366, 5.4)):
+        db = g.loss_db(f"TE{m},0")
+        assert abs(db / wp2 - 1) < 1e-3, (m, db)
+        assert abs(db / butter - 1) < 0.08
+    i1, i3 = b0.index(("TE", 1, 0)), b0.index(("TE", 3, 0))
+    assert -36 < 20 * np.log10(abs(g.S21[i3, i1])) < -24.5
+
+
+@pytest.mark.parametrize("plane", ["H", "E"])
+def test_lossy_miter_reciprocal_passive_symmetric(plane):
+    """Aluminium in-plane walls on a plain and a chamfered miter: reciprocal and S11 = S22 to rounding, passive,
+    and lossier than the perfect miter."""
+    f = 30e9
+    lossy = Guide(W, H, sigma=ALU)
+    for d in (None, 0.9):
+        g = Miter(90, chamfer=d, plane=plane, guide=lossy, wall_impedance="guide").gsm(f)
+        g0 = Miter(90, chamfer=d, plane=plane, guide=WR90).gsm(f)
+        assert rel_reciprocity(g) < 1e-10
+        assert np.max(np.abs(g.S11 - g.S22)) < 1e-10
+        sv = np.linalg.svd(g.S, compute_uv=False)
+        assert sv.max() < 1 and sv.max() > 0.999
+        P = np.sum(np.abs(g.S) ** 2, axis=0)
+        P0 = np.sum(np.abs(g0.S) ** 2, axis=0)
+        assert np.all(P < P0) and np.max(P0 - P) < 2e-3
+
+
+def test_lossy_miter_in_a_line():
+    """In a line with a lossy guide the miter takes the wall impedance from the guide (wall_impedance='guide');
+    WP2's lossy straights and the lossy miter cascade into a passive, reciprocal GSM."""
+    lossy = Guide(W, H, sigma=ALU)
+    line = Line(lossy, [Straight(0.1), Miter(90, wall_impedance="guide"), Straight(0.1)])
+    G = line.gsm(20e9)
+    assert rel_reciprocity(G) < 1e-9
+    assert np.linalg.svd(G.S, compute_uv=False).max() < 1
+
+
+@pytest.mark.slow
+def test_lossy_attenuation_all_modes_slow():
+    """benchmarks/fem2d/impedance_walls.py, section 1, at 30 GHz: every propagating mode of families 0 and 1
+    (TE/TM pairs split by the walls) to 1e-6 relative of the exact B6 roots (12 elements per wavelength,
+    extrapolation from 0.2 m and 0.6 m)."""
+    import importlib.util
+    import os
+    path = os.path.join(os.path.dirname(__file__), "..", "benchmarks", "fem2d", "impedance_walls.py")
+    sys.path.insert(0, os.path.dirname(path))
+    spec = importlib.util.spec_from_file_location("impedance_walls", path)
+    iw = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(iw)
+    f = 30e9
+    Z = _alu(f)
+    for n in (0, 1):
+        lams = [iw.eig_gamma(*iw.gsm_straight((f, L, Z, n, 12.0))[:4], L) for L in (0.2, 0.6)]
+        for kind, gx in iw.exact_gammas(f, n, Z):
+            al = [-np.log(abs(lam[np.argmin(np.abs(lam - np.exp(-1j * gx * L)))])) / L
+                  for lam, L in zip(lams, (0.2, 0.6))]
+            ext = (0.6 * al[1] - 0.2 * al[0]) / 0.4
+            assert abs(ext / abs(gx.imag) - 1) < 1e-6, (n, kind, gx, ext)
+
+
+# ----------------------------------------------------------------------------------------- chained miters
+E5_VERTICES = {   # benchmarks/comsol/CAMPAIGN_2.md, case E5 (mm)
+    2: [(0.0000, -42.5945), (0.0000, -27.5945), (22.8600, 27.5945), (78.0489, 50.4545), (93.0489, 50.4545),
+        (93.0489, 27.5945), (55.1889, 27.5945), (22.8600, -4.7345), (22.8600, -42.5945)],
+    3: [(0.0000, -42.5945), (0.0000, -27.5945), (22.8600, 27.5945), (39.0245, 43.7589), (94.2134, 66.6189),
+        (109.2134, 66.6189), (109.2134, 43.7589), (71.3534, 43.7589), (22.8600, -4.7345), (22.8600, -42.5945)]}
+
+
+@pytest.mark.parametrize("k", [2, 3])
+def test_chained_outline_reproduces_comsol_case_e5(k):
+    """Two optical 45 degree miters turning towards +x with spacers 2a and 3a, 15 mm port extensions: the outline
+    is COMSOL campaign 2's E5 polygon (shifted by a/2, the first apex being the origin here), and the port planes
+    lie 37.86 mm from the reference planes."""
+    o, mirror, length = chained_miter_outline([-45, -45], [k * W], a=W, port_extension=15e-3)
+    v = np.array(o.vertices) * 1e3 + [W / 2 * 1e3, 0]
+    ref = np.array(E5_VERTICES[k])
+    assert len(v) == len(ref)
+    i0 = int(np.argmin(np.hypot(*(v - ref[0]).T)))
+    for direction in (1, -1):
+        vv = np.roll(v[::direction], -(i0 if direction == 1 else len(v) - 1 - i0), axis=0)
+        if np.max(np.abs(vv - ref)) < 5e-5:          # four decimals in the campaign file
+            break
+    else:
+        pytest.fail(f"E5 vertices not reproduced:\n{v}")
+    assert all(abs(p.deembed - 37.86e-3) < 1e-9 for p in o.ports)
+    t = np.tan(np.radians(22.5))
+    assert np.isclose(length, 2 * W * t + k * W)
+    assert mirror is not None
+
+
+def test_chained_outline_single_miter_and_errors():
+    """One miter: the outline of miter_outline (any chamfer); a symmetric chain gets a symmetry line; geometries
+    that do not fit raise."""
+    for ang, d in ((90, None), (60, 0.8), (45, None), (120, 1.5), (-75, 0.95)):
+        th = np.radians(abs(ang))
+        dd = 0.5 / np.cos(th / 2) if d is None else d
+        o1, m1 = miter_outline(W, th, dd)
+        if ang < 0:
+            o1 = mirror_outline(o1)
+        o2, m2, L = chained_miter_outline([ang], [], [d], a=W)
+        assert sorted(np.round(np.array(o1.vertices) / W, 12).tolist()) == \
+            sorted(np.round(np.array(o2.vertices) / W, 12).tolist())
+        assert [p.deembed for p in o1.ports] == pytest.approx([p.deembed for p in o2.ports], abs=1e-15)
+        assert np.isclose(L, W * np.tan(th / 2))
+    # 45-degree optical mirrors overlap below s = 2a: the outline follows both mirrors to their intersection
+    o, mirror, _ = chained_miter_outline([45, 45], [1.5 * W], a=W)
+    assert len(o.vertices) == 7 and mirror is not None             # 2 port ends, 2 inner corners, Q1, joint, Q2
+    rel = np.array(o.vertices) - mirror[0]
+    dist = np.abs(rel[:, 0] * mirror[1][1] - rel[:, 1] * mirror[1][0])
+    assert np.sum(dist < 1e-12) == 1                                 # the joint lies on the symmetry line
+    assert o.area() < chained_miter_outline([45, 45], [2 * W], a=W)[0].area()
+    # S-bend: no symmetry line; opposite turns whose mirror reaches the neighbour's inner corner are refused
+    o, mirror, _ = chained_miter_outline([90, -90], [W], a=W)
+    assert mirror is None
+    with pytest.raises(ValueError):
+        chained_miter_outline([45, -45], [0.2 * W], a=W)
+    assert len(chained_miter_outline([45, 45], [0.0], a=W)[0].vertices) == 6       # a two-facet mirror
+    with pytest.raises(ValueError):                                 # U-turn with touching arms
+        chained_miter_outline([90, 90], [0.0], a=W)
+    with pytest.raises(ValueError):                                 # a closed loop: the output arm hits the input
+        chained_miter_outline([90, 90, 90, 90], [W, W, W], a=W)
+    with pytest.raises(ValueError):
+        chained_miter_outline([90, 90], [W, W], a=W)                # two miters take one spacer
+    with pytest.raises(ValueError):
+        chained_miter_outline([90, 90], [-W], a=W)
+
+
+def _chain_vs_cascade(f, ang, s, cf, **opts):
+    """max |S_single - S_cascade| over the propagating block of family 0."""
+    o, mirror, L = chained_miter_outline([ang, ang], [s], a=W)
+    B = WR90.basis(f, 1.0, plane="H")
+    bp = B.subset(B.family(0))
+    g1 = Coplanar2D(o, H, guide=WR90, mirror=mirror, length=L, **opts).gsm(f, bp, bp)
+    bc = WR90.basis(f, cf, plane="H")
+    bc = bc.subset(bc.family(0))
+    gm = Miter(ang, guide=WR90, **opts).gsm(f, bc, bc)
+    gc = cascade(gm, straight(bc, f, s), gm)
+    ip = [bc.index(m) for m in bp.modes]
+    Sc = np.block([[gc.S11[np.ix_(ip, ip)], gc.S12[np.ix_(ip, ip)]], [gc.S21[np.ix_(ip, ip)], gc.S22[np.ix_(ip, ip)]]])
+    assert rel_reciprocity(g1) < 1e-10 and np.max(np.abs(g1.S11 - g1.S22)) < 1e-10
+    return np.max(np.abs(Sc - g1.S))
+
+
+def test_chained_miters_converge_to_the_cascade():
+    """Two 90 degree miters (a U-turn), 30 GHz, default mesh: the single-domain outline equals the Line cascade
+    Miter-Straight-Miter to the discretization level (~1e-4) once the cascade carries evanescent modes; at a short
+    spacer (a/2) a propagating-only cascade is off by 6e-3."""
+    f = 30e9
+    assert _chain_vs_cascade(f, 90, 0.5 * W, 1.0) > 3e-3
+    assert _chain_vs_cascade(f, 90, 0.5 * W, 1.5) < 2e-4
+    assert _chain_vs_cascade(f, 90, 2 * W, 1.0) < 2e-4
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("ang, s_over_a, cf, dens", [(90, 2.0, 1.5, 32), (90, 3.0, 1.5, 32), (45, 3.0, 1.5, 16),
+                                                     (45, 4.0, 1.0, 16)])
+def test_chained_miters_converge_to_the_cascade_slow(ang, s_over_a, cf, dens):
+    """Card target: difference < 1e-6 at long spacers with fine meshes (benchmarks/fem2d/chained_miters.py). For
+    the 45 degree optical mirrors the uniform guide between the mirrors is s - 2a long: with one evanescent family
+    member (cf 1.5) the target holds from s = 2.5a, with propagating modes only from s = 4a."""
+    assert _chain_vs_cascade(30e9, ang, s_over_a * W, cf, mesh_density=dens) < 1e-6
+
+
+# ----------------------------------------------------------------------------------------- MiterMM interchangeable
+@pytest.mark.parametrize("plane", ["H", "E"])
+def test_fem_miter_and_mode_matching_miter_are_interchangeable(plane):
+    """fem2d.Miter and modematch.MiterMM are drop-in replacements in a Line (same interface, frames and bases),
+    and agree, in a line of two 90 degree miters (plain and chamfered), to 2e-3 in every propagating entry (each
+    miter to about 1e-4; the precise comparison is WP7b's)."""
+    from wrmodes.modematch import MiterMM
+    f = 20e9
+    for d in (None, 0.9):
+        comps = lambda M: [Straight(0.02), M(90, chamfer=d, plane=plane), Straight(0.01),
+                           M(-90, chamfer=d, plane=plane)]
+        a = Line(WR90, comps(lambda ang, **kw: Miter(ang, **kw))).gsm(f)
+        b = Line(WR90, comps(lambda ang, **kw: MiterMM(angle_deg=ang, **kw))).gsm(f)
+        assert a.basis1 == b.basis1 and a.basis2 == b.basis2
+        assert np.max(np.abs(a.S - b.S)) < 2e-3
+    assert np.isclose(Miter(90, guide=WR90).arm_length, MiterMM(guide=WR90).arm_length)

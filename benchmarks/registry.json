@@ -103,8 +103,8 @@
       "reference": "Ma, Yamane & Yamashita, Electron. Commun. Jpn. 2, 80(5) (1997), Table 1, p. 5: 15.799 x 7.899 mm, 16 GHz, |S11| = 0.2622, |S21| = 0.9650",
       "data_file": null,
       "tolerance": "none (qualitative); the disagreement is reported",
-      "test": "tests/adversarial/test_wp3_adversarial.py::test_h_miter_against_ma1997_table1; compare_literature.py",
-      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md"
+      "test": "tests/adversarial/test_wp3_adversarial.py::test_h_miter_against_ma1997_table1; compare_literature.py; benchmarks/fem2d/ma1997.py (WP3b)",
+      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md. WP3b: Ma's own staircase (60 steps, division method (a)) gives |S11| = 0.2811 (FEM), not 0.2622: the staircase moves |S11| away from Ma's value; 50/60-step staircases converge to the exact 0.2778 from above (docs/reports/WP3b.md)"
     },
     {
       "id": "wp3-ma1997-figures",
@@ -112,10 +112,10 @@
       "card": "WP3 acceptance: H-plane miter vs Ma et al. 1997 (D3 of L1)",
       "reference_type": "literature",
       "reference": "Ma et al. (1997) Figs. 5, 6, 8, 9, 11 (figure reading in ref_literature.FIGURES)",
-      "data_file": "benchmarks/literature/ma1997_fig<k>.csv (L1, D3)",
+      "data_file": "benchmarks/literature/ma1997_fig<k>.csv (L1, D3); results benchmarks/fem2d/data/ma1997.npz",
       "tolerance": "the uncertainty column of each point",
-      "test": "benchmarks/validation_v1/compare_literature.py (CSV reader tested on synthetic files: tests/adversarial/test_wp7_references.py::test_csv_reader_and_comparison)",
-      "status": "waiting for data (L1); Fig. 11 chamfered curves (c/a = 0.60, 0.631, 0.70) qualitative (Daniel, 11 Nov 2026), see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md"
+      "test": "benchmarks/fem2d/ma1997.py (WP3b; data benchmarks/fem2d/data/ma1997.npz); benchmarks/validation_v1/compare_literature.py",
+      "status": "WP3b (FEM, Ma's staircase geometries modelled): pass for Fig. 5 (rms z 0.24, BEM 0.62), Fig. 6 10 steps (0.20) and BEM (0.57), Fig. 8 20 steps (a)/(b)/(c) (0.64/0.49/0.62), Fig. 11 c/a = 0 (0.19); not met for the c/a = 1 curves with 40-60 steps (Fig. 6 rms z 2.37, Fig. 9 1.28, Fig. 11 c/a = 1.0 2.05; 0.3-0.5 dB, the Table 1 discrepancy; proposed qualitative) and Fig. 6 20 steps (1.69). Fig. 11 chamfered curves qualitative (Daniel, 11 Nov 2026): rms z 17-31 (c/a = 0.60-0.70), 1.29 (c/a = 1.30)"
     },
     {
       "id": "wave2-alessandri1994",
@@ -125,8 +125,8 @@
       "reference": "Alessandri, Mongiardo & Sorrentino, IEEE MGWL 4(12) (1994), Figs. 4-5; the paper does not state the guide (b/a needed)",
       "data_file": "benchmarks/literature/alessandri1994_fig4.csv, _fig5.csv (L1, D1)",
       "tolerance": "the uncertainty column of each point",
-      "test": "benchmarks/validation_v1/compare_literature.py --b-over-a <ratio>; tests/test_modematch_miter.py::test_alessandri_eplane_b_over_a_half, test_alessandri_rules_out_wr90_ratio; benchmarks/modematch/miter_literature.py (WP4b)",
-      "status": "waiting for data (L1) and for the guide ratio; WP4b: b/a = 0.5 fits (rms z 0.2-0.9 for d/b = 1.41, 0.707, 0.9, 0.87); WR-90 b/a = 0.444 does not (rms z 5-25); deep curves d/b = 0.85, 0.83 within 3e-3 in |S11| near their zeros; crosses of ref. [7] for d/b = 0.87 lie 1-6 dB below (docs/reports/WP4b.md)"
+      "test": "benchmarks/validation_v1/compare_literature.py --b-over-a <ratio>; tests/test_modematch_miter.py::test_alessandri_eplane_b_over_a_half, test_alessandri_rules_out_wr90_ratio; benchmarks/modematch/miter_literature.py (WP4b); benchmarks/fem2d/alessandri1994.py (WP3b)",
+      "status": "waiting for data (L1) and for the guide ratio; WP4b: b/a = 0.5 fits (rms z 0.2-0.9 for d/b = 1.41, 0.707, 0.9, 0.87); WR-90 b/a = 0.444 does not (rms z 5-25); deep curves d/b = 0.85, 0.83 within 3e-3 in |S11| near their zeros; crosses of ref. [7] for d/b = 0.87 lie 1-6 dB below (docs/reports/WP4b.md). WP3b (FEM): b/a = 0.5 rms z 0.30/0.23/0.93 (Fig. 4 d/b = 1.41/0.707/0.87), 0.46/0.91/1.63/2.26 (Fig. 5 d/b = 0.9/0.87/0.85/0.83; outliers at the zeros of 0.85, 0.83, as WP4b); b/a = 0.444: rms z 5.4-25 (rejected)"
     },
     {
       "id": "wp3-comsol-c1",
@@ -202,8 +202,8 @@
       "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 2: |S11| (dB) vs f/fc, MMFD line (MM coincides) and 10 MM dots",
       "data_file": "benchmarks/literature/alimenti1994_fig2_mmfd.csv, alimenti1994_fig2_mm.csv (L2)",
       "tolerance": "the uncertainty column of each point",
-      "test": "tests/test_modematch_miter.py::test_alimenti_unmitered_and_optical_mirror (WP4b)",
-      "status": "reference ready (L2); agrees with Ma et al. 1997 Fig. 11 c/a = 0 to 0.14 dB rms; WP4b: agrees (MMFD line rms z 0.76, MM dots 1.12)"
+      "test": "tests/test_modematch_miter.py::test_alimenti_unmitered_and_optical_mirror (WP4b); benchmarks/fem2d/alimenti1994.py (WP3b)",
+      "status": "reference ready (L2); agrees with Ma et al. 1997 Fig. 11 c/a = 0 to 0.14 dB rms; WP4b: agrees (MMFD line rms z 0.76, MM dots 1.12); WP3b (FEM): agrees (MMFD rms z 0.76, MM dots 1.12)"
     },
     {
       "id": "wave2-alimenti1994-fig3",
@@ -213,8 +213,8 @@
       "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 3: |S11| (dB) vs f/fc, MM line (MMFD coincides to f/fc 1.93) and 10 MMFD diamonds",
       "data_file": "benchmarks/literature/alimenti1994_fig3_mm.csv, alimenti1994_fig3_mmfd.csv (L2)",
       "tolerance": "the uncertainty column of each point",
-      "test": "tests/test_modematch_miter.py::test_alimenti_unmitered_and_optical_mirror (WP4b)",
-      "status": "reference ready (L2); lies 0.5-1.0 dB above Ma et al. 1997 Fig. 11 c/a = 1.0 (same geometry): a difference between the papers, see docs/reports/L2.md; WP4b: agrees (MM line rms z 0.71, mean -0.23 dB); WP4b and an independent FD solution give |S11| = 0.2778 at f/fc = 1.686 (Ma Table 1: 0.2622, this figure: about 0.288)"
+      "test": "tests/test_modematch_miter.py::test_alimenti_unmitered_and_optical_mirror (WP4b); benchmarks/fem2d/alimenti1994.py (WP3b)",
+      "status": "reference ready (L2); lies 0.5-1.0 dB above Ma et al. 1997 Fig. 11 c/a = 1.0 (same geometry): a difference between the papers, see docs/reports/L2.md; WP4b: agrees (MM line rms z 0.71, mean -0.23 dB); WP4b and an independent FD solution give |S11| = 0.2778 at f/fc = 1.686 (Ma Table 1: 0.2622, this figure: about 0.288); WP3b (FEM): agrees (MM rms z 0.71, MMFD diamonds 0.95)"
     },
     {
       "id": "wave2-alimenti1994-fig4",
@@ -224,8 +224,8 @@
       "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 4: |S11| (dB) vs f/fc (MMFD)",
       "data_file": "benchmarks/literature/alimenti1994_fig4_t030.csv, _t034.csv, _t038.csv (L2)",
       "tolerance": "none (qualitative); the disagreement is reported",
-      "test": "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented (WP4b)",
-      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md"
+      "test": "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented (WP4b); benchmarks/fem2d/alimenti1994.py (WP3b)",
+      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md; WP3b (FEM, reported): rms z 5.1/7.6/12.4 for t/a = 0.30/0.34/0.38"
     },
     {
       "id": "wave2-alimenti1994-fig5",
@@ -235,8 +235,8 @@
       "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 5: matching (zero) frequency f/fc and 30 dB bandwidth / fc vs t/a; bandwidth jumps at t/a = 0.3867 from 0.274 to 0.364",
       "data_file": "benchmarks/literature/alimenti1994_fig5_matching_frequency.csv, alimenti1994_fig5_bandwidth.csv (L2)",
       "tolerance": "none (qualitative); the disagreement is reported",
-      "test": "not tested (WP4b: matching frequencies at t/a = 0.30, 0.32 agree to 0.01, above 0.34 ours are 0.03-0.07 lower; docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md)",
-      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md"
+      "test": "not tested (WP4b: matching frequencies at t/a = 0.30, 0.32 agree to 0.01, above 0.34 ours are 0.03-0.07 lower; docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md); benchmarks/fem2d/alimenti1994.py (WP3b)",
+      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md; WP3b (FEM, reported): zeros 1.302 ... 1.757 (t/a 0.30 ... 0.40); the 30 dB band jumps between t/a = 0.386 and 0.390 (Alimenti 0.3867)"
     },
     {
       "id": "wave2-alimenti1994-fig6",
@@ -246,8 +246,8 @@
       "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 6: |S11| (dB) vs f/fc, MMFD and BCMM (Reiter & Arndt 1994) lines, 10 BCMM diamonds",
       "data_file": "benchmarks/literature/alimenti1994_fig6_mmfd.csv, alimenti1994_fig6_bcmm.csv (L2)",
       "tolerance": "none (qualitative); the disagreement is reported",
-      "test": "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented (WP4b)",
-      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md"
+      "test": "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented (WP4b); benchmarks/fem2d/alimenti1994.py (WP3b)",
+      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md; WP3b (FEM, reported): MMFD rms z 34, BCMM 13.5"
     },
     {
       "id": "wave2-kotik1965-fig3",
@@ -257,8 +257,8 @@
       "reference": "Kotik & Sivov, Radio Eng. Electron. Phys. 10 (1965) 140-142, Fig. 3: |B1|^2 vs kd, rigorous solution (truncated mode system, N <= 18)",
       "data_file": "benchmarks/literature/kotik1965_fig3_rigorous.csv (L2)",
       "tolerance": "the uncertainty column of each point (reading and the 0.005 drafting accuracy of the figure)",
-      "test": "tests/test_modematch_miter.py::test_kotik_optical_mirror_overmoded (WP4b)",
-      "status": "reference ready (L2); text: 3 % loss at kd ~ 30 (figure: 0.971 at kd = 30); WP4b: rms z 1.30 over 416 points; outliers just above the TE40/TE60/TE80 cutoffs and -0.011 for kd > 30.4 (docs/reports/WP4b.md)"
+      "test": "tests/test_modematch_miter.py::test_kotik_optical_mirror_overmoded (WP4b); benchmarks/fem2d/kotik1965.py (WP3b)",
+      "status": "reference ready (L2); text: 3 % loss at kd ~ 30 (figure: 0.971 at kd = 30); WP4b: rms z 1.30 over 416 points; outliers just above the TE40/TE60/TE80 cutoffs and -0.011 for kd > 30.4 (docs/reports/WP4b.md); WP3b (FEM): rms z 1.30, 96 % within 2u, same outliers (TE40 cutoff dip, kd > 30.4)"
     },
     {
       "id": "wave2-kotik1965-asymptotic",
@@ -268,8 +268,8 @@
       "reference": "Katsenelenbaum (1963) as quoted by Kotik & Sivov (1965) p. 142: |B1|^2 = 1 - 7.4/(kd)^(3/2) (printed exponent 2/3 is a misprint), within 3 % (relative) of the rigorous solution for kd > 6 pi",
       "data_file": "benchmarks/literature/kotik1965_fig3_asymptotic.csv (L2; the drawn curve, documents a drafting accuracy of 0.005 rms, 0.011 max)",
       "tolerance": "3 % relative for kd > 6 pi (the authors' statement)",
-      "test": "not written (WP7b)",
-      "status": "reference ready (L2)"
+      "test": "benchmarks/fem2d/kotik1965.py (WP3b)",
+      "status": "reference ready (L2); WP3b (FEM): see docs/reports/WP3b.md (within 3 % away from the cutoff dips of the rigorous solution)"
     },
     {
       "id": "wp4b-marcuvitz-corners",
@@ -325,6 +325,83 @@
       "tolerance": "1e-12",
       "test": "tests/test_modematch_miter.py::test_step_parity_reduction_equals_full_solve",
       "status": "passes (max 1.4e-14)"
+    },
+    {
+      "id": "wp3b-reiter1995-fig3",
+      "component": "fem2d.Miter, H- and E-plane bends and mitered bends, gamma = 90-150 deg, WR62",
+      "card": "WP3b acceptance",
+      "reference_type": "literature",
+      "reference": "Reiter & Arndt, IEEE MTT 43(4) (1995) 796-801, Fig. 3(a)-(d)",
+      "data_file": "benchmarks/literature/reiter1995_fig3a-d.csv (L1); results benchmarks/fem2d/data/reiter1995.npz",
+      "tolerance": "the uncertainty column of each point",
+      "test": "benchmarks/fem2d/reiter1995.py",
+      "status": "see docs/reports/WP3b.md: Fig. 3(a) gamma = 90-135 pass, gamma = 150 not met (FEM agrees with Marcuvitz's measured 30 deg corners, Reiter is 3 dB higher); Fig. 3(c) not met by about 1 dB (Reiter's E-plane 90 deg corner differs from Alessandri's for the same guide; the FEM agrees with Alessandri and with Marcuvitz 5.28b); mitered curves (b), (d) not met (zeros shifted, like the Alimenti/Ma chamfered curves)"
+    },
+    {
+      "id": "wp3b-reiter1995-fig4",
+      "component": "Line [H-plane miter, Straight(l), E-plane miter] with FrameChange, WR90, l = 0 and l = b",
+      "card": "WP3b acceptance",
+      "reference_type": "literature",
+      "reference": "Reiter & Arndt (1995) Fig. 4 (theory and measurement)",
+      "data_file": "benchmarks/literature/reiter1995_fig4.csv (L1); results benchmarks/fem2d/data/reiter1995.npz",
+      "tolerance": "the uncertainty column of each point",
+      "test": "benchmarks/fem2d/reiter1995.py",
+      "status": "see docs/reports/WP3b.md"
+    },
+    {
+      "id": "wp3b-impedance-alpha",
+      "component": "fem2d impedance walls: per-mode attenuation of a straight with impedance walls at u = +-a/2 (aluminium, WR-90, H plane)",
+      "card": "WP3b acceptance",
+      "reference_type": "closed form",
+      "reference": "exact Leontovich roots of T1 box B6 (wrmodes.filters.impedance_wall_modes); first-order wrmodes.loss (T1 B2-B3) reported",
+      "data_file": "benchmarks/fem2d/data/impedance_walls.npz",
+      "tolerance": "1e-6 relative on alpha (exact roots)",
+      "test": "tests/test_fem2d.py::test_lossy_attenuation_equals_exact_leontovich_roots, ::test_lossy_attenuation_all_modes_slow; benchmarks/fem2d/impedance_walls.py",
+      "status": "passes: max 6.7e-7 (12 modes, 10 and 30 GHz, families 0 and 1); first order differs from exact by up to 7.3e-4 (TE/TM 1,1 pair), as T1 section 5 states"
+    },
+    {
+      "id": "wp3b-butterweck-fem",
+      "component": "fem2d Coplanar2D straight with 250 ohm narrow walls (Butterweck's lossy-wall filter)",
+      "card": "WP3b acceptance",
+      "reference_type": "independent method",
+      "reference": "WP2 LossyWallFilter (exact B6 + B9) and Butterweck & de Ronde, Philips Tech. Rev. 29 (1968) 94-95: 0.6 / 2.5 / 5.4 dB",
+      "data_file": "benchmarks/fem2d/data/impedance_walls.npz",
+      "tolerance": "5 % (card)",
+      "test": "tests/test_fem2d.py::test_butterweck_lossy_wall_filter",
+      "status": "vs WP2: pass (0.05-0.06 %); vs Butterweck's numbers: -5.2 / -7.5 / -1.2 % (the same as WP2's exact method; Butterweck's 0.6 dB is a rounded 4 dB/m, 2.5 dB is a measurement)"
+    },
+    {
+      "id": "wp3b-lossy-straight-vs-filter",
+      "component": "fem2d impedance walls, all families (LSM-LSE coupling for n >= 1)",
+      "card": "WP3b",
+      "reference_type": "independent method",
+      "reference": "WP2 LossyWallFilter (exact LS^u modes)",
+      "data_file": "benchmarks/fem2d/data/impedance_walls.npz",
+      "tolerance": "5e-4 (metal walls), 3e-3 (25 ohm) on every propagating entry",
+      "test": "tests/test_fem2d.py::test_lossy_straight_matches_lossy_wall_filter",
+      "status": "passes; at 250 ohm the junction reflections of n >= 1 modes converge slowly in both methods (max |dS| 1e-2)"
+    },
+    {
+      "id": "wp3b-chained-miters",
+      "component": "fem2d chained_miter_outline (single domain) vs Miter-Straight-Miter cascade",
+      "card": "WP3b acceptance",
+      "reference_type": "independent method",
+      "reference": "the cascade of fem2d.Miter GSMs with evanescent modes",
+      "data_file": "benchmarks/fem2d/data/chained_miters.npz",
+      "tolerance": "1e-6 at spacers >= 2a (fine mesh)",
+      "test": "tests/test_fem2d.py::test_chained_miters_converge_to_the_cascade, ::test_chained_miters_converge_to_the_cascade_slow; benchmarks/fem2d/chained_miters.py",
+      "status": "90 deg pairs: 8.5e-7 / 8.2e-7 at s = 2a / 3a (32 elements per wavelength, cf 1.5); 45 deg optical pairs: 2.6e-7 from s = 2.5a (uniform guide s - 2a); see the report"
+    },
+    {
+      "id": "wp3b-e5-outline",
+      "component": "chained_miter_outline geometry of COMSOL campaign 2 case E5",
+      "card": "WP3b",
+      "reference_type": "closed form",
+      "reference": "benchmarks/comsol/CAMPAIGN_2.md, E5 vertex lists (s = 2a, 3a)",
+      "data_file": null,
+      "tolerance": "the four printed decimals",
+      "test": "tests/test_fem2d.py::test_chained_outline_reproduces_comsol_case_e5",
+      "status": "passes"
     }
   ]
 }

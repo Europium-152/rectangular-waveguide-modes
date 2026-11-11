@@ -28,7 +28,7 @@ import scipy.sparse.linalg as spla
 
 from .normalization import scalar_mode
 
-__all__ = ["Discretization", "solve_scalar"]
+__all__ = ["Discretization", "solve_scalar", "solve_impedance"]
 
 
 class Discretization:
@@ -89,6 +89,43 @@ class Discretization:
         wall = np.setdiff1d(bf, np.concatenate(self.port_facets))
         self.wall_dofs = np.unique(self.basis.get_dofs(facets=wall).flatten())
         self.port_bases = [FacetBasis(mesh, elem, facets=f, intorder=16) for f in self.port_facets]
+        # walls of the core (impedance walls when the component has a wall impedance) and of the arms (always
+        # perfect conductors: the modal ports need the modes of the perfect guide)
+        region = np.asarray(md.region)
+        in_core = region[mesh.f2t[0, wall]] == 1
+        self.core_wall_facets = wall[in_core]
+        self.arm_wall_dofs = np.unique(self.basis.get_dofs(facets=wall[~in_core]).flatten()) if (~in_core).any() \
+            else np.zeros(0, dtype=int)
+        # v = z x u is +e3 or -e3 in the (x, y) plane of the outline (geometry.Outline checks that both ports agree)
+        z1, u1 = md.normals[0], md.ports[0].u_hat
+        self.v_sign = float(np.sign(z1[0] * u1[1] - z1[1] * u1[0]))
+        self._wall_mats = None
+
+    def wall_matrices(self):
+        """(M_w, C) on the core walls: M_w[i, j] = int w_i w_j ds and C[i, j] = int w_i d(w_j)/ds ds, with the wall
+        tangent s = v x n (n the outward normal, from the guide into the wall), so that (n, s, v) is right-handed
+        (docs/theory/WP3-normalization.md, section 6)."""
+        if self._wall_mats is None:
+            from skfem import FacetBasis, BilinearForm, asm
+            if len(self.core_wall_facets) == 0:
+                Z = sp.csr_matrix((self.n, self.n))
+                self._wall_mats = (Z, Z)
+            else:
+                fb = FacetBasis(self.mesh, self.elem, facets=self.core_wall_facets,
+                                intorder=2 * self.elem.maxdeg + 2)
+                sv = self.v_sign
+
+                @BilinearForm
+                def wmass(u, v, w):
+                    return u * v
+
+                @BilinearForm
+                def tder(u, v, w):
+                    # s = v_sign e3 x n = v_sign (-n_y, n_x)
+                    return v * sv * (-w.n[1] * u.grad[0] + w.n[0] * u.grad[1])
+
+                self._wall_mats = (asm(wmass, fb).tocsr(), asm(tder, fb).tocsr())
+        return self._wall_mats
 
     def port_matrix(self, k, pol, modes):
         """B (n x len(modes)): column m is int_port phi_m(u) w ds over the modal port of arm k."""
@@ -145,3 +182,92 @@ def solve_scalar(disc, kt2, pol, port_modes, port_betas, excite):
     W = lu.solve(P * (2j * beta)[None, :])
     S = P.T @ W - np.eye(len(beta))
     return S, {"ndof": len(fidx)}
+
+
+def solve_impedance(disc, k, kt2, ky, Z, problems):
+    """Solve the 2D problem of one family with impedance (Leontovich) walls on the core walls.
+
+    The arms stay perfectly conducting. On the core walls (docs/theory/WP3-normalization.md, section 6), with n the
+    outward normal and s = v x n,
+
+        LSM (psi = E_v profile):  d psi/dn = -i (eta0 / k) (k_t^2 psi / Z + k_v d phi/ds),
+        LSE (phi = H_v profile):  d phi/dn = -i / (k eta0) (Z k_t^2 phi + k_v d psi/ds),
+
+    with k_v = n pi / b. For family n = 0 (k_v = 0) only the LSM problem exists and the condition is a Robin
+    condition on psi alone; for n >= 1 the wall couples the two polarizations. The psi equation is scaled by 1/eta0
+    and the phi equation by -eta0, which makes the coupled matrix complex symmetric (the coupling matrix C is
+    antisymmetric on the free unknowns, because psi vanishes at the ends of the impedance walls, where they meet
+    the perfectly conducting arms).
+
+    Parameters
+    ----------
+    disc : Discretization
+    k, kt2, ky : float
+        Free-space wavenumber, k_t^2 = k^2 - k_v^2 and k_v (1/m).
+    Z : complex
+        Wall impedance (ohm), Re Z >= 0, Z != 0.
+    problems : list of (pol, port_modes, port_betas, excite)
+        One entry for 'LSM' and, if ky != 0, one for 'LSE' (both are needed whenever ky != 0, also when no mode of
+        one polarization is requested). port_modes etc. as in `solve_scalar`.
+
+    Returns
+    -------
+    S : (N, N) complex array
+        Outgoing per unit incident 2D amplitude, excitations ordered by problem, then port, then `excite`;
+        kappa_i beta_i S_ij is symmetric with kappa = 1/eta0 (LSM) and -eta0 (LSE).
+    info : dict
+        'ndof': number of unknowns.
+    """
+    from ..modes import ETA0
+    pols = [p[0] for p in problems]
+    if ky != 0 and sorted(pols) != ["LSE", "LSM"]:
+        raise ValueError("a family with k_v != 0 needs both the LSM and the LSE problem")
+    Mw, C = disc.wall_matrices()
+    base = (disc.K - kt2 * disc.M).astype(complex)
+    blocks, Ps, betas, offsets, frees = [], [], [], [], []
+    off = 0
+    for pol, port_modes, port_betas, excite in problems:
+        kappa = 1.0 / ETA0 if pol == "LSM" else -ETA0
+        A = base.copy()
+        Bs = []
+        for p in range(2):
+            B = disc.port_matrix(p, pol, port_modes[p])
+            Bs.append(B)
+            A = A + B @ sp.diags(1j * np.asarray(port_betas[p], dtype=complex)) @ B.T
+        A = kappa * A
+        if pol == "LSM":
+            A = A + (1j * kt2 / (k * Z)) * Mw
+        else:
+            A = A - (1j * Z * kt2 / k) * Mw
+        free = np.ones(disc.n, dtype=bool)
+        if pol == "LSM":
+            free[disc.arm_wall_dofs] = False
+        fidx = np.flatnonzero(free)
+        blocks.append(A.tocsr()[fidx][:, fidx])
+        P = np.hstack([Bs[p].tocsr()[fidx][:, list(excite[p])].toarray() for p in range(2)])
+        beta = np.concatenate([np.asarray(port_betas[p], dtype=complex)[list(excite[p])] for p in range(2)])
+        Ps.append(P)
+        betas.append(kappa * beta)
+        offsets.append(off)
+        frees.append(fidx)
+        off += len(fidx)
+    if len(problems) == 1:
+        Af = blocks[0].tocsc()
+    else:
+        im, ie = pols.index("LSM"), pols.index("LSE")
+        Cpe = (1j * ky / k) * C.tocsr()[frees[im]][:, frees[ie]]       # rows: psi tests, columns: phi
+        off_blocks = [[None, None], [None, None]]
+        off_blocks[im][im], off_blocks[ie][ie] = blocks[im], blocks[ie]
+        off_blocks[im][ie], off_blocks[ie][im] = Cpe, Cpe.T
+        Af = sp.bmat(off_blocks, format="csc")
+    ntot = off
+    Pfull = np.zeros((ntot, sum(P.shape[1] for P in Ps)), dtype=complex)
+    c0 = 0
+    for P, o in zip(Ps, offsets):
+        Pfull[o:o + P.shape[0], c0:c0 + P.shape[1]] = P
+        c0 += P.shape[1]
+    kb = np.concatenate(betas)
+    lu = spla.splu(Af, permc_spec="COLAMD")
+    Wm = lu.solve(Pfull * (2j * kb)[None, :])
+    S = Pfull.T @ Wm - np.eye(len(kb))
+    return S, {"ndof": ntot}
