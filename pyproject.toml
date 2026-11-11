@@ -10,7 +10,7 @@ dependencies = [
   "threadpoolctl>=3.0",
 ]
 name = "wrmodes"
-version = "1.0.0.dev0"
+version = "1.0.0a1"
 authors = [
   { name="Daniel Hachmeister", email="daniel.hachmeister@tecnico.ulisboa.pt" },
 ]

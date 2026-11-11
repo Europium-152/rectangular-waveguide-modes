@@ -147,6 +147,15 @@ $\tfrac12\iint(E^+_p\times H^+_q)\cdot\hat z\,ds = a_p a_q\,\delta_{pq}$.
   from the inner corner is $d/a = 1/(2\cos(\theta/2))$; at 90° this is the classical $d/a = 1/\sqrt2$ (Ma's
   $c/a = 1$, Alessandri's $d/b = 0.707$). Chamfered miters give $d$ explicitly, measured from the inner corner as in
   Alessandri (1994). Decided by Daniel, 9 Nov 2026.
+* **Evanescent entries at reference planes inside a discontinuity.** When a component's reference plane lies
+  where the discontinuity has already changed the cross-section (the optical mirror below 90°, any
+  $d < \cos(\theta/2)$), the GSM is defined by continuing the uniform arm analytically to that plane. Propagating
+  entries are unaffected; evanescent entries carry a factor $e^{|\beta|\delta}$ per port ($\delta$ the depth of
+  the plane inside the discontinuity) and are only as accurate, relatively, as the solver times that factor.
+  Cascades with such components keep enough straight length, or enough evanescent modes, for the product to be
+  well conditioned (WP3 report, open issue 1).
+* **Components with a varying cross-section** (tapers, strangled bends) measure their length along the centre
+  line, and their curvature and offsets refer to it (T2 §10).
 * **Cascade**: Redheffer star product, `A @ B` or `cascade(A, B, ...)`, in the order of propagation. When
   $I - A_{22}B_{11}$ is singular because a mode is trapped between the two components without coupling to the
   outer ports (e.g. two junctions on the same plane), the product uses the pseudo-inverse, which is exact for such
@@ -197,9 +206,14 @@ components.
 | --- | --- |
 | Reciprocity, unitarity (lossless) | 1e-10 |
 | Agreement of two independent methods for the same component | 0.01 dB on the main transmission; 1e-4 of input power for every converted mode |
-| Agreement with COMSOL | 0.02 dB |
+| Agreement with COMSOL | 0.02 dB, beyond the COMSOL error shown by a mesh check |
 | Agreement with digitized literature curves | the digitizing uncertainty recorded with the data |
 | Regression against wrmodes 0.1 (`tests/test_regression_v0_1.py`) | 1e-10 on T and R when the adaptive slicing is unchanged |
+
+COMSOL references (Gate A lessons, campaign 1): user-defined meshes with an explicit maximum element size (the
+physics-controlled mesh shifted a 15 cm bend by 0.02–0.03 dB); a mesh check at two frequencies per case; and,
+within about 2 % above the cutoff of an excited mode, ports for every propagating mode instead of a PML, which
+reflects near-cutoff modes.
 
 A component counts as validated when an agent that did not write it reproduces its results with a different
 method, within these targets (see `tasks/README.md`).
