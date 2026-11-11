@@ -193,6 +193,83 @@
       "tolerance": "1e-9",
       "test": "tests/adversarial/test_wp7_comsol_postprocess.py",
       "status": "self-check, passes"
+    },
+    {
+      "id": "wave2-alimenti1994-fig2",
+      "component": "H-plane 90 deg corner, unmitered (d/a = sqrt(2))",
+      "card": "L2; used by WP3b, WP4b, WP7b",
+      "reference_type": "literature",
+      "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 2: |S11| (dB) vs f/fc, MMFD line (MM coincides) and 10 MM dots",
+      "data_file": "benchmarks/literature/alimenti1994_fig2_mmfd.csv, alimenti1994_fig2_mm.csv (L2)",
+      "tolerance": "the uncertainty column of each point",
+      "test": "not written (WP3b / WP4b / WP7b)",
+      "status": "reference ready (L2); agrees with Ma et al. 1997 Fig. 11 c/a = 0 to 0.14 dB rms"
+    },
+    {
+      "id": "wave2-alimenti1994-fig3",
+      "component": "H-plane 90 deg optical-mirror miter (t/a = 0, d/a = 1/sqrt(2))",
+      "card": "L2; used by WP3b, WP4b, WP7b",
+      "reference_type": "literature",
+      "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 3: |S11| (dB) vs f/fc, MM line (MMFD coincides to f/fc 1.93) and 10 MMFD diamonds",
+      "data_file": "benchmarks/literature/alimenti1994_fig3_mm.csv, alimenti1994_fig3_mmfd.csv (L2)",
+      "tolerance": "the uncertainty column of each point",
+      "test": "not written (WP3b / WP4b / WP7b)",
+      "status": "reference ready (L2); lies 0.5-1.0 dB above Ma et al. 1997 Fig. 11 c/a = 1.0 (same geometry): a difference between the papers, see docs/reports/L2.md"
+    },
+    {
+      "id": "wave2-alimenti1994-fig4",
+      "component": "H-plane 90 deg chamfered miter, t/a = 0.30, 0.34, 0.38 (d/a = (1 + t/a)/sqrt(2) = 0.919, 0.948, 0.976)",
+      "card": "L2; used by WP3b, WP4b, WP7b",
+      "reference_type": "literature",
+      "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 4: |S11| (dB) vs f/fc (MMFD)",
+      "data_file": "benchmarks/literature/alimenti1994_fig4_t030.csv, _t034.csv, _t038.csv (L2)",
+      "tolerance": "the uncertainty column of each point (zero frequencies f/fc 1.29, 1.50, 1.69 and 1.967 are given in the file headers)",
+      "test": "not written (WP3b / WP4b / WP7b)",
+      "status": "reference ready (L2)"
+    },
+    {
+      "id": "wave2-alimenti1994-fig5",
+      "component": "H-plane 90 deg chamfered miter, design chart t/a = 0.30-0.40",
+      "card": "L2; used by WP3b, WP4b, WP8a",
+      "reference_type": "literature",
+      "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 5: matching (zero) frequency f/fc and 30 dB bandwidth / fc vs t/a; bandwidth jumps at t/a = 0.3867 from 0.274 to 0.364",
+      "data_file": "benchmarks/literature/alimenti1994_fig5_matching_frequency.csv, alimenti1994_fig5_bandwidth.csv (L2)",
+      "tolerance": "the uncertainty column of each point",
+      "test": "not written (WP3b / WP4b / WP8a)",
+      "status": "reference ready (L2)"
+    },
+    {
+      "id": "wave2-alimenti1994-fig6",
+      "component": "H-plane 90 deg chamfered miter, t/a = 0.386 (d/a = 0.980), widest 30 dB band",
+      "card": "L2; used by WP3b, WP4b, WP7b",
+      "reference_type": "literature",
+      "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 6: |S11| (dB) vs f/fc, MMFD and BCMM (Reiter & Arndt 1994) lines, 10 BCMM diamonds",
+      "data_file": "benchmarks/literature/alimenti1994_fig6_mmfd.csv, alimenti1994_fig6_bcmm.csv (L2)",
+      "tolerance": "the uncertainty column of each point",
+      "test": "not written (WP3b / WP4b / WP7b)",
+      "status": "reference ready (L2)"
+    },
+    {
+      "id": "wave2-kotik1965-fig3",
+      "component": "Overmoded H-plane 90 deg optical-mirror miter (d/a = 1/sqrt(2)), TE10 power transmission, kd = 2 pi a/lambda = 10-31",
+      "card": "L2 (L1 item D8); used by WP3b, WP4b, WP7b",
+      "reference_type": "literature",
+      "reference": "Kotik & Sivov, Radio Eng. Electron. Phys. 10 (1965) 140-142, Fig. 3: |B1|^2 vs kd, rigorous solution (truncated mode system, N <= 18)",
+      "data_file": "benchmarks/literature/kotik1965_fig3_rigorous.csv (L2)",
+      "tolerance": "the uncertainty column of each point (reading and the 0.005 drafting accuracy of the figure)",
+      "test": "not written (WP3b / WP4b / WP7b)",
+      "status": "reference ready (L2); text: 3 % loss at kd ~ 30 (figure: 0.971 at kd = 30)"
+    },
+    {
+      "id": "wave2-kotik1965-asymptotic",
+      "component": "Overmoded H-plane 90 deg optical-mirror miter, TE10 power transmission, large kd",
+      "card": "L2; used by WP7b",
+      "reference_type": "closed form",
+      "reference": "Katsenelenbaum (1963) as quoted by Kotik & Sivov (1965) p. 142: |B1|^2 = 1 - 7.4/(kd)^(3/2) (printed exponent 2/3 is a misprint), within 3 % (relative) of the rigorous solution for kd > 6 pi",
+      "data_file": "benchmarks/literature/kotik1965_fig3_asymptotic.csv (L2; the drawn curve, documents a drafting accuracy of 0.005 rms, 0.011 max)",
+      "tolerance": "3 % relative for kd > 6 pi (the authors' statement)",
+      "test": "not written (WP7b)",
+      "status": "reference ready (L2)"
     }
   ]
 }

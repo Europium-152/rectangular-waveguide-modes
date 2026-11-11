@@ -38,6 +38,10 @@ def test_expected_files_present():
                 "reiter1995_fig3a.csv", "reiter1995_fig3b.csv", "reiter1995_fig3c.csv", "reiter1995_fig3d.csv",
                 "reiter1995_fig4.csv", "butterweck1968_numbers.csv"}
     assert expected <= set(CSV_FILES)
+    l2 = {f"alimenti1994_fig{k}.csv" for k in ("2_mmfd", "2_mm", "3_mm", "3_mmfd", "4_t030", "4_t034", "4_t038",
+                                                "5_matching_frequency", "5_bandwidth", "6_mmfd", "6_bcmm")}
+    l2 |= {"kotik1965_fig3_rigorous.csv", "kotik1965_fig3_asymptotic.csv"}
+    assert l2 <= set(CSV_FILES), sorted(l2 - set(CSV_FILES))
     for doc in ("marcuvitz-steps-and-bends.md", "doane1989.md"):
         assert os.path.isfile(os.path.join(DOCS, doc))
 
@@ -47,7 +51,9 @@ def test_curve_file(name):
     header, cols, rows = read(name)
     assert cols == CURVE_COLUMNS
     text = "\n".join(header)
-    for key in ("# Source:", "# Figure:", "# Axes:", "# Merge", "Calibration L1a", "Calibration L1b", "Agreement"):
+    card = "L2" if name.startswith(("alimenti", "kotik")) else "L1"     # card L2 files: two passes a, b by L2
+    for key in ("# Source:", "# Figure:", "# Axes:", "# Merge", f"Calibration {card}a", f"Calibration {card}b",
+                "Agreement"):
         assert key in text, f"{name}: header lacks {key!r}"
     assert len(rows) > 5
     for r in rows:

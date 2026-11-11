@@ -24,7 +24,7 @@ Every curve file has the columns `curve, x, y, uncertainty, x_uncertainty, sourc
 | Reiter & Arndt 1995 | Fig. 4: cascaded mitered H- and E-plane bends, WR90, theory and measurement | `reiter1995_fig4.csv` | l = 0, l = b, three minimum rows | 0.30-12.88 (0.50) dB | 0.15 / 0.52 dB |
 | Butterweck 1968; Butterweck & de Ronde 1968 | quoted numbers (D5), sentence and page of each | `butterweck1968_numbers.csv` | 20 items | - | identical where both transcribed (see header) |
 
-Not done: card item D8 (Kotik & Sivov 1965, H-plane miter loss); the scan has not arrived.
+Card item D8 (Kotik & Sivov 1965) was done by card L2, with Alimenti et al. 1994: see the L2 section at the end.
 
 ## Agreement of the two digitizations, per curve
 
@@ -120,3 +120,53 @@ Published |S11| and |S21| magnitudes do not depend on the reference planes; any 
 ## Reproduction
 
 `python3 benchmarks/literature/scripts/merge_ab.py` regenerates every merged CSV and this README from `raw/a` and `raw/b` (numpy only). `scripts/spot_check.py` re-reads three points per figure on the page images (needs the reference PDFs). `scripts/marcuvitz_checks.py` evaluates the Marcuvitz formulas (numpy, scipy). The raw digitizers' scripts in `raw/a/scripts` and `raw/b/scripts` need the PDFs and their scratch paths.
+
+<!-- L2 begin (written by scripts/l2_merge.py) -->
+
+## Card L2: Alimenti et al. 1994 and Kotik & Sivov 1965
+
+Digitized twice by agent L2 with different rasters, calibrations and extraction methods (pass a: 400 dpi render, ridge follower, tick or gridline calibration with tilt correction; pass b: the embedded 300 ppi scan, column-run scan, major + minor ticks or straight gridline fits; raw sets in `raw/a/`, `raw/b/`, scripts in `scripts/l2/`), merged with the L1 rules by `scripts/l2_merge.py`; `scripts/l2_check.py` overlays the merged points on the rasterized figures and reports the pixel residuals. Same columns as above. Report: `docs/reports/L2.md`.
+
+| Source | Figure | File | Curves | rows | y uncertainty: min-max (median) | a-b agreement: rms / max |
+| --- | --- | --- | --- | --- | --- | --- |
+| Alimenti, Mongiardo & Sorrentino 1994 | Fig. 2: \|S11\| (dB) vs f/fc, unmitered H-plane corner (d/a = 1.414) | `alimenti1994_fig2_mmfd.csv` | MMFD line (MM line coincides) | 151 | 0.0369-0.222 (0.0867) dB | 0.0326 / 0.105 dB |
+| Alimenti et al. 1994 | Fig. 2 | `alimenti1994_fig2_mm.csv` | MM dots (10 markers) | 10 | 0.0353-0.0353 (0.0353) dB | 0.0288 / 0.0539 dB |
+| Alimenti et al. 1994 | Fig. 3: \|S11\| (dB), fully mitered H-plane bend (t/a = 0, d/a = 0.707) | `alimenti1994_fig3_mm.csv` | MM line (MMFD coincides up to f/fc = 1.93) | 142 | 0.235-1.73 (0.376) dB | 0.13 / 0.476 dB |
+| Alimenti et al. 1994 | Fig. 3 | `alimenti1994_fig3_mmfd.csv` | MMFD diamonds (10 markers) | 10 | 0.258-0.314 (0.258) dB | 0.208 / 0.628 dB |
+| Alimenti et al. 1994 | Fig. 4: \|S11\| (dB) vs f/fc, mitered H-plane bends | `alimenti1994_fig4_t030.csv` | t/a = 0.30 (d/a = 0.919) | 150 | 0.169-2.08 (0.239) dB | 0.0895 / 0.4 dB |
+| Alimenti et al. 1994 | Fig. 4 | `alimenti1994_fig4_t034.csv` | t/a = 0.34 (d/a = 0.948) | 147 | 0.184-2.61 (0.324) dB | 0.141 / 0.618 dB |
+| Alimenti et al. 1994 | Fig. 4 | `alimenti1994_fig4_t038.csv` | t/a = 0.38 (d/a = 0.976) | 83 | 0.17-3.21 (0.481) dB | 0.569 / 1.91 dB |
+| Alimenti et al. 1994 | Fig. 5: design chart vs t/a | `alimenti1994_fig5_matching_frequency.csv` | matching frequency f/fc (left axis) | 196 | 0.00166-0.00487 (0.0017) | 0.000258 / 0.00271 |
+| Alimenti et al. 1994 | Fig. 5 | `alimenti1994_fig5_bandwidth.csv` | 30 dB bandwidth / fc (right axis), one-zero and two-zero branches, jump at t/a = 0.3867 | 196 | 0.00083-0.00233 (0.000987) | 0.000255 / 0.000935 |
+| Alimenti et al. 1994 | Fig. 6: \|S11\| (dB), t/a = 0.386 (d/a = 0.980) | `alimenti1994_fig6_mmfd.csv` | MMFD | 118 | 0.0818-3.71 (0.124) dB | 0.0969 / 0.575 dB |
+| Alimenti et al. 1994 | Fig. 6 | `alimenti1994_fig6_bcmm.csv` | BCMM line + 10 diamonds | 109 | 0.0816-0.591 (0.127) dB | 0.0916 / 0.588 dB |
+| Kotik & Sivov 1965 | Fig. 3: \|B1\|² vs kd, 90° H-plane optical-mirror bend (d/a = 0.707) | `kotik1965_fig3_rigorous.csv` | rigorous solution (solid) | 416 | 0.00521-0.108 (0.00533) | 0.00098 / 0.00508 |
+| Kotik & Sivov 1965 | Fig. 3 | `kotik1965_fig3_asymptotic.csv` | asymptotic formula 1 - 7.4/(kd)^(3/2) as drawn (dashed) | 442 | 0.00148-0.00338 (0.00149) | 0.00074 / 0.00188 |
+
+**Geometry conversions (CONVENTIONS.md section 6, d = distance of the miter plane from the inner corner):**
+
+* **Alimenti et al. 1994, t**: the dimension arrows of the inset of Fig. 4 run from the end of the 45° miter on the outer wall to the thin line that continues the other arm's inner wall, so t is the part of the outer wall left standing and the cut measured from the removed outer corner is c = a - t (Ma et al. 1997's c). Hence **d/a = (1 + t/a)/√2** (not (2 - t/a)/√2): t/a = 0 is the fully mitered bend of Fig. 3 (optical mirror, d/a = 0.707), t/a = 0.386 gives d/a = 0.980 (Ma's c/a = 0.614). Checked against Ma Fig. 11: the zero frequency rises with t/a here and falls with c/a there, and t/a = 0.30 (c/a = 0.70) puts the zero at f/fc ≈ 1.29 here, 1.38 in Ma.
+* **Kotik & Sivov 1965**: d is the guide width (our a), kd = 2πa/λ; the mirror is the diagonal of the crossing square (Figs. 1-2), i.e. the optical mirror, d/a = 1/√2.
+* Fig. 2 (unmitered corner) is d/a = √2.
+
+**Agreement of the two passes, per curve** (same definitions as above):
+
+| File | Curve | kind | n (both) | a only | b only | rms(a-b) | max abs(a-b) | mean(a-b) | flags |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `kotik1965_fig3_rigorous.csv` | rigorous | line | 365 | 30 | 21 | 0.00098 | 0.00508 | +0.00019 | 9 |
+| `kotik1965_fig3_asymptotic.csv` | asymptotic | line | 440 | 1 | 1 | 0.00074 | 0.00188 | +1.1e-05 | 1 |
+| `alimenti1994_fig2_mmfd.csv` | MMFD | line | 141 | 6 | 4 | 0.0326 | 0.105 | -0.017 | 0 |
+| `alimenti1994_fig2_mm.csv` | MM markers | markers | 10 | 0 | 0 | 0.0288 | 0.0539 | -0.024 | 2 |
+| `alimenti1994_fig3_mm.csv` | MM | line | 141 | 1 | 0 | 0.13 | 0.476 | +0.036 | 0 |
+| `alimenti1994_fig3_mmfd.csv` | MMFD markers | markers | 10 | 0 | 0 | 0.208 | 0.628 | +0.095 | 1 |
+| `alimenti1994_fig4_t030.csv` | t/a=0.30 | line | 145 | 0 | 5 | 0.0895 | 0.4 | -0.038 | 0 |
+| `alimenti1994_fig4_t034.csv` | t/a=0.34 | line | 143 | 0 | 4 | 0.141 | 0.618 | -0.0022 | 0 |
+| `alimenti1994_fig4_t038.csv` | t/a=0.38 | line | 48 | 33 | 2 | 0.569 | 1.91 | -0.11 | 1 |
+| `alimenti1994_fig5_matching_frequency.csv` | matching frequency | line | 195 | 0 | 1 | 0.000258 | 0.00271 | +4.1e-05 | 0 |
+| `alimenti1994_fig5_bandwidth.csv` | bandwidth one zero | line | 171 | 1 | 0 | 0.000108 | 0.000247 | -7.6e-05 | 0 |
+| `alimenti1994_fig5_bandwidth.csv` | bandwidth two zeros | line | 17 | 7 | 0 | 0.000774 | 0.000935 | -0.00076 | 0 |
+| `alimenti1994_fig6_mmfd.csv` | MMFD | line | 112 | 2 | 4 | 0.0969 | 0.575 | -0.02 | 0 |
+| `alimenti1994_fig6_bcmm.csv` | BCMM | line | 91 | 2 | 6 | 0.0956 | 0.588 | -0.014 | 1 |
+| `alimenti1994_fig6_bcmm.csv` | BCMM markers | markers | 10 | 0 | 0 | 0.0402 | 0.0955 | -0.00034 | 1 |
+
+<!-- L2 end -->
