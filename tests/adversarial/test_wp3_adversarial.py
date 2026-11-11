@@ -44,6 +44,10 @@ def test_h_miter_with_13_propagating_modes():
     _checks(g)
 
 
+@pytest.mark.xfail(strict=True, reason=(
+    "Ma et al. (1997) Table 1 disagrees with three independent methods: the FEM (WP3, open issue 3), mode matching "
+    "(WP4b) and finite differences (WP4b) all give |S11| = 0.2778, 6 % above 0.2622; see "
+    "docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md"))
 def test_h_miter_against_ma1997_table1():
     """Ma et al. (1997) Table 1: 15.799 x 7.899 mm guide, c/a = 1 (diagonal miter), 16 GHz: |S11| = 0.2622 and
     |S21| = 0.9650, with a spread of 0.57 % and 0.04 % under displacement of their staircase."""
@@ -58,15 +62,11 @@ def test_h_miter_against_ma1997_table1():
 @pytest.mark.parametrize("angle", [30, 60, 90, 120])
 def test_arm_length_is_half_a_tan_half_angle(angle):
     """CONVENTIONS.md 6: the reference planes are (a/2) tan(theta/2) from the axes' crossing point."""
-    Miter, _ = _miter_line()
-    m = Miter(angle)
+    Miter, Guide = I.require("Miter", "Guide")
     a = WR90[0]
-    arm = m.arm_length(a) if callable(getattr(m, "arm_length", None)) else getattr(m, "arm_length", None)
-    if arm is None:
-        pytest.fail("Miter must report arm_length (CONVENTIONS.md 6)")
+    arm = Miter(angle, guide=Guide(*WR90)).arm_length   # metres; the miter needs its guide (WP3 interface)
     expected = a / 2 * np.tan(np.radians(angle) / 2)
-    # the card does not say whether arm_length is in metres (needs a) or normalized to a
-    assert abs(arm - expected) <= 1e-12 * a or abs(arm - expected / a) <= 1e-12
+    assert abs(arm - expected) <= 1e-12 * a
 
 
 def test_zero_angle_miter_is_a_zero_length_straight():
