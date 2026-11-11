@@ -29,7 +29,8 @@ component you are checking.
    short rotated straights with overlap matrices) extrapolated in the step size for variable rates. Cases:
    Doane & Anderson's three 20-inch 90° twists in WR187 at 15, 16.5, 18 GHz; a square guide; a strong short twist
    (τa = 0.1). Report the spurious power per mode (the modes of T3 §6, in the CONVENTIONS frame of the guide).
-3. **Miters (verifies WP3b and WP4b):** FEM vs mode matching at 90°, H and E plane, d/a = 0.707, 0.8, 0.9, 1.0,
+3. **Miters (verifies WP3b and WP4b):** optionally Kotik & Sivov's image-system method (L2 summary) for the
+   optical mirror as a third method; FEM vs mode matching at 90°, H and E plane, d/a = 0.707, 0.8, 0.9, 1.0,
    WR-90 at 10–90 GHz (every 2 GHz, plus the near-cutoff points of Gate A), with the CONVENTIONS §8 tolerance.
 4. **Mode filters (verifies WP2 with WP3b):** the lossy-wall filter by the FEM with impedance walls against WP2's
    exact LS method; the 5 % target of the plan.

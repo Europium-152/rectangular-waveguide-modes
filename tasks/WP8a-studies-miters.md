@@ -20,6 +20,12 @@ Answer the first two design questions of the plan with the components validated 
    spacer error; trapped-mode resonances between the miters. Output: loss envelope vs spacer and n, and the
    shortest design that meets 1 dB.
 
+## References
+
+Kotik & Sivov (1965) Fig. 3 and the asymptotic $1 - 7.4/(ka)^{3/2}$ (L2): the rigorous overmoded result for the
+optical-mirror H-plane miter up to $ka \approx 10\pi$ (67 GHz in WR-90), with the dips at $ka = n\pi$; Alimenti et al.
+(1994) and Ma et al. (1997) for chamfer optimization in the single-mode band. Compare before concluding.
+
 ## Method
 
 * Lines built from merged components only (`Miter`, `Straight`, `SmoothBend` with loss, `Line.sweep`), with

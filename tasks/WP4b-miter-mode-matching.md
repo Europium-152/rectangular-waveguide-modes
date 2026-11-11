@@ -17,6 +17,9 @@ comparisons need.
 * Alessandri, Mongiardo & Sorrentino (1994): the segmentation of the mitered corner and the mode-matching
   formulation; Figs. 4–5 (`benchmarks/literature/alessandri1994_fig4/5.csv`).
 * `docs/reports/WP4.md` (open issues 3–6) and `src/wrmodes/modematch/`.
+* Alimenti, Mongiardo & Sorrentino (1994): the same group's segmentation of the H-plane mitered bend (Fig. 1)
+  and L2's digitized Figs. 2–6; Kotik & Sivov (1965): a rigorous image-system formulation for the optical
+  mirror (L2's summary), usable as a third method for that case.
 * Do **not** read `src/wrmodes/fem2d/` or the WP3 reports' numbers before your own results are committed.
 
 ## Specification
@@ -39,6 +42,7 @@ comparisons need.
 | Check | Target |
 | --- | --- |
 | Alessandri Figs. 4–5 (E plane) | within the digitizing uncertainty (the plan's 0.5 dB); state the b/a used |
+| Alimenti Figs. 2–6 (H plane), Kotik Fig. 3 (H plane, optical mirror, overmoded) | within the digitizing uncertainty |
 | Reciprocity; unitarity; $S_{11} = S_{22}$ (symmetric miter) | CONVENTIONS §6 |
 | Convergence in the mode counts | reported; defaults reach 1e-4 in every propagating entry |
 | Agreement with the FEM (run by WP7b after both are committed) | 0.01 dB on TE₁₀ transmission and 1e-4 of the input power per converted mode, H and E plane, d/a = 0.707–1.0, WR-90 at 10–90 GHz |

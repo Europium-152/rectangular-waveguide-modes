@@ -78,6 +78,7 @@ Verified by: <card or role> · Time box: <days> (then status review)
 | Conventions update 2, COMSOL campaign 1 | 1 | Coordinator | merged (#17) |
 | Gate A: COMSOL campaign 1 | 1 | Coordinator + Daniel | passed (#18), 1.0.0a1 |
 | Wave 2 cards, conventions update 3 | 2 | Coordinator | this PR |
+| L2 literature: Alimenti 1994, Kotik & Sivov 1965 | 2 | Literature | card written |
 | WP3b miters vs literature, impedance walls | 2 | Implementer | card written |
 | WP4b mode matching for 90° miters, step parity | 2 | Implementer | card written |
 | WP5 tapers and strangled bend | 2 | Implementer | card written |
@@ -89,7 +90,7 @@ Verified by: <card or role> · Time box: <days> (then status review)
 ## Wave 2 (Gate B: 1.0.0b1)
 
 Gate A passed on 11 Nov 2026 (`benchmarks/validation_v1/REPORT.md`, "COMSOL campaign 1 — Gate A"). Wave 2 runs
-WP3b, WP4b, WP5, WP6 and WP7b in parallel; the theory they need (T2/T2b, T3/T3b) was done in wave 1. WP4b does not
+L2, WP3b, WP4b, WP5, WP6 and WP7b in parallel (L2 is short; WP3b, WP4b and WP8a use its data); the theory they need (T2/T2b, T3/T3b) was done in wave 1. WP4b does not
 read the FEM code and WP7b reads no wave 2 code before its references are committed. WP8a (optional) uses only
 merged components. The coordinator writes `benchmarks/comsol/CAMPAIGN_2.md` (card CC2) while the agents work,
 so that Daniel can run it before the gate. Gate B needs: every wave 2 acceptance table met or a discrepancy
