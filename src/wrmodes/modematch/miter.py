@@ -52,7 +52,7 @@ class MiterMM(Component):
         Truncation: number of arm modes M of every scalar 2D problem; the interface expansions have
         ceil(M / RATIO[wall]) functions per width a, in proportion to their lengths. None (default): the rule
         `default_n_modes` (per family and wall type, from the convergence study in docs/reports/WP4b.md) with error
-        control: each scalar problem is also solved at M/1.5, and M is increased until the estimated error of every
+        control: each scalar problem is also solved at M/1.5 and M/2.25, and M is increased until the estimated error of every
         propagating entry is below ERR_TARGET (`_solve_2d`); this matters near sharp resonances of the corner just
         below a cutoff. The GSM carries the truncation used in `gsm(...).truncation`. An integer fixes M.
     angle_deg : +90 or -90 (keyword)
@@ -86,7 +86,7 @@ class MiterMM(Component):
     ERR_TARGET = 5e-5
     ORDER = 4.0 / 3.0
     M_MAX_FACTOR = 8
-    #: the error estimate compares M with M / CHECK_RATIO (M / 2 proved too coarse next to resonances below cutoff)
+    #: the error estimate compares M with M / CHECK_RATIO and M / CHECK_RATIO^2 (docs/reports/WP4b.md)
     CHECK_RATIO = 1.5
 
     def __init__(self, chamfer=None, plane="H", guide=None, n_modes=None, *, angle_deg=90.0, name=""):
@@ -296,11 +296,13 @@ class MiterMM(Component):
     def _solve_2d(self, c, wall, kap2a2, kta, n_modes, mmax, symmetry):
         """Scalar problem with the fixed truncation `n_modes`, or with error control (n_modes None).
 
-        Error control: solve at M and at M' = ceil(M / CHECK_RATIO) (about 30 % of the cost); the truncation error
-        decays as M^-p with p = ORDER = 4/3 (the r^(2/3) field at the inner corner), so err(M) ~ |S(M) - S(M')| /
-        ((M / M')^p - 1) over the propagating block. While the estimate exceeds ERR_TARGET, M grows by max(1.5, 1.1 (err /
-        ERR_TARGET)^(1/p)) (re-estimated from the last two solutions) up to M_MAX_FACTOR times the rule; the result
-        is the last plain Galerkin solution (exactly unitary and reciprocal)."""
+        Error control: also solve at M' = M / CHECK_RATIO and M'' = M / CHECK_RATIO^2 (about 40 % of the cost); the
+        truncation error decays as M^-p with p = ORDER = 4/3 (the r^(2/3) field at the inner corner), so
+        err(M) ~ |S(M) - S(M')| / ((M / M')^p - 1) over the propagating block; the larger of the estimates from M'
+        and M'' is used (next to sharp resonances below a cutoff the convergence is erratic before the asymptotic
+        range, and a single pair can be fooled). While the estimate exceeds ERR_TARGET, M grows by
+        max(CHECK_RATIO, 1.1 (err / ERR_TARGET)^(1/p)) (re-estimated from the last three solutions) up to
+        M_MAX_FACTOR times the rule; the result is the last plain Galerkin solution (exactly unitary and reciprocal)."""
         R = self.RATIO[wall]
 
         def solve(M):
@@ -314,24 +316,28 @@ class MiterMM(Component):
         P = int(np.sum(np.arange(m0, m0 + M) * np.pi < np.sqrt(kap2a2)))
         if P == 0:
             return solve(M), M, None
-        # the coarser solution must still hold every requested and every propagating mode
-        M = max(M, int(np.ceil(self.CHECK_RATIO * (max(mmax, P) + 2))))
-        sol = solve(M)
+        # the coarser solutions must still hold every requested and every propagating mode
+        M = max(M, int(np.ceil(self.CHECK_RATIO ** 2 * (max(mmax, P) + 2))))
 
         def prop(x):
             return np.concatenate([b[:P, :P].ravel() for b in x[:2]])
 
-        M_prev = int(np.ceil(M / self.CHECK_RATIO))
-        prev = solve(M_prev)
+        levels = [(int(np.ceil(M / self.CHECK_RATIO ** 2)), None), (int(np.ceil(M / self.CHECK_RATIO)), None),
+                  (M, None)]
+        levels = [(m_, prop(solve(m_)) if m_ != M else None) for m_, _ in levels]
+        sol = solve(M)
+        levels[-1] = (M, prop(sol))
         M_cap = self.M_MAX_FACTOR * M
         while True:
-            est = np.max(np.abs(prop(sol) - prop(prev))) / ((M / M_prev) ** self.ORDER - 1)
+            (M2, s2), (M1, s1), (M0, s0) = levels[-3:]
+            est = max(np.max(np.abs(s0 - s1)) / ((M0 / M1) ** self.ORDER - 1),
+                      np.max(np.abs(s0 - s2)) / ((M0 / M2) ** self.ORDER - 1))
             if est <= self.ERR_TARGET or M >= M_cap:
                 break
-            grow = max(1.5, 1.1 * (est / self.ERR_TARGET) ** (1 / self.ORDER))
-            M_prev, prev = M, sol
+            grow = max(self.CHECK_RATIO, 1.1 * (est / self.ERR_TARGET) ** (1 / self.ORDER))
             M = int(min(np.ceil(M * grow), M_cap))
             sol = solve(M)
+            levels.append((M, prop(sol)))
         if est > self.ERR_TARGET:
             warnings.warn(f"MiterMM: truncation error estimate {est:.1e} above {self.ERR_TARGET:g} at M = {M} "
                           f"(k_t a / pi = {kta / np.pi:.4f}, wall {wall}): a sharp resonance of the corner?",
