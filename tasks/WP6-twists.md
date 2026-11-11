@@ -51,7 +51,8 @@ A `Twist` component: a straight rectangular guide whose cross-section rotates ab
 | Reciprocity, unitarity (lossless), passivity (lossy) | CONVENTIONS §6 |
 | T3/T3b full-basis tables for WR187 at 15, 16.5, 18 GHz (constant, cosine, triangular) | reproduced to 1e-3 relative (regression values) |
 | Doane & Anderson Fig. 9, constant and cosine | within the digitizing uncertainty |
-| Fig. 9 triangular | reported against the T3 finding (0.11 / 0.25 / 0.60 %); settled by COMSOL campaign 2 |
+| Fig. 9 triangular | reported against the T3 finding (0.11 / 0.25 / 0.60 %); settled by COMSOL campaign 2 (E4, 15 and 18 GHz) |
+| Near-cutoff sensitivity at 16.5 GHz | TE23/TM23 (tall WR187, coupled to TE10 at first order) have cutoff 16.51 GHz, 0.07 % above 16.5 GHz. Report how the 16.5 GHz results (including the constant twist's 0.61 % of TE21, T3 §6) depend on `cutoff_factor` and on ±0.05 GHz |
 | Galerkin propagation constants of the uniformly twisted guide (T3 §7, T3b §5) | within the Galerkin's own convergence (state it) |
 
 ## Deliverables
