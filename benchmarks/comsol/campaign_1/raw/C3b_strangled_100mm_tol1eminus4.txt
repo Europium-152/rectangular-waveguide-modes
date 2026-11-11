@@ -1,0 +1,10 @@
+% Model:              C3b_strangled_100mm.mph
+% Version:            COMSOL 6.2.0.415
+% Date:               Nov 10 2026, 15:39
+% Dimension:          3
+% Nodes:              1
+% Expressions:        2
+% Description:        S11, S21
+% Length unit:        m
+% X                       Y                        Z                        emw.S11 (1) @ freq=10                             emw.S21 (1) @ freq=10
+0                         0                        0                        0.46490031111628777-0.5946123380469776i           0.5193785003832281+0.40486588731117656i
