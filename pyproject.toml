@@ -35,3 +35,5 @@ Issues = "https://github.com/Europium-152/rectangular-waveguide-modes/issues"
 
 [project.scripts]
 waveguide-modes = "wrmodes.main:script"
+[tool.pytest.ini_options]
+markers = ["slow: long-running checks (convergence, timing); deselect with -m 'not slow'"]

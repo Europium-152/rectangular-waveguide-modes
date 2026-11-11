@@ -4,10 +4,12 @@
 * `junction_gsm`: symmetric GSM of a junction from its overlap matrix.
 * `Step`: the step junction component; `convergence_study` for any component with evanescent modes.
 * `marcuvitz`: single-mode equivalent circuits of steps from Marcuvitz, Waveguide Handbook (1951), for comparison.
+* `MiterMM`: 90-degree plain and chamfered miters, H or E plane, by segmentation of the corner (WP4b).
 """
 from .overlaps import overlap_matrix
 from .junction import junction_gsm
 from .step import Step, convergence_study
 from . import marcuvitz
+from .miter import MiterMM
 
-__all__ = ["overlap_matrix", "junction_gsm", "Step", "convergence_study", "marcuvitz"]
+__all__ = ["overlap_matrix", "junction_gsm", "Step", "convergence_study", "marcuvitz", "MiterMM"]
