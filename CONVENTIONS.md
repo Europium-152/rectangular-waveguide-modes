@@ -142,6 +142,11 @@ $\tfrac12\iint(E^+_p\times H^+_q)\cdot\hat z\,ds = a_p a_q\,\delta_{pq}$.
   intersection of the two arm axes, and the component reports this distance as `arm_length`, so that a line keeps
   its centre-line geometry. The 2D solver, the mode-matching code and COMSOL models use these planes, phases
   included.
+* **Plain miter** (no chamfer given) means the optical mirror: the plane through the intersection of the two arm
+  axes, perpendicular to the bisector of the bend, so that it reflects one arm's axis into the other's. Its distance
+  from the inner corner is $d/a = 1/(2\cos(\theta/2))$; at 90° this is the classical $d/a = 1/\sqrt2$ (Ma's
+  $c/a = 1$, Alessandri's $d/b = 0.707$). Chamfered miters give $d$ explicitly, measured from the inner corner as in
+  Alessandri (1994). Decided by Daniel, 9 Nov 2026.
 * **Cascade**: Redheffer star product, `A @ B` or `cascade(A, B, ...)`, in the order of propagation. When
   $I - A_{22}B_{11}$ is singular because a mode is trapped between the two components without coupling to the
   outer ports (e.g. two junctions on the same plane), the product uses the pseudo-inverse, which is exact for such

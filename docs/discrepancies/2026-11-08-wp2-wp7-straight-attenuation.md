@@ -122,4 +122,7 @@ Findings:
   self-consistency, the exact root against Butterweck's eq. (21), coupled vs group against the exact modes, and
   backward coupling near cutoff.
 
-Status: resolved on the WP7 side. WP2 is unchanged and its specification (T1) stands. Awaiting Daniel's sign-off.
+Status: resolved on the WP7 side. WP2 is unchanged and its specification (T1) stands.
+
+**Signed off by Daniel on 9 Nov 2026:** resolution accepted (WP2 and T1 stand; WP7 tests against the coupled
+first-order reference).

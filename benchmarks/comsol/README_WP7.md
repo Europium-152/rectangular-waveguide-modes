@@ -1,5 +1,9 @@
 # COMSOL campaign for Gate A (WP7): C1–C3
 
+> **Superseded by `CAMPAIGN_1.md`.** The generated Java scripts below did not run in COMSOL (Daniel, 9 Nov 2026);
+> COMSOL is driven through its GUI from the written instructions in `CAMPAIGN_1.md` instead. This file and the
+> scripts are kept for the record.
+
 Three COMSOL models that check the wave-1 components of wrmodes 1.0, plus a probe. They were written by the WP7
 verifier **without access to COMSOL**. They compile against stand-ins for the COMSOL API, and a dry run with those
 stand-ins produces output files that the post-processing reads. They have **not been run in COMSOL**. The calls
