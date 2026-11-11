@@ -64,11 +64,13 @@ def phase_mod180(z):
 def c1(out):
     from wrmodes.fem2d import Miter
     out.append("\n### C1 / C1b: plain (optical-mirror) H-plane miters, 2D\n")
-    out.append("| case | f (GHz) | wrmodes \\|S21\\| (dB) | COMSOL | COMSOL fine | Δ vs finest (dB) | wrmodes \\|S11\\| | COMSOL \\|S11\\| | Δ∠S21 (°, mod 180) |")
+    out.append("| case | f (GHz) | wrmodes \\|S21\\| (dB) | COMSOL | COMSOL fine (26.3–86 off-grid: fine + 15 cm PML) | Δ vs finest (dB) | wrmodes \\|S11\\| | COMSOL \\|S11\\| | Δ∠S21 (°, mod 180) |")
     out.append("|---|---|---|---|---|---|---|---|---|")
     cases = [("90°", 90, 15e-3, "C1_miter90"), ("60°", 60, 28.1982e-3, "C1b_60miter"), ("120°", 120, 15e-3, "C1b_120miter")]
     for tag, ang, leg, fn in cases:
         c, cf = read(fn + ".txt"), read(fn + "_fine.txt")
+        if (RAW / (fn + "_fine_long_pml.txt")).exists():  # fine mesh and 15 cm PMLs at the near-cutoff points
+            cf.update(read(fn + "_fine_long_pml.txt"))
         line = wr.Line(Guide(W, H), [Miter(ang, plane="H")])
         for f, v in c.items():
             s11, s21 = te10(line.gsm(f * 1e9))
@@ -87,10 +89,13 @@ def c2(out):
     cases = [("sech", L_sech, SechCurvature(60, L_sech), "C2_sech_aluminum.txt", None,
               "15cm_60deg_hyperbolic_curve_side_a_short_e_field_horizontal"),
              ("constant", 0.15, ConstantCurvature.from_angle(60, 0.15), "C2_constant_aluminum_firstrow.txt",
-              "C2_constant_PEC_tol1eminus4.txt", "15cm_60deg_constant_curve_side_a_short_e_field_horizontal")]
+              "C2_constant_PEC_tol1eminus4.txt", "15cm_60deg_constant_curve_side_a_short_e_field_horizontal"),
+             ("constant, user mesh", 0.15, ConstantCurvature.from_angle(60, 0.15), "C2_constant_aluminum_user_mesh.txt",
+              "C2_constant_PEC_tol1eminus4_user_mesh.txt", "15cm_60deg_constant_curve_side_a_short_e_field_horizontal")]
     out.append("\n### C2: 15 cm 60° E-plane bends, aluminium (σ = 3.774e7 S/m)\n")
     out.append("Ohmic part = |S21| aluminium − |S21| PEC (dB). PEC COMSOL: paper Fig. 6 export (sech, constant) and the "
-               "same-model PEC run (constant, 18/40/60 GHz).\n")
+               "same-model PEC run (constant, 18/40/60 GHz). 'constant' uses COMSOL's physics-controlled mesh, 'constant, user mesh' "
+               "the paper's recipe (free tetrahedra, hmax = c/60 GHz/5 on all domains).\n")
     out.append("| bend | f | COMSOL Al | wrmodes Al | Δ | COMSOL PEC (paper) | COMSOL PEC (same model) | wrmodes PEC | ohmic COMSOL (same model) | ohmic COMSOL (vs paper) | ohmic wrmodes | Δ∠S21 (°) |")
     out.append("|---|---|---|---|---|---|---|---|---|---|---|---|")
     for name, L, kap, fal, fpec, fig6 in cases:
