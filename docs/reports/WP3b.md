@@ -160,7 +160,7 @@ reading error through our slope. "Pass" = rms z ≲ 1 with outliers explained.
 | Reiter Fig. 3(d), mitered E | γ = 105, 120, 135 | rms z 4.0, 7.9, 9.8 | not met |
 | Reiter Fig. 4 (H miter + l + E miter, `Line`, 12/λ, cf 3) | l = 0; l = b | rms z 2.43 (mean +1.18 dB); 1.69 (+0.3 … +1.4 dB outside the zero) | not met (see below) |
 
-Notes on the curves that are not met:
+Notes on the curves that are not met (full evidence: `docs/discrepancies/2026-11-12-reiter-and-ma-many-step-miters.md`):
 
 * **Ma, c/a = 1 with 40–60 steps.** Modelling Ma's staircases (`_lit.staircase_miter_outline`, Fig. 3/7 of the
   paper: method (a) steps through the slanted plane, (b) below, on the guide side, (c) above) reproduces Ma's
@@ -220,8 +220,9 @@ at 30 GHz to 1e-6; chained miters to 1e-6 (four cases). No timing assertions.
 ## Open issues
 
 1. **Reiter & Arndt 1995 Fig. 3(c)/(d) and Fig. 4** disagree with Alessandri, Marcuvitz, the FEM and MiterMM by
-   about 1 dB (E plane); Fig. 3(a) γ = 150 by 3 dB (H plane). A discrepancy report is warranted (not written: the
-   card asks for a report of outliers; I propose `docs/discrepancies/<date>-reiter-eplane.md` for the coordinator).
+   about 1 dB (E plane); Fig. 3(a) γ = 150 by 3 dB (H plane). Discrepancy report, with Ma's many-step curves
+   (open issue 2), the check of L1's digitization against the page and of Reiter's γ convention:
+   `docs/discrepancies/2026-11-12-reiter-and-ma-many-step-miters.md` (resolution pending, Daniel).
 2. **Ma's c/a = 1 curves with 40–60 steps** (and Table 1): our staircase model explains Ma's 10- and 20-step curves
    but not the 50–60-step ones; the remaining difference grows with N. Propose qualitative status for Fig. 6
    (40/60), Fig. 9, Fig. 11 c/a = 1.0.
@@ -245,8 +246,10 @@ at 30 GHz to 1e-6; chained miters to 1e-6 (four cases). No timing assertions.
    differs from exact by up to 7e-4).
 3. **Butterweck 5 %**: the exact value is 5.2 % / 7.5 % below Butterweck's 0.6 / 2.5 dB in every method (WP2
    accepted 10 %); relax to 10 % or compare with WP2 only.
-4. **Ma c/a = 1, 40–60 steps** (Fig. 6, Fig. 9, Fig. 11 c/a = 1.0) → qualitative, like Table 1.
-5. **Reiter Fig. 3(b)–(d), Fig. 3(a) γ = 150, Fig. 4** → qualitative, with a discrepancy report (open issue 1).
+4. **Ma c/a = 1, 40–60 steps** (Fig. 6, Fig. 9, Fig. 11 c/a = 1.0) → qualitative, like Table 1 (same
+   discrepancy file).
+5. **Reiter Fig. 3(b)–(d), Fig. 3(a) γ = 150, Fig. 4** → qualitative; see
+   `docs/discrepancies/2026-11-12-reiter-and-ma-many-step-miters.md` (registry statuses unchanged until decided).
 6. **Chained-miter target for 45° optical mirrors**: "s ≥ 2a" should read "uniform guide between the mirrors ≥ a/2"
    (s ≥ 2.5a); at s = 2a no cascade converges.
 7. CONVENTIONS proposals (not changed): §3 could say that impedance walls parallel to v keep n but couple the LS
@@ -263,4 +266,5 @@ PYTHONPATH=src python benchmarks/fem2d/alessandri1994.py --b-over-a 0.5 (and 0.4
 ```
 
 The Marcuvitz cross-checks quoted above (Secs. 5.28b, 5.29b of `docs/literature/marcuvitz-steps-and-bends.md`)
-are in `benchmarks/fem2d/marcuvitz_corners.py`.
+are in `benchmarks/fem2d/marcuvitz_corners.py`; the check of L1's Reiter digitization against the page (needs the
+PDF; images to a scratch folder) is `benchmarks/fem2d/reiter_overlay_check.py <pdf> <scratch>`.
