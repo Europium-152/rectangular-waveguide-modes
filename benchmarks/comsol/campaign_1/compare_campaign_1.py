@@ -64,13 +64,16 @@ def phase_mod180(z):
 def c1(out):
     from wrmodes.fem2d import Miter
     out.append("\n### C1 / C1b: plain (optical-mirror) H-plane miters, 2D\n")
-    out.append("| case | f (GHz) | wrmodes \\|S21\\| (dB) | COMSOL | COMSOL fine (26.3–86 off-grid: fine + 15 cm PML) | Δ vs finest (dB) | wrmodes \\|S11\\| | COMSOL \\|S11\\| | Δ∠S21 (°, mod 180) |")
+    out.append("| case | f (GHz) | wrmodes \\|S21\\| (dB) | COMSOL | COMSOL finest (fine; 46–86 off-grid: fine + 15 cm PML; 26.3: ports TE10–TE40) | Δ vs finest (dB) | wrmodes \\|S11\\| | COMSOL \\|S11\\| | Δ∠S21 (°, mod 180) |")
     out.append("|---|---|---|---|---|---|---|---|---|")
     cases = [("90°", 90, 15e-3, "C1_miter90"), ("60°", 60, 28.1982e-3, "C1b_60miter"), ("120°", 120, 15e-3, "C1b_120miter")]
     for tag, ang, leg, fn in cases:
         c, cf = read(fn + ".txt"), read(fn + "_fine.txt")
         if (RAW / (fn + "_fine_long_pml.txt")).exists():  # fine mesh and 15 cm PMLs at the near-cutoff points
             cf.update(read(fn + "_fine_long_pml.txt"))
+        if (RAW / (fn + "_more_ports.txt")).exists():  # ports for TE10-TE40 on each arm (plus the PMLs)
+            # complete set of propagating modes only below the TE50 cutoff
+            cf.update({f: v for f, v in read(fn + "_more_ports.txt").items() if f * 1e9 < 5 * 299792458 / (2 * W)})
         line = wr.Line(Guide(W, H), [Miter(ang, plane="H")])
         for f, v in c.items():
             s11, s21 = te10(line.gsm(f * 1e9))

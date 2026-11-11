@@ -70,7 +70,7 @@ the COMSOL error (mesh check where available) + 0.02 dB in |S21|.
 
 | Case | Points | Result |
 | --- | --- | --- |
-| C1 90° plain H-plane miter (2D) | 23 | 18 within 0.02 dB (14 within 0.005); at 30 and 90 GHz, against the fine mesh, ≤ 0.0012 dB. **5 open**, all < 0.45 GHz above a TE_m0 cutoff (fine mesh + 15 cm PML): 26.3 (0.113 dB), 52.5 (0.046), 53.0 (0.041), 46 (0.029), 66 (0.022 dB) |
+| C1 90° plain H-plane miter (2D) | 23 | 19 within 0.02 dB (15 within 0.009); at 30 and 90 GHz, against the fine mesh, ≤ 0.0012 dB. 26.3 GHz: 0.12 dB with PMLs, **0.0087 dB** with ports for all four propagating modes. 4 points left at 0.022–0.046 dB (46, 52.5, 53, 66 GHz), each < 0.45 GHz above a TE_m0 cutoff: same mechanism, not separately confirmed |
 | C1b 60° and 120° optical-mirror miters (2D) | 6 | pass, ≤ 0.005 dB against the fine mesh: confirms the optical-mirror definition (CONVENTIONS §6) |
 | C2 sech 60° 15 cm E-plane bend, Al 3.774e7 S/m | 22 | pass: total ≤ 0.0074 dB (the 30 GHz PEC Fig. 6 deviation, unchanged); ohmic part (Al − PEC) ≤ 0.0004 dB |
 | C2 constant 60° 15 cm E-plane bend, Al | 22 + 3 | pass on the paper's mesh recipe (free tetrahedra, c/60 GHz/5): PEC −0.0278 / −0.9967 / −4.6399 dB at 18 / 40 / 60 GHz, identical to the paper's Fig. 6 model; Al within 0.0005 / 0.0011 / 0.0051 dB of wrmodes; ohmic part 0.0178 / 0.0274 / 0.0415 dB vs 0.0178 / 0.0272 / 0.0412. COMSOL's physics-controlled mesh shifts the lossless result by 0.021–0.026 dB (the 22-point sweep) |
@@ -81,19 +81,19 @@ Findings:
 
 * **Solver tolerance is not a factor**: the stationary relative tolerance 1e-2 → 1e-4 changes the C2 and C3
   values by < 2e-5 (the coordinator's hypothesis was wrong); the C3 power excess is discretization error.
-* **C1 open points**: all lie less than 0.45 GHz above a TE_m0 cutoff (TE40 26.23, TE70 45.90, TE80 52.46,
-  TE10,0 65.57 GHz), where that mode's guide wavelength (40–155 mm) is long. Lengthening the PMLs from 2 to 15 cm
-  (with the fine mesh) moved COMSOL by ≤ 0.007 dB, so a too-thin PML is not the explanation; COMSOL scales its PML
-  stretching with the free-space wavelength, which a geometric length change does not alter, so a PML that
-  reflects near-cutoff modes is not yet excluded either. wrmodes moves by < 0.001 dB under mesh density ×2, order
-  2 and arm length a, and conserves power to 1e-6 over the propagating TE_m0 modes. Its S21 is steep there
-  (−1.81 dB at 26.25, −1.77 at 26.3, −1.69 at 26.4 GHz): COMSOL's 26.3 GHz value is wrmodes' value at about
-  26.45 GHz. Next check: remove the PMLs and terminate each arm with ports for every propagating TE_m0 mode
-  (26.3 GHz: TE10–TE40).
+* **C1 near-cutoff points: COMSOL's PML.** All the outliers lie less than 0.45 GHz above a TE_m0 cutoff (TE40
+  26.23, TE70 45.90, TE80 52.46, TE10,0 65.57 GHz), where that mode's guide wavelength (40–155 mm) is long and the
+  PML (stretching scaled by the free-space wavelength) reflects it back into the miter. Evidence at 26.3 GHz, the
+  worst point: 15 cm instead of 2 cm PMLs, 0.113 dB; the paper's user-defined mesh (free triangles, c/90 GHz/5)
+  with 15 cm PMLs, 0.119 dB; ports for TE10–TE40 on each arm, so that every propagating mode leaves through a
+  port, 0.0087 dB. The mesh moves the other points by up to 0.02 dB but does not explain them. The model with
+  ports up to TE40 is incomplete above the TE50 cutoff (32.8 GHz) and is not used there; confirming 46–66 GHz
+  would need ports up to TE70–TE10,0. wrmodes moves by < 0.001 dB under mesh density ×2, order 2 and arm length a,
+  and conserves power to 1e-6 over the propagating TE_m0 modes.
 * **C2 constant, lossless offset (resolved)**: the paper's constant-curvature model was lost and rebuilt with
   COMSOL's physics-controlled mesh; with the paper's user-defined mesh the rebuilt model reproduces the paper's
   PEC values to 1e-4 dB. The physics-controlled mesh is 0.02–0.03 dB off: future COMSOL cases should use the
-  user-defined recipe.
+  user-defined recipe, and, near a cutoff, ports for every propagating mode instead of a PML.
 * Phase: S21 agrees modulo 180° (COMSOL's port-mode sign) to 0.01–1.2°, growing with frequency in the 15 cm
   bends (COMSOL mesh dispersion, about 1e-4 of the total phase).
 * C3 was solved as a full model (not the quarter model of the instructions); no effect on the comparison.
