@@ -125,8 +125,8 @@
       "reference": "Alessandri, Mongiardo & Sorrentino, IEEE MGWL 4(12) (1994), Figs. 4-5; the paper does not state the guide (b/a needed)",
       "data_file": "benchmarks/literature/alessandri1994_fig4.csv, _fig5.csv (L1, D1)",
       "tolerance": "the uncertainty column of each point",
-      "test": "benchmarks/validation_v1/compare_literature.py --b-over-a <ratio>",
-      "status": "waiting for data (L1) and for the guide ratio"
+      "test": "benchmarks/validation_v1/compare_literature.py --b-over-a <ratio>; tests/test_modematch_miter.py::test_alessandri_eplane_b_over_a_half, test_alessandri_rules_out_wr90_ratio; benchmarks/modematch/miter_literature.py (WP4b)",
+      "status": "waiting for data (L1) and for the guide ratio; WP4b: b/a = 0.5 fits (rms z 0.2-0.9 for d/b = 1.41, 0.707, 0.9, 0.87); WR-90 b/a = 0.444 does not (rms z 5-25); deep curves d/b = 0.85, 0.83 within 3e-3 in |S11| near their zeros; crosses of ref. [7] for d/b = 0.87 lie 1-6 dB below (docs/reports/WP4b.md)"
     },
     {
       "id": "wp3-comsol-c1",
@@ -202,8 +202,8 @@
       "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 2: |S11| (dB) vs f/fc, MMFD line (MM coincides) and 10 MM dots",
       "data_file": "benchmarks/literature/alimenti1994_fig2_mmfd.csv, alimenti1994_fig2_mm.csv (L2)",
       "tolerance": "the uncertainty column of each point",
-      "test": "not written (WP3b / WP4b / WP7b)",
-      "status": "reference ready (L2); agrees with Ma et al. 1997 Fig. 11 c/a = 0 to 0.14 dB rms"
+      "test": "tests/test_modematch_miter.py::test_alimenti_unmitered_and_optical_mirror (WP4b)",
+      "status": "reference ready (L2); agrees with Ma et al. 1997 Fig. 11 c/a = 0 to 0.14 dB rms; WP4b: agrees (MMFD line rms z 0.76, MM dots 1.12)"
     },
     {
       "id": "wave2-alimenti1994-fig3",
@@ -213,8 +213,8 @@
       "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 3: |S11| (dB) vs f/fc, MM line (MMFD coincides to f/fc 1.93) and 10 MMFD diamonds",
       "data_file": "benchmarks/literature/alimenti1994_fig3_mm.csv, alimenti1994_fig3_mmfd.csv (L2)",
       "tolerance": "the uncertainty column of each point",
-      "test": "not written (WP3b / WP4b / WP7b)",
-      "status": "reference ready (L2); lies 0.5-1.0 dB above Ma et al. 1997 Fig. 11 c/a = 1.0 (same geometry): a difference between the papers, see docs/reports/L2.md"
+      "test": "tests/test_modematch_miter.py::test_alimenti_unmitered_and_optical_mirror (WP4b)",
+      "status": "reference ready (L2); lies 0.5-1.0 dB above Ma et al. 1997 Fig. 11 c/a = 1.0 (same geometry): a difference between the papers, see docs/reports/L2.md; WP4b: agrees (MM line rms z 0.71, mean -0.23 dB); WP4b and an independent FD solution give |S11| = 0.2778 at f/fc = 1.686 (Ma Table 1: 0.2622, this figure: about 0.288)"
     },
     {
       "id": "wave2-alimenti1994-fig4",
@@ -224,8 +224,8 @@
       "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 4: |S11| (dB) vs f/fc (MMFD)",
       "data_file": "benchmarks/literature/alimenti1994_fig4_t030.csv, _t034.csv, _t038.csv (L2)",
       "tolerance": "the uncertainty column of each point (zero frequencies f/fc 1.29, 1.50, 1.69 and 1.967 are given in the file headers)",
-      "test": "not written (WP3b / WP4b / WP7b)",
-      "status": "reference ready (L2)"
+      "test": "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented (WP4b)",
+      "status": "reference ready (L2); WP4b: NOT reproduced beyond the digitizing uncertainty; zeros shifted; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md"
     },
     {
       "id": "wave2-alimenti1994-fig5",
@@ -235,7 +235,7 @@
       "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 5: matching (zero) frequency f/fc and 30 dB bandwidth / fc vs t/a; bandwidth jumps at t/a = 0.3867 from 0.274 to 0.364",
       "data_file": "benchmarks/literature/alimenti1994_fig5_matching_frequency.csv, alimenti1994_fig5_bandwidth.csv (L2)",
       "tolerance": "the uncertainty column of each point",
-      "test": "not written (WP3b / WP4b / WP8a)",
+      "test": "not tested (WP4b: matching frequencies at t/a = 0.30, 0.32 agree to 0.01, above 0.34 ours are 0.03-0.07 lower; docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md)",
       "status": "reference ready (L2)"
     },
     {
@@ -246,8 +246,8 @@
       "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 6: |S11| (dB) vs f/fc, MMFD and BCMM (Reiter & Arndt 1994) lines, 10 BCMM diamonds",
       "data_file": "benchmarks/literature/alimenti1994_fig6_mmfd.csv, alimenti1994_fig6_bcmm.csv (L2)",
       "tolerance": "the uncertainty column of each point",
-      "test": "not written (WP3b / WP4b / WP7b)",
-      "status": "reference ready (L2)"
+      "test": "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented (WP4b)",
+      "status": "reference ready (L2); WP4b: NOT reproduced beyond the digitizing uncertainty; zeros shifted; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md"
     },
     {
       "id": "wave2-kotik1965-fig3",
@@ -257,8 +257,8 @@
       "reference": "Kotik & Sivov, Radio Eng. Electron. Phys. 10 (1965) 140-142, Fig. 3: |B1|^2 vs kd, rigorous solution (truncated mode system, N <= 18)",
       "data_file": "benchmarks/literature/kotik1965_fig3_rigorous.csv (L2)",
       "tolerance": "the uncertainty column of each point (reading and the 0.005 drafting accuracy of the figure)",
-      "test": "not written (WP3b / WP4b / WP7b)",
-      "status": "reference ready (L2); text: 3 % loss at kd ~ 30 (figure: 0.971 at kd = 30)"
+      "test": "tests/test_modematch_miter.py::test_kotik_optical_mirror_overmoded (WP4b)",
+      "status": "reference ready (L2); text: 3 % loss at kd ~ 30 (figure: 0.971 at kd = 30); WP4b: rms z 1.30 over 416 points; outliers just above the TE40/TE60/TE80 cutoffs and -0.011 for kd > 30.4 (docs/reports/WP4b.md)"
     },
     {
       "id": "wave2-kotik1965-asymptotic",
@@ -270,6 +270,61 @@
       "tolerance": "3 % relative for kd > 6 pi (the authors' statement)",
       "test": "not written (WP7b)",
       "status": "reference ready (L2)"
+    },
+    {
+      "id": "wp4b-marcuvitz-corners",
+      "component": "WP4b MiterMM, unmitered right-angle corner (d/a = sqrt(2)), H and E plane, TE10",
+      "card": "WP4b (phase reference for the reference planes, port-2 frame and LSE sign)",
+      "reference_type": "literature",
+      "reference": "Marcuvitz, Waveguide Handbook (1951) Secs. 5.28a eqs. (3a), (4a) and 5.29a eqs. (3a), (4a): pi networks at the planes T' through the inner corner (transcription docs/literature/marcuvitz-steps-and-bends.md)",
+      "data_file": null,
+      "tolerance": "3e-3 on complex S11 and S21 (Marcuvitz: about 1 % on the susceptances), WR-90 at 7.5, 8.5, 10 GHz",
+      "test": "tests/test_modematch_miter.py::test_unmitered_corner_against_marcuvitz_complex",
+      "status": "passes (max |dS| 1.7e-3 at 2b/lambda_g <= 0.51 and 2a/lambda_g <= 1.15)"
+    },
+    {
+      "id": "wp4b-fd-hplane-miter",
+      "component": "WP4b MiterMM, H-plane chamfered (t/a = 0.38) and optical-mirror miters, TE10",
+      "card": "WP4b",
+      "reference_type": "independent method",
+      "reference": "5-point finite differences with exact discrete modal ports, Richardson in h (benchmarks/modematch/fd_hplane_miter.py)",
+      "data_file": "benchmarks/modematch/data/fd_hplane_miter.npz",
+      "tolerance": "3e-4 on |S11| (FD extrapolation uncertainty)",
+      "test": "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented, test_alimenti_fd_cross_check (slow)",
+      "status": "passes (|S11|: 0.037100 vs 0.037103, 0.013867 vs 0.013867, mirror 0.277786 vs 0.277793)"
+    },
+    {
+      "id": "wp4b-miter-convergence",
+      "component": "WP4b MiterMM default truncation",
+      "card": "WP4b",
+      "reference_type": "closed form",
+      "reference": "self-convergence: Aitken extrapolation in the truncation (2D), 3x the default (3D)",
+      "data_file": "benchmarks/modematch/data/miter_convergence_2d_D.npz, _N.npz, miter_convergence_3d.npz",
+      "tolerance": "1e-4 in every propagating entry",
+      "test": "tests/test_modematch_miter.py::test_default_truncation_reaches_1e4 (slow)",
+      "status": "passes (3D: max 4.9e-5 over 60 WR-90 cases against a 3.3x tighter error target)"
+    },
+    {
+      "id": "wp4b-miter-wr90-sweep",
+      "component": "WP4b MiterMM, WR-90, H and E plane, d/a = 0.707-1.0, 10-90 GHz",
+      "card": "WP4b; for WP7b (FEM vs MM)",
+      "reference_type": "independent method",
+      "reference": "to be compared by WP7b with wrmodes.fem2d.Miter",
+      "data_file": "benchmarks/modematch/data/miter_wr90_sweep.npz",
+      "tolerance": "0.01 dB on TE10 transmission, 1e-4 of the input power per converted mode (card WP4b)",
+      "test": "WP7b",
+      "status": "data ready (WP4b); comparison not run (WP7b's)"
+    },
+    {
+      "id": "wp4b-step-parity",
+      "component": "WP4 Step, parity-reduced solve (WP4b)",
+      "card": "WP4b",
+      "reference_type": "closed form",
+      "reference": "the full solve (Step.solve(reduce=False))",
+      "data_file": "benchmarks/modematch/data/step_parity_timing.npz",
+      "tolerance": "1e-12",
+      "test": "tests/test_modematch_miter.py::test_step_parity_reduction_equals_full_solve",
+      "status": "passes (max 1.4e-14)"
     }
   ]
 }

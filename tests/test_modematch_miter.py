@@ -506,7 +506,7 @@ def test_alimenti_fd_cross_check():
     fd = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(fd)
     t, x = 0.38, 1.5
-    r = [abs(fd.fd_s11(N, int(round(t * N)), np.pi * x)) for N in (100, 200)]
+    r = [abs(fd.fd_s11(N, int(round(t * N)), np.pi * x)[0][0]) for N in (100, 200)]
     extrap = r[1] + (r[1] - r[0]) / (2 ** 1.6 - 1)
     mm = 10 ** (_s11_2d_db((1 + t) / SQ2, np.pi * x, "D", M=160) / 20)
     assert abs(extrap - mm) < 3e-4

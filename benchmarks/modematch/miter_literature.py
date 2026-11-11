@@ -97,7 +97,7 @@ def main():
     ap.add_argument("--out", default="miter_literature.npz")
     args = ap.parse_args()
     arrays, rows, outliers = {}, [], []
-    print("| Figure | curve | n | rms z | |z|<=1 | |z|<=2 | max |z| (at x) | mean diff |")
+    print("| Figure | curve | n | rms z | share \\|z\\| <= 1 | share \\|z\\| <= 2 | max \\|z\\| (at x) | mean diff |")
     print("| --- | --- | --- | --- | --- | --- | --- | --- |")
     for k, (fig, fn, cur, model) in enumerate(cases(args.b_over_a)):
         arr = load_csv(fn)[cur]
