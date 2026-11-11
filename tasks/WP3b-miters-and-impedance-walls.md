@@ -54,8 +54,9 @@ WP2 lossy-wall filter and of the in-plane part of bend loss.
 
 | Check | Target |
 | --- | --- |
-| Ma, Alessandri, Alimenti, Kotik, Reiter Figs. 3–4 | within the digitizing uncertainty of each CSV point; outliers listed with a reason (near-cutoff points, figure anomalies of L1) |
-| Ma Table 1 | reported against the transcribed values (WP3 open issue 3: 0.2778 vs 0.2622) |
+| Ma (unmitered corner and the figures other than the chamfered curves of Fig. 11), Alessandri (b/a = 0.5, WP4b), Alimenti Figs. 2–3, Kotik, Reiter Figs. 3–4 | within the digitizing uncertainty of each CSV point; outliers listed with a reason (near-cutoff points, figure anomalies of L1) |
+| Alimenti Figs. 4–6, Ma Fig. 11 chamfered curves | qualitative (Daniel, 11 Nov 2026): report the comparison; see `docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md` |
+| Ma Table 1 | qualitative: FEM, mode matching and finite differences give 0.2778 against 0.2622 (same discrepancy file) |
 | Chained miters | single domain → cascade as spacers grow; difference < 1e-6 at spacers ≥ 2a |
 | Impedance walls: straight channel | per-mode α of the narrow walls (H plane) equals T1/`wrmodes.loss` for those walls to 1e-6 relative |
 | Butterweck lossy-wall filter (75 GHz, 250 Ω, 15 cm; WP2 report) | the FEM, with a straight outline of 15 cm, within 5 % of WP2 and of Butterweck's 0.6 / 2.5 / 5.4 dB |

@@ -102,9 +102,9 @@
       "reference_type": "literature",
       "reference": "Ma, Yamane & Yamashita, Electron. Commun. Jpn. 2, 80(5) (1997), Table 1, p. 5: 15.799 x 7.899 mm, 16 GHz, |S11| = 0.2622, |S21| = 0.9650",
       "data_file": null,
-      "tolerance": "0.57 % on |S11|, 0.04 % on |S21| (the spread the authors report under staircase displacement)",
+      "tolerance": "none (qualitative); the disagreement is reported",
       "test": "tests/adversarial/test_wp3_adversarial.py::test_h_miter_against_ma1997_table1; compare_literature.py",
-      "status": "reference ready"
+      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md"
     },
     {
       "id": "wp3-ma1997-figures",
@@ -115,7 +115,7 @@
       "data_file": "benchmarks/literature/ma1997_fig<k>.csv (L1, D3)",
       "tolerance": "the uncertainty column of each point",
       "test": "benchmarks/validation_v1/compare_literature.py (CSV reader tested on synthetic files: tests/adversarial/test_wp7_references.py::test_csv_reader_and_comparison)",
-      "status": "waiting for data (L1)"
+      "status": "waiting for data (L1); Fig. 11 chamfered curves (c/a = 0.60, 0.631, 0.70) qualitative (Daniel, 11 Nov 2026), see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md"
     },
     {
       "id": "wave2-alessandri1994",
@@ -223,9 +223,9 @@
       "reference_type": "literature",
       "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 4: |S11| (dB) vs f/fc (MMFD)",
       "data_file": "benchmarks/literature/alimenti1994_fig4_t030.csv, _t034.csv, _t038.csv (L2)",
-      "tolerance": "the uncertainty column of each point (zero frequencies f/fc 1.29, 1.50, 1.69 and 1.967 are given in the file headers)",
+      "tolerance": "none (qualitative); the disagreement is reported",
       "test": "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented (WP4b)",
-      "status": "reference ready (L2); WP4b: NOT reproduced beyond the digitizing uncertainty; zeros shifted; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md"
+      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md"
     },
     {
       "id": "wave2-alimenti1994-fig5",
@@ -234,9 +234,9 @@
       "reference_type": "literature",
       "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 5: matching (zero) frequency f/fc and 30 dB bandwidth / fc vs t/a; bandwidth jumps at t/a = 0.3867 from 0.274 to 0.364",
       "data_file": "benchmarks/literature/alimenti1994_fig5_matching_frequency.csv, alimenti1994_fig5_bandwidth.csv (L2)",
-      "tolerance": "the uncertainty column of each point",
+      "tolerance": "none (qualitative); the disagreement is reported",
       "test": "not tested (WP4b: matching frequencies at t/a = 0.30, 0.32 agree to 0.01, above 0.34 ours are 0.03-0.07 lower; docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md)",
-      "status": "reference ready (L2)"
+      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md"
     },
     {
       "id": "wave2-alimenti1994-fig6",
@@ -245,9 +245,9 @@
       "reference_type": "literature",
       "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 6: |S11| (dB) vs f/fc, MMFD and BCMM (Reiter & Arndt 1994) lines, 10 BCMM diamonds",
       "data_file": "benchmarks/literature/alimenti1994_fig6_mmfd.csv, alimenti1994_fig6_bcmm.csv (L2)",
-      "tolerance": "the uncertainty column of each point",
+      "tolerance": "none (qualitative); the disagreement is reported",
       "test": "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented (WP4b)",
-      "status": "reference ready (L2); WP4b: NOT reproduced beyond the digitizing uncertainty; zeros shifted; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md"
+      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md"
     },
     {
       "id": "wave2-kotik1965-fig3",

@@ -68,3 +68,18 @@ Alimenti's own MMFD curves fit no single geometry.
 3. The registry entry `wp3-ma1997-table1` sets 0.57 % on |S11| = 0.2622 for the optical mirror at 16 GHz; MiterMM and
    the FD solution both give 0.2778 (+6 %). The test `tests/adversarial/test_wp3_adversarial.py::
    test_h_miter_against_ma1997_table1` already fails on main (WP4b did not look at why, by the independence rule).
+
+## Resolution (coordinator and Daniel, 11 Nov 2026)
+
+The coordinator compared the merged FEM miter (`fem2d.Miter`, WP3) with MiterMM after WP4b's results were committed:
+nine cases (H and E plane; plain, d/a = 0.87, 0.9, 0.98; 10–90 GHz, including Alimenti's t/a = 0.386 at f/fc = 1.5
+and 1.666) agree to 3e-4 dB in TE₁₀ transmission and 7e-5 in |S₁₁|. With WP4b's finite differences, three
+independent methods agree on the stated geometry, while the two papers disagree with each other by 0.09 in f/fc
+for the same miter.
+
+Decision (Daniel): Alimenti et al. (1994) Figs. 4–6, the chamfered curves of Ma et al. (1997) Fig. 11, and Ma et al.
+Table 1 become **qualitative references**: the comparison is reported, with this file, but is not a pass/fail
+acceptance criterion for WP3b, WP7b or later work. L2's reading of t (d/a = (1 + t/a)/√2) stands: it matches the
+unmitered and fully mitered end points and t/a = 0.30. The pass/fail miter references are Kotik & Sivov (1965),
+Alessandri et al. (1994) with b/a = 0.5, Alimenti Figs. 2–3, Ma's unmitered corner, Reiter & Arndt (1995), and
+COMSOL campaign 2 (E1, E5).
