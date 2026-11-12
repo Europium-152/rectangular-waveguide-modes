@@ -313,7 +313,7 @@ def _reflect(x, origin, direction):
     return o + 2 * along - r
 
 
-def build_mesh(outline, h, port_distance, refine_factor=0.2, refine_radius=None, mirror=None):
+def build_mesh(outline, h, port_distance, refine_factor=0.2, refine_radius=None, mirror=None, extra_points=()):
     """Mesh the core of `outline` plus the two arms.
 
     Parameters
@@ -328,6 +328,9 @@ def build_mesh(outline, h, port_distance, refine_factor=0.2, refine_radius=None,
     refine_factor, refine_radius : float
         Element size at re-entrant corners (as a fraction of h) and the distance (m) over which it grows back to h
         (default: 2 h).
+    extra_points : sequence of (x, y)
+        Further points refined like the re-entrant corners (e.g. the ends of impedance walls, where the wall
+        condition jumps).
     mirror : (origin, direction), optional
         Mesh only the half of the domain on the side of port 1 of this symmetry line, and mirror it, so that the
         mesh is exactly symmetric (used by symmetric miters: S11 = S22 then holds to rounding). The outline must
@@ -340,6 +343,8 @@ def build_mesh(outline, h, port_distance, refine_factor=0.2, refine_radius=None,
     scale = max(np.ptp(np.array(outline.vertices), axis=0)) + port_distance
     # the field singularities are those of the physical guide, whose arms continue beyond the port planes
     corners = outline.reentrant_corners(max(port_distance, min(p.a for p in outline.ports)))
+    if len(extra_points):
+        corners = np.vstack([corners, np.asarray(extra_points, float).reshape(-1, 2)])
     arms = port_distance > 0
     if mirror is None:
         regions = [(1, list(map(np.array, outline.vertices)), outline.arcs)]

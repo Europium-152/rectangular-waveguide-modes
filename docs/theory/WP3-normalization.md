@@ -142,3 +142,114 @@ truncated modal expansion of the singular field converges slowly in $M$ (WR-90 m
 | Smooth H- and E-plane bends vs wrmodes, 3 frequencies, every propagating mode | sign and gauge of every cross-mode coupling, LSM and LSE, TE/TM rotation | 1e-3 absolute |
 | Smooth bends vs exact bend modes (Bessel functions of order $\nu = \beta_{\text{bend}}R$) | the phase of $S_{21}$ beyond the propagating-mode coupled-mode theory | see the report |
 | Reciprocity, symmetric miter $S_{11} = S_{22}$ | §3 reciprocity condition, port frames | 1e-10 |
+
+## 6. Impedance (Leontovich) walls (WP3b)
+
+*Added by WP3b. Checked numerically in `tests/test_fem2d.py` (lossy straight channel against the exact
+`wrmodes.filters.LossyWallFilter` for families $n = 0$ and $n\ge1$; per-mode attenuation against the exact roots of
+T1 box B6; a reversed coupling sign fails these checks).*
+
+### 6.1 The condition on a wall parallel to $v$
+
+T1 box B1: $E_{\tan} = Z_s\,H_{\tan}\times\hat n$, $\hat n$ from the guide into the wall, $Z_s = (1+i)R_s$ for
+$e^{+i\omega t}$. On an in-plane wall of a coplanar component (an edge of the outline, extended along $v$) take the
+right-handed wall frame $(\hat n, \hat s, \hat v)$, i.e. $\hat s = \hat v\times\hat n$ (in the $(x, y)$ plane of the
+outline, with $\hat v = \sigma_v\hat e_3$, $\hat s = \sigma_v(-n_y, n_x)$). Then
+$H_{\tan}\times\hat n = H_v\,\hat s - H_s\,\hat v$, so
+
+```latex
+E_s = Z_s\,H_v ,\qquad E_v = -Z_s\,H_s .\tag{6.1}
+```
+
+Check against T1's form $E_t = ZH_z$, $E_z = -ZH_t$ in the frame $(\hat n, \hat t = \hat z\times\hat n, \hat z)$: on the wall `u+`, $\hat n = \hat u$, $\hat t = \hat v$ and $\hat s = \hat v\times\hat u = -\hat z$, so (6.1) reads $-E_z = ZH_v$ and $E_v = ZH_z$, which is T1's pair.
+
+### 6.2 Fields of one family
+
+In family $n$ ($k_v = n\pi/b$, $k_t^2 = k^2 - k_v^2$), write the field as an LSM part (electric Hertz vector
+$\hat v\,P(u,z)\cos k_vv'$) plus an LSE part (magnetic Hertz vector $\hat v\,R(u,z)\sin k_vv'$):
+
+| | LSM: $E = \nabla\nabla\cdot\Pi_e + k^2\Pi_e$, $H = i\omega\varepsilon_0\nabla\times\Pi_e$ | LSE: $H = \nabla\nabla\cdot\Pi_m + k^2\Pi_m$, $E = -i\omega\mu_0\nabla\times\Pi_m$ |
+| --- | --- | --- |
+| $E_v$ | $k_t^2P\cos k_vv'$ | 0 |
+| $H_v$ | 0 | $k_t^2R\sin k_vv'$ |
+| $E_s$ | $-k_v\,\partial_sP\,\sin k_vv'$ | $i\omega\mu_0\,\partial_nR\,\sin k_vv'$ |
+| $H_s$ | $-i\omega\varepsilon_0\,\partial_nP\cos k_vv'$ | $k_v\,\partial_sR\cos k_vv'$ |
+
+using $\nabla_tP\times\hat v = -\partial_nP\,\hat s + \partial_sP\,\hat n$. The solver's scalars are
+$\psi = k_t^2P$ (the $E_v$ profile of §1) and $\phi = k_t^2R$ (the $H_v$ profile). Both satisfy
+$\nabla^2 + k_t^2 = 0$, and the walls at $v = \pm b/2$ (perfect conductors) are satisfied by the $\sin/\cos$ factors
+for any $\psi,\phi$: **the family index $n$ stays exact** with impedance walls parallel to $v$.
+
+### 6.3 Boundary conditions
+
+Inserting the table into (6.1), the $v$ factors cancel ($\sin k_vv'$ in the first, $\cos k_vv'$ in the second
+equation) and, with $\omega\mu_0 = k\eta_0$, $\omega\varepsilon_0 = k/\eta_0$:
+
+```latex
+\boxed{\;\partial_n\psi = -\,\frac{i\eta_0}{k}\Big(\frac{k_t^2}{Z_s}\,\psi + k_v\,\partial_s\phi\Big),\qquad
+\partial_n\phi = -\,\frac{i}{k\eta_0}\Big(Z_s\,k_t^2\,\phi + k_v\,\partial_s\psi\Big)\;}\tag{6.2}
+```
+
+* $Z_s\to0$: $\psi = 0$ (Dirichlet) and $\partial_n\phi = -ik_v\partial_s\psi/(k\eta_0) = 0$ (Neumann): the perfect walls
+  of CONVENTIONS.md §7.
+* $n = 0$ ($k_v = 0$): family 0 has only LSM modes (TE$_{m0}$), and (6.2) is the **Robin condition**
+  $\partial_n\psi = -i\eta_0k\,\psi/Z_s$. At $u = +a/2$ this is T1 box B6 for LSE$^u$ ($Z X' = -ik\eta_0X$), as it
+  must be: TE$_{m0}$ is both LSM$^v$ and LSE$^u$.
+* $n\ge1$: the two conditions are **coupled** through the tangential derivatives. The split into two scalar
+  problems (one Robin condition on $\psi$ for LSM and one on $\phi$ for LSE) is not exact: a pure LSM field has
+  $H_v = 0$ but $E_s = -k_v\partial_s P\sin k_vv' \ne 0$ on the wall, which (6.1) forbids. This is why the exact modes
+  of a guide with impedance walls at $u = \pm a/2$ are LS$^u$, not LS$^v$ modes (T1 §4–5), and why the low-loss
+  eigenmode of the TE$_{mn}$/TM$_{mn}$ pair is close to, but not exactly, LSE$^v$ (T1 §5). The coupling is of order
+  $Z_s$ (both $\psi$ on the wall and the $k_v\partial_s\psi$ term are $O(Z_s)$) but resonant between the degenerate
+  TE/TM pair, so it cannot be dropped. Reversing its sign changes the TE$_{11}$ and
+  TM$_{11}$ attenuation of a 5 cm lossy straight at 30 GHz by 22 % and 120 % against the exact `LossyWallFilter`
+  (checked when writing `tests/test_fem2d.py::test_lossy_straight_matches_lossy_wall_filter`).
+
+### 6.4 Weak form and symmetry
+
+With test functions $w$ (for $\psi$) and $q$ (for $\phi$) and the walls $\Gamma_Z$ of the core:
+
+```latex
+\int\nabla w\cdot\nabla\psi - k_t^2w\psi - \oint_{\Gamma_Z}w\,\partial_n\psi + \text{ports} = \text{rhs},\qquad
+-\oint_{\Gamma_Z}w\,\partial_n\psi = \frac{i\eta_0}{k}\Big(\frac{k_t^2}{Z_s}\oint w\psi + k_v\oint w\,\partial_s\phi\Big),
+```
+
+and the same for $\phi$ with $-\oint q\,\partial_n\phi = \frac{i}{k\eta_0}\big(Z_sk_t^2\oint q\phi + k_v\oint q\,\partial_s\psi\big)$.
+Scaling the $\psi$ equation by $\kappa_\psi = 1/\eta_0$ and the $\phi$ equation by $\kappa_\phi = -\eta_0$:
+
+```latex
+\begin{pmatrix} \tfrac1{\eta_0}A_\psi + \tfrac{ik_t^2}{kZ_s}M_\Gamma & \tfrac{ik_v}{k}C\\[2pt]
+-\tfrac{ik_v}{k}C & -\eta_0A_\phi - \tfrac{iZ_sk_t^2}{k}M_\Gamma\end{pmatrix}
+\begin{pmatrix}\psi\\ \phi\end{pmatrix} = \begin{pmatrix}\tfrac1{\eta_0}r_\psi\\ -\eta_0r_\phi\end{pmatrix},\qquad
+C_{ij} = \oint_{\Gamma_Z}w_i\,\partial_sw_j\,ds ,
+```
+
+with $A$ the lossless matrices of §4 (ports included) and $M_\Gamma$ the wall mass matrix. $C_{ij} + C_{ji} =
+[w_iw_j]$ at the ends of each wall segment; at a corner between two impedance edges these end terms cancel, and
+the impedance walls end where they meet the perfectly conducting arms, where $\psi$ is constrained to 0 (the
+end node belongs to the arm wall). So $C$ is antisymmetric on the free $\psi$ unknowns, $-C = C^T$ there, and the
+matrix is **complex symmetric**. With $\kappa$ the scaling of each excited port mode,
+$S^{2D}_{ij} = 2i\kappa_j\beta_j\,b_i^TA^{-1}b_j - \delta_{ij}$, so $\kappa_i\beta_iS^{2D}_{ij}$ is symmetric. §3 then gives
+$S^{LS}_{ij} = \sigma^{out}_i\sigma^{in}_j(f_j/f_i)S^{2D}_{ij}$ ($\sigma = 1$ for LSM; $\sigma^{in} = s_q$,
+$\sigma^{out} = -s_p$ for LSE), which is symmetric iff $\sigma^{out}_i\sigma^{in}_i f_i^2\kappa_i\beta_i$ is the
+same for every mode. From the closed forms of §2: LSM $g^2\beta/\eta_0 = 4k_t^2/(kb)$, LSE $-\eta_0h^2\beta =
+-4k_t^2/(kb)$ times $\sigma^{out}\sigma^{in} = -1$: equal. The scaling $1/\eta_0 : -\eta_0$ that symmetrizes the
+discrete coupling is therefore exactly the one that makes the LS amplitudes reciprocal, an independent check of
+the relative normalization of $\psi$ and $\phi$ in (6.2).
+
+Passivity: for $\operatorname{Re}Z_s\ge0$ the wall terms are absorbing ($+i\times$positive for real $Z_s$ in the
+unscaled equations, the same sign as the outgoing port terms).
+
+### 6.5 Choices in the implementation
+
+* **Arms stay perfect.** The modal ports need the modes of the perfect guide, so only the core walls are impedance
+  walls. The GSM is that of the lossy core between perfect guides, the definition of `LossyWallFilter` (T1 box
+  B9) and of WP2's lossy straights (whose $\Lambda^-$ junction mismatch is the first-order version of the same
+  junction). The jump of the wall condition at the junction makes the field singular there; the mesh is refined
+  at these points like at re-entrant corners.
+* **Walls at $v = \pm b/2$** are not included: they would couple $n$ with $n\pm2$ (CONVENTIONS.md §3).
+* The term $k_t^2/Z_s$ is large for metal walls ($\eta_0k/|Z_s|\sim10^7$ m$^{-1}$); it acts as a penalty that keeps
+  $\psi = O(Z_s)$ on the wall. With LU this costs no accuracy: the change of $S$ stays linear in $Z_s$ from
+  $10^{-3}$ down to $10^{-9}\,\Omega$ (aluminium: 0.05–0.1 Ω). $Z_s = 0$ is treated as a perfect wall (the lossless
+  code path, bitwise unchanged; with $Z_s\ne0$ the mesh is also refined at the ends of the impedance walls, so the
+  limit $Z_s\to0$ differs from the lossless result by the discretization error, about $2\times10^{-6}$).
