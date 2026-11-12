@@ -12,7 +12,10 @@ the bend in the flat guide is compact (inner radius of order 1 cm). Two readings
   r, height change 8.13 mm on one wall: taper length sqrt(2 r d - d^2) = 82.2 mm; the guide axis moves by 4.065 mm
   (u0(z) = (a(z) - h)/2 in the E-plane frame, inner wall at u = -a/2);
 * 'symmetric': both walls arcs of radius r, 4.065 mm each: taper length 58.3 mm (closer to the ~6 cm of the
-  photograph).
+  photograph);
+* 'symmetric raised cosine': as 'symmetric', but with a raised-cosine height profile of the same length instead of
+  the arcs (no wall kink at the full-height end), to separate the effect of the kink (the arcs, tangent to the flat
+  guide, meet the full-height guide at a wall angle of 8.0 deg (symmetric) or 11.3 deg (asymmetric)).
 
 The flat bend: 90 deg, centre-line radius R_b = 10, 20 or 40 mm. Walls: aluminium (sigma = 3.5e7 S/m, the SPARC
 baseline of CONVENTIONS.md) and copper (5.8e7 S/m), plus perfect walls (the mode-conversion part). Frequencies 40,
@@ -88,13 +91,29 @@ class Fig15:
                              breakpoints=[self.z1, self.z2], uniform=[(self.z1, self.z2)], **kw)
 
 
+class Fig15RaisedCosine(Fig15):
+    """'symmetric raised cosine': the symmetric reading with a(z) a raised cosine over the same taper length."""
+
+    def a(self, z):
+        x, _ = self._x(z)
+        return B1 + DELTA * 0.5 * (1 - np.cos(np.pi * x / self.Lt))
+
+    def da(self, z):
+        x, s = self._x(z)
+        return s * DELTA * 0.5 * np.pi * np.sin(np.pi * x / self.Lt) / self.Lt
+
+
+READINGS = (("asymmetric", Fig15, "asymmetric"), ("symmetric", Fig15, "symmetric"),
+            ("symmetric raised cosine", Fig15RaisedCosine, "symmetric"))
+
+
 def main():
-    out = np.zeros((2, len(RBS), len(FREQS), len(WALLS)))         # TE1,0 loss (dB)
+    out = np.zeros((len(READINGS), len(RBS), len(FREQS), len(WALLS)))         # TE1,0 loss (dB)
     refl = np.zeros_like(out)
     t0 = time.time()
-    for ir, reading in enumerate(("asymmetric", "symmetric")):
+    for ir, (label, cls, reading) in enumerate(READINGS):
         for ib, Rb in enumerate(RBS):
-            geo = Fig15(reading, Rb)
+            geo = cls(reading, Rb)
             for jf, f in enumerate(FREQS):
                 for jw, (wall, sigma) in enumerate(WALLS):
                     g = Guide(W, H, sigma)
@@ -102,7 +121,7 @@ def main():
                     j = G.basis1.index("TE1,0")
                     out[ir, ib, jf, jw] = -20 * np.log10(abs(G.S21[G.basis2.index("TE1,0"), j]))
                     refl[ir, ib, jf, jw] = np.sum(np.abs(G.S11[G.basis1.propagating_mask(f), j]) ** 2)
-            print(f"{reading:10s} Lt = {geo.Lt * 1e3:.1f} mm, R_b = {Rb * 1e3:.0f} mm, axis length "
+            print(f"{label:24s} Lt = {geo.Lt * 1e3:.1f} mm, R_b = {Rb * 1e3:.0f} mm, axis length "
                   f"{(2 * geo.Lt + Rb * np.pi / 2) * 1e3:.1f} mm:", flush=True)
             for jf, f in enumerate(FREQS):
                 pec, al, cu = out[ir, ib, jf]
@@ -110,7 +129,7 @@ def main():
                       f"{al:.4f} dB (ohmic {al - pec:.4f}), copper {cu:.4f} dB (ohmic {cu - pec:.4f})", flush=True)
     print(f"{time.time() - t0:.0f} s")
     m = meta("benchmarks/taper/butterweck_fig15.py", "Butterweck & de Ronde 1968 fig. 15 strangled E-plane bend",
-             w=W, h=H, b1=B1, r_wall=RW, readings=["asymmetric", "symmetric"], bend_radii=list(RBS),
+             w=W, h=H, b1=B1, r_wall=RW, readings=[r[0] for r in READINGS], bend_radii=list(RBS),
              freqs=list(FREQS), walls=[w for w, _ in WALLS], sigmas=[s for _, s in WALLS], atol=1e-6,
              mode_factor=2.0, quantity="TE1,0 loss -20 log10 |S21| (dB), axes (reading, R_b, f, wall)",
              paper="'a few tenths of a decibel, mainly due to the wall losses in the flat guide' (p. 97)")
