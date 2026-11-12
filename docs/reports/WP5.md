@@ -13,7 +13,6 @@ Branch `wave-2/WP5-tapers`, from `main` at 84d99a0. Card `tasks/WP5-tapers-stran
 | Example: strangled bend in a line, taper in a line, convergence report | `examples/strangled_bend.py` |
 | Benchmarks (npz with `meta`, CONVENTIONS §9) | `benchmarks/taper/`: `checks.py`, `t2b_table.py` (also E2), `e3_predictions.py`, `fit_bottle.py`, `butterweck_bottle.py`, `butterweck_fig15.py`, `staircase.py`, `timing.py`; data in `benchmarks/taper/data/` |
 | Registry | `benchmarks/registry.json`: ten `wp5-*` entries |
-| Discrepancy report (staircase row not met) | `docs/discrepancies/2026-11-12-wp5-staircase.md` |
 
 Read: CONVENTIONS.md, T2, T2b and their reports and prototypes, T1, `loss.py`, the component code, WP4/WP4b/WP6
 reports, CAMPAIGN_2 (E2, E3), Butterweck & de Ronde 1968 pp. 95–98 (page images of p. 96 fig. 13 and p. 98 fig. 15).
@@ -21,7 +20,7 @@ Huang §11.14/11.17 was not re-read (T2 §11 summarizes it; nothing in WP5 depen
 
 Data provenance: `src/` and `tests/` are unchanged since commit 380d2c8. The npz files record the commit at which
 they were written: c78eb0c (checks, t2b_table, e2/e3 predictions, fit_bottle, butterweck_bottle, staircase), and the
-later benchmark-script commits for butterweck_fig15 and the long staircase runs (scripts only changed).
+later benchmark-script commits for butterweck_fig15, timing and the long staircase runs (scripts only changed).
 
 ## Method and decisions
 
@@ -95,7 +94,7 @@ Butterweck's shape, and P5 is not an independent check of it.
 | Airy (single mode through cutoff), Bessel (linear taper) | 1e-8 | **pass**: 5.0e-12 and 9.9e-12 at atol 1e-11 (4.9e-9, 5.6e-9 at 1e-8; 5.8e-7, 6.3e-7 at the default 1e-6) |
 | Total reflection of TE3,0 at its cutoff plane (a′ = 0.028) | 1 − \|S22\| ≤ 1e-4; phase 0.02 rad | **pass**: 2.1e-5; 0.0172 rad (mf 2), 0.0171 (mf 4); without B5′ 0.0127 / 0.0147 |
 | T2b §9 table (L = 0.1–0.8 m) | 1e-4 abs | **pass**: S21(TE30←TE10) within 4.8e-6, 1.7e-6, 4.6e-7, 1.4e-7; \|S11\| within 8.5e-6 … 8.2e-7 (default settings) |
-| Staircase of WP4 `Step`s | extrapolated ≤ 1e-4 | **b-taper: pass** (n = 1280: 8.6e-5 raw, 5.6e-5 extrapolated; 2.7e-1 at n = 20). **H-plane: not met** (n = 640: 9.7e-4 raw, 6.2e-4 extrapolated; the staircase's own section truncation changes it by 4.7e-3 at n = 320). Both converge monotonically towards the taper; discrepancy report `docs/discrepancies/2026-11-12-wp5-staircase.md` |
+| Staircase of WP4 `Step`s (H-plane and b tapers) | extrapolated ≤ 1e-4 | **pass**: b-taper 8.6e-5 raw at n = 1280, 5.6e-5 extrapolated; H-plane 4.7e-4 raw at n = 1280, **2.4e-5** extrapolated (observed order 1.01). Table in "Staircase" below |
 | Butterweck bottle vs linear (P5, P6), 75 GHz | bottle < −40 dB; linear reported | bottle **−40.6 dB** (fitted profile, full model with b linear, mf 1.5/2, B5′ on/off: −40.63 … −40.65); linear **−20.5 dB** vs about −18 dB measured |
 | Butterweck fig. 15 (P8, P9) | reported | see below: "a few tenths of a dB" reproduced for the symmetric readings; "mainly wall loss" only with a kink-free taper |
 | Reciprocity; unitarity (lossless); passivity (lossy) | CONVENTIONS §6 | **pass**: general geometry (a′, b′, u0′, v0′, κ), cf 1.5: 6.4e-15 / 1.3e-14, lossy margin 1.5e-3; strangled bend 40 GHz cf 1.5: 3.6e-13 / 3.8e-13, lossy margin 2.8e-3; every benchmark GSM ≤ 2e-13 |
@@ -114,6 +113,33 @@ slices).
 | 0.8 | 2.4e-5 / 3.7e-6 | 1.8e-4 / 1.1e-4 / 5.6e-5 | 3.6e-6 |
 
 Plain truncation halves the error per doubling (O(1/M), T2 §8.4); one Richardson step or B5′ gains a factor 15–30.
+
+## Staircase of WP4 Steps
+
+`benchmarks/taper/staircase.py`. The taper (L = 0.1 m) is replaced by n uniform sections with the sides of the
+taper at the section midpoints, joined by WP4 mode-matching `Step`s (default truncation, parity-reduced), plus a
+step from each end cross-section. The sections carry the modes of the coupled class with cutoff below cf·f,
+cf = max(6, 4n/(kL)) (every mode with |β|·L/n ≲ 4, through which neighbouring steps interact). Reference:
+`Taper(..., mode_factor=8, atol=1e-9)`. Cases: 'H-plane' 22.86 → 45 mm, b = 10.16 mm, 15 GHz (TE3,0 crosses
+cutoff), family 0; 'b-taper' 22.86 × 10.16 → 22.86 × 5.08 mm, 35 GHz (TE1,2/TM1,2 cross cutoff), m = 1.
+Max |S_stair − S_taper| over every propagating entry:
+
+| n | H-plane | b-taper |
+| --- | --- | --- |
+| 20 | 2.1e-1 | 2.7e-1 |
+| 40 | 1.1e-1 | 6.6e-2 |
+| 80 | 3.1e-2 | 2.3e-2 |
+| 160 | 5.9e-3 | 7.4e-3 |
+| 320 | 2.0e-3 | 2.1e-3 |
+| 640 | 9.7e-4 | 3.0e-4 |
+| 1280 | 4.7e-4 | 8.6e-5 |
+| Richardson, n = 640/1280 (observed order) | **2.4e-5** (1.01) | **5.6e-5** (3.0) |
+| section truncation ×2 | 4.7e-3 at n = 320 | 1.1e-5 at n = 320, 5.8e-4 at n = 640 |
+
+(The truncation of each n = 1280 run equals the doubled truncation of n = 640.) Before n = 640 the convergence is
+erratic (observed orders 1.5–2.7) and the staircase's own section truncation dominates. Times per staircase:
+H-plane 30 s / 286 s / 2927 s and b-taper 20 s / 100 s / 760 s at n = 320 / 640 / 1280. Data: `staircase.npz`
+(n = 20–320), `staircase_b_long.npz`, `staircase_b_1280.npz`, `staircase_h_640.npz`, `staircase_h_1280.npz`.
 
 ## COMSOL campaign 2 predictions
 
@@ -207,23 +233,19 @@ running beside it.
 
 ## Open issues
 
-1. **Staircase row half met** (discrepancy report). The WP4 staircase converges towards the taper slowly and
-   erratically (observed orders 1.5–3), with a section truncation that must grow with n. The b-taper reaches
-   8.6e-5 at n = 1280 (13 min for that point); the H-plane taper (2.0 × widening, many more modes per section)
-   reaches 9.7e-4 at n = 640 (5 min), and its staircase is itself unconverged in the truncation at the 1e-3 level.
-   The taper agrees with three other references (T2b table 5e-6, T2 prototype 8e-8, exact Airy/Bessel 1e-11).
+1. **Staircase cost.** The WP4 staircase converges slowly (first order in the step count once asymptotic) and
+   needs section mode counts that grow with n; the H-plane point at n = 1280 took 49 min. The staircase is a
+   benchmark, not a test (the slow test checks the trend for the b-taper only).
 2. The bottle profile is a reconstruction (λ fitted); P5 is a consistency check, not a validation.
 3. Fig. 15 geometry is a reading of a sketch; the conclusion depends on the taper shape.
 4. Performance: dominated by the evanescent modes of the narrow sections; the adaptive slicing makes the default
    path 1.5–3× the cost of a single well-chosen slicing. The default `atol` 1e-6 can be relaxed for design sweeps.
 5. The impedance-wall boundary terms on tilted walls (T2 §13) are not derived; loss uses the local cross-section.
-6. κ with b′ ≠ 0 (curvature in the plane of a moving v-wall) is solved but has no independent check (T2 §13); the
-   T2-prototype comparison covers κ with b′ in the coefficients only.
+6. κ with b′ ≠ 0 (curvature together with moving v-walls) has no exact-field check (T2 §13). The T2-prototype
+   comparison (κ, a′, b′, u0′ together, 7.9e-8) checks the implementation of the same equations, not the physics.
 
 ## Decisions for the coordinator / Daniel
 
-* Accept the staircase row as met for the b-taper and "converging, not met" for the H-plane taper (discrepancy
-  report), or allot more compute (n = 1280–2560 for the H-plane case, hours).
 * Accept the fitted bottle (λ = 3.5) as the meaning of `'bottle'`, or ask for another form.
 * Choose the fig. 15 reading for the record (we suggest the symmetric one; R_b ≈ 20 mm).
 * The SPARC strangled bend: the TM1,2 near-cutoff reflection (1.6 % at 90 GHz for 50 mm raised-cosine tapers to

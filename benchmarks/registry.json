@@ -552,9 +552,9 @@
       "component": "Taper (H-plane 22.86 -> 45 mm at 15 GHz; b 10.16 -> 5.08 mm at 35 GHz; L = 0.1 m)",
       "reference": "staircase of WP4 Steps (parity-reduced mode matching) with uniform sections, extrapolated in the step count",
       "reference_type": "independent method",
-      "data_file": "benchmarks/taper/data/staircase.npz, staircase_b_long.npz, staircase_b_1280.npz, staircase_h_640.npz",
+      "data_file": "benchmarks/taper/data/staircase.npz, staircase_b_long.npz, staircase_b_1280.npz, staircase_h_640.npz, staircase_h_1280.npz",
       "tolerance": "extrapolated difference <= 1e-4 in every propagating entry",
-      "status": "b-taper passes (n = 1280: 8.6e-5, extrapolated 5.6e-5); H-plane not met (n = 640: 9.7e-4, extrapolated 6.2e-4, staircase truncation uncertainty 4.7e-3); docs/discrepancies/2026-11-12-wp5-staircase.md",
+      "status": "passes: H-plane 4.7e-4 raw at n = 1280, 2.4e-5 extrapolated (order 1.01); b-taper 8.6e-5 raw at n = 1280, 5.6e-5 extrapolated (docs/reports/WP5.md)",
       "test": "benchmarks/taper/staircase.py; tests/test_taper.py::test_staircase_of_steps_approaches_taper (slow)"
     },
     {
