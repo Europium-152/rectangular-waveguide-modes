@@ -7,5 +7,6 @@ from .gsm import GSM, cascade, straight, from_transfer_matrix, block_diag
 
 __version__ = "1.0.0a1"
 from .line import Line, SweepResult, Guide, Straight, SmoothBend, FrameChange, SechCurvature, ConstantCurvature
+from .components import Twist
 from .modematch import Step, MiterMM
 from .filters import LossyWallFilter, ResistiveSheetFilter
