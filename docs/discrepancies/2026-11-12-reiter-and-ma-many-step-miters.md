@@ -175,6 +175,16 @@ Re-read on the paper:
    which fixes the electrical spacing, agrees with reference planes through the inner corners; should this
    reading be recorded in the registry entry?
 
-## Resolution
+## Resolution (Daniel, 12 Nov 2026)
 
-*(left for Daniel's decision)*
+Reiter & Arndt (1995) Fig. 3(a) at γ = 150, Figs. 3(b)–(d) and Fig. 4, and Ma et al. (1997) c/a = 1 curves at
+40–60 steps (Fig. 6 at 40 and 60 steps, Fig. 9, Fig. 11 at c/a = 1.0) become **qualitative references**: the
+comparison is reported with this file, not used as a pass/fail criterion. Reiter Fig. 3(a) γ = 90–135 and Ma's
+10- and 20-step and BEM curves stay pass/fail. The evidence is above: FEM and mode matching agree with each other,
+with Marcuvitz and with Alessandri (including Alessandri's points computed by Reiter & Arndt's own method); L1's
+digitization and our γ convention were checked against the paper.
+
+Coordinator decisions on the same PR (12 Nov 2026): impedance walls parallel to v couple LSM and LSE for n ≥ 1 (the
+card was wrong; recorded in CONVENTIONS §3); the per-mode α target is 1e-6 against T1's exact roots; the Butterweck
+filter is compared with WP2 at 5 % and with Butterweck's printed values only as a report; the 45° chained-miter
+target applies from s = 2.5a.

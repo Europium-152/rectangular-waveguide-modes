@@ -80,6 +80,9 @@ down are `tests/test_conventions.py` and `tests/test_gsm.py`. The derivation beh
   or with any $n'$ (unequal walls), so a lossy component is not strictly family-conserving. For metal walls the
   effect is at most about 6e-6 of the power (T1b). A component that treats families separately in the presence
   of loss says so in its docstring and bounds the neglected coupling.
+* Wall loss on the walls **parallel** to $v$ (the in-plane walls of a coplanar component) keeps $n$, but for
+  $n \ge 1$ the Leontovich condition couples the two LS polarizations of the family (LSM and LSE; derivation in
+  `docs/theory/WP3-normalization.md` §6). Only family $n = 0$ reduces to a scalar Robin condition.
 * Truncation: a basis contains the propagating modes plus the evanescent modes with cutoff below
   `cutoff_factor × f`. A family is a fixed $n$ in a *local* frame. A line therefore states the rule in the global
   frame for every frame it uses: an evanescent global mode $(M, N)$ is kept when some propagating mode has the same
@@ -217,6 +220,10 @@ COMSOL references (Gate A lessons, campaign 1): user-defined meshes with an expl
 physics-controlled mesh shifted a 15 cm bend by 0.02–0.03 dB); a mesh check at two frequencies per case; and,
 within about 2 % above the cutoff of an excited mode, ports for every propagating mode instead of a PML, which
 reflects near-cutoff modes.
+
+Zero-length cascades (two components joined without a straight between them) depend on the evanescent entries of
+both GSMs: those entries must be converged (mesh and mode count), and every component must couple the families
+it shares with its neighbour (a component that treats a family as uncoupled is not interchangeable there).
 
 A component counts as validated when an agent that did not write it reproduces its results with a different
 method, within these targets (see `tasks/README.md`).

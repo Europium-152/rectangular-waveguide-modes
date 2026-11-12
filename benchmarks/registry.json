@@ -115,7 +115,7 @@
       "data_file": "benchmarks/literature/ma1997_fig<k>.csv (L1, D3); results benchmarks/fem2d/data/ma1997.npz",
       "tolerance": "the uncertainty column of each point",
       "test": "benchmarks/fem2d/ma1997.py (WP3b; data benchmarks/fem2d/data/ma1997.npz); benchmarks/validation_v1/compare_literature.py",
-      "status": "WP3b (FEM, Ma's staircase geometries modelled): pass for Fig. 5 (rms z 0.24, BEM 0.62), Fig. 6 10 steps (0.20) and BEM (0.57), Fig. 8 20 steps (a)/(b)/(c) (0.64/0.49/0.62), Fig. 11 c/a = 0 (0.19); not met for the c/a = 1 curves with 40-60 steps (Fig. 6 rms z 2.37, Fig. 9 1.28, Fig. 11 c/a = 1.0 2.05; 0.3-0.5 dB, the Table 1 discrepancy; proposed qualitative) and Fig. 6 20 steps (1.69). Fig. 11 chamfered curves qualitative (Daniel, 11 Nov 2026): rms z 17-31 (c/a = 0.60-0.70), 1.29 (c/a = 1.30)"
+      "status": "WP3b (FEM, Ma's staircase geometries modelled): pass for Fig. 5 (rms z 0.24, BEM 0.62), Fig. 6 10 steps (0.20) and BEM (0.57), Fig. 8 20 steps (a)/(b)/(c) (0.64/0.49/0.62), Fig. 11 c/a = 0 (0.19); not met for the c/a = 1 curves with 40-60 steps (Fig. 6 rms z 2.37, Fig. 9 1.28, Fig. 11 c/a = 1.0 2.05; 0.3-0.5 dB, the Table 1 discrepancy; proposed qualitative) and Fig. 6 20 steps (1.69). Fig. 11 chamfered curves qualitative (Daniel, 11 Nov 2026): rms z 17-31 (c/a = 0.60-0.70), 1.29 (c/a = 1.30) | qualitative (Daniel, 12 Nov 2026) for: Fig. 6 at 40 and 60 steps, Fig. 9, Fig. 11 c/a = 1.0; see docs/discrepancies/2026-11-12-reiter-and-ma-many-step-miters.md"
     },
     {
       "id": "wave2-alessandri1994",
@@ -335,7 +335,7 @@
       "data_file": "benchmarks/literature/reiter1995_fig3a-d.csv (L1); results benchmarks/fem2d/data/reiter1995.npz",
       "tolerance": "the uncertainty column of each point",
       "test": "benchmarks/fem2d/reiter1995.py",
-      "status": "see docs/reports/WP3b.md: Fig. 3(a) gamma = 90-135 pass, gamma = 150 not met (FEM agrees with Marcuvitz's measured 30 deg corners, Reiter is 3 dB higher); Fig. 3(c) not met by about 1 dB (Reiter's E-plane 90 deg corner differs from Alessandri's for the same guide; the FEM agrees with Alessandri and with Marcuvitz 5.28b); mitered curves (b), (d) not met (zeros shifted, like the Alimenti/Ma chamfered curves)"
+      "status": "see docs/reports/WP3b.md: Fig. 3(a) gamma = 90-135 pass, gamma = 150 not met (FEM agrees with Marcuvitz's measured 30 deg corners, Reiter is 3 dB higher); Fig. 3(c) not met by about 1 dB (Reiter's E-plane 90 deg corner differs from Alessandri's for the same guide; the FEM agrees with Alessandri and with Marcuvitz 5.28b); mitered curves (b), (d) not met (zeros shifted, like the Alimenti/Ma chamfered curves) | qualitative (Daniel, 12 Nov 2026) for: Fig. 3(a) gamma = 150 and Figs. 3(b)-(d); Fig. 3(a) gamma = 90-135 pass/fail; see docs/discrepancies/2026-11-12-reiter-and-ma-many-step-miters.md"
     },
     {
       "id": "wp3b-reiter1995-fig4",
@@ -344,9 +344,9 @@
       "reference_type": "literature",
       "reference": "Reiter & Arndt (1995) Fig. 4 (theory and measurement)",
       "data_file": "benchmarks/literature/reiter1995_fig4.csv (L1); results benchmarks/fem2d/data/reiter1995.npz",
-      "tolerance": "the uncertainty column of each point",
+      "tolerance": "none (qualitative); the comparison is reported",
       "test": "benchmarks/fem2d/reiter1995.py",
-      "status": "see docs/reports/WP3b.md"
+      "status": "see docs/reports/WP3b.md | qualitative (Daniel, 12 Nov 2026) for: all of Fig. 4; see docs/discrepancies/2026-11-12-reiter-and-ma-many-step-miters.md"
     },
     {
       "id": "wp3b-impedance-alpha",
@@ -366,7 +366,7 @@
       "reference_type": "independent method",
       "reference": "WP2 LossyWallFilter (exact B6 + B9) and Butterweck & de Ronde, Philips Tech. Rev. 29 (1968) 94-95: 0.6 / 2.5 / 5.4 dB",
       "data_file": "benchmarks/fem2d/data/impedance_walls.npz",
-      "tolerance": "5 % (card)",
+      "tolerance": "5 % against WP2 (pass/fail); Butterweck's printed values reported only (coordinator, 12 Nov 2026)",
       "test": "tests/test_fem2d.py::test_butterweck_lossy_wall_filter",
       "status": "vs WP2: pass (0.05-0.06 %); vs Butterweck's numbers: -5.2 / -7.5 / -1.2 % (the same as WP2's exact method; Butterweck's 0.6 dB is a rounded 4 dB/m, 2.5 dB is a measurement)"
     },
@@ -388,7 +388,7 @@
       "reference_type": "independent method",
       "reference": "the cascade of fem2d.Miter GSMs with evanescent modes",
       "data_file": "benchmarks/fem2d/data/chained_miters.npz",
-      "tolerance": "1e-6 at spacers >= 2a (fine mesh)",
+      "tolerance": "1e-6 at spacers >= 2a (90 deg pairs) and >= 2.5a (45 deg optical pairs; coordinator, 12 Nov 2026)",
       "test": "tests/test_fem2d.py::test_chained_miters_converge_to_the_cascade, ::test_chained_miters_converge_to_the_cascade_slow; benchmarks/fem2d/chained_miters.py",
       "status": "90 deg pairs: 8.5e-7 / 8.2e-7 at s = 2a / 3a (32 elements per wavelength, cf 1.5); 45 deg optical pairs: 2.6e-7 from s = 2.5a (uniform guide s - 2a); see the report"
     },
