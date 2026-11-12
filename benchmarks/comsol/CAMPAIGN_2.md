@@ -105,6 +105,10 @@ solid.)
   0.07 % below cutoff, which no PML handles.
 * **Mesh:** maximum element size c_const/18[GHz]/5 = 3.3 mm. Mesh check, if affordable: 18 GHz with c_const/18[GHz]/7.
 * **Files:** `E4_twist_triangular.txt` (S11, S21 … S81), `E4_twist_triangular_fine.txt`.
+* **What decides it** (WP6 predictions, `benchmarks/twist/data/e4_predictions.npz`): the power per output mode, not
+  the TE10 transmission in dB, which differs from Fig. 9 by only 0.003 dB (15 GHz) and 0.02 dB (18 GHz). At 18 GHz
+  the theory puts 0.38 % of the input in TE12 alone, against about 0.15 % in total from Fig. 9, so COMSOL needs a
+  per-mode accuracy of about 2e-4 of the input: the mesh check matters here.
 * **Optional control:** the same twist with the cosine rate of Fig. 9, θ(s) = Θ·(1 − cos(π·s/L))/2, at 18 GHz,
   where theory and Fig. 9 agree (0.94 % vs about 1.0 %). File `E4_twist_cosine.txt`.
 
