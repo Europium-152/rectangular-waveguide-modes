@@ -490,6 +490,116 @@
       "tolerance": "CONVENTIONS section 8: COMSOL mesh error + 0.02 dB on TE1,0; 1e-4 of input power per converted mode",
       "test": "benchmarks/twist/e4_predictions.py (predictions)",
       "status": "waiting for data"
+    },
+    {
+      "id": "wp5-uniform-limit",
+      "card": "WP5 acceptance",
+      "component": "VariableGuide with constant a, b (kappa = 0 or 1/R), H and E plane, lossless and aluminium",
+      "reference": "Straight (wrmodes.gsm.straight, loss.straight_gsm_from_loss_matrix) and SmoothBend (atol 1e-12), propagating modes",
+      "reference_type": "independent method",
+      "data_file": "benchmarks/taper/data/checks.npz",
+      "tolerance": "1e-10",
+      "status": "passes (max 5.3e-13); with evanescent port modes the lossy evanescent diagonal differs by the first-order impedance change kept by the V-I loss (docs/reports/WP5.md)",
+      "test": "tests/test_taper.py::test_uniform_limit_straight_lossless, ::test_uniform_limit_straight_lossy, ::test_uniform_limit_smooth_bend; benchmarks/taper/checks.py"
+    },
+    {
+      "id": "wp5-airy-bessel",
+      "card": "WP5 acceptance",
+      "component": "VariableGuide, single TE1,0 mode through cutoff and in a linear H-plane taper",
+      "reference": "exact solutions Ai/Bi (a = pi / sqrt(k^2 - g (z - z_c))) and sqrt(a) J_nu, Y_nu (T2 section 10, as docs/theory/T2/check_solver.py)",
+      "reference_type": "closed form",
+      "data_file": "benchmarks/taper/data/checks.npz",
+      "tolerance": "1e-8",
+      "status": "passes (5.0e-12 Airy, 9.9e-12 Bessel at atol 1e-11; 5.8e-7, 6.3e-7 at the default atol 1e-6)",
+      "test": "tests/test_taper.py::test_single_mode_through_cutoff_airy, ::test_single_mode_linear_taper_bessel"
+    },
+    {
+      "id": "wp5-total-reflection",
+      "card": "WP5 acceptance",
+      "component": "Taper, TE3,0 totally reflected at its cutoff plane (linear H-plane taper, a' = 0.028, 20 GHz)",
+      "reference": "turning-point (Airy) connection S22 = i exp(-2i int beta) (T2 section 8.5)",
+      "reference_type": "closed form",
+      "data_file": "benchmarks/taper/data/checks.npz",
+      "tolerance": "1 - |S22| <= 1e-4; phase within 0.02 rad",
+      "status": "passes (2.1e-5; 0.017 rad, 0.013-0.015 rad without B5')",
+      "test": "tests/test_taper.py::test_total_reflection_at_cutoff_plane"
+    },
+    {
+      "id": "wp5-t2b-table",
+      "card": "WP5 acceptance",
+      "component": "Taper, linear H-plane 22.86 -> 45 mm, b = 10.16 mm, 15 GHz, L = 0.1-0.8 m",
+      "reference": "T2b section 9 table (docs/theory/T2b/t2b_solver.py, M = 10, B5' with m_tail = 500)",
+      "reference_type": "independent method",
+      "data_file": "benchmarks/taper/data/t2b_table.npz",
+      "tolerance": "1e-4 absolute on S21(TE3,0 <- TE1,0) and |S11(TE1,0)|",
+      "status": "passes (max 4.8e-6 and 8.5e-6 at the default settings)",
+      "test": "tests/test_taper.py::test_t2b_small_slope_table; benchmarks/taper/t2b_table.py"
+    },
+    {
+      "id": "wp5-t2-prototype",
+      "card": "WP5 (cross-check)",
+      "component": "VariableGuide, a', b', u0', kappa together, families 0 and 2 with evanescent modes, 20 GHz",
+      "reference": "docs/theory/T2/vi_solver.py (T2 prototype, 160 x 2 Magnus slices); coefficients vs t2_coefficients.vi_matrix and t2b_formulas.T_matrix",
+      "reference_type": "independent method",
+      "data_file": null,
+      "tolerance": "1e-6 (GSM, prototype's slicing error); 1e-12 (coefficients)",
+      "status": "passes (7.9e-8; coefficients 5.5e-16)",
+      "test": "tests/test_taper.py::test_against_t2_prototype_solver (slow), ::test_vi_system_equals_t2_and_t2b_closed_forms"
+    },
+    {
+      "id": "wp5-staircase",
+      "card": "WP5 acceptance",
+      "component": "Taper (H-plane 22.86 -> 45 mm at 15 GHz; b 10.16 -> 5.08 mm at 35 GHz; L = 0.1 m)",
+      "reference": "staircase of WP4 Steps (parity-reduced mode matching) with uniform sections, extrapolated in the step count",
+      "reference_type": "independent method",
+      "data_file": "benchmarks/taper/data/staircase.npz, staircase_b_long.npz, staircase_b_1280.npz, staircase_h_640.npz",
+      "tolerance": "extrapolated difference <= 1e-4 in every propagating entry",
+      "status": "b-taper passes (n = 1280: 8.6e-5, extrapolated 5.6e-5); H-plane not met (n = 640: 9.7e-4, extrapolated 6.2e-4, staircase truncation uncertainty 4.7e-3); docs/discrepancies/2026-11-12-wp5-staircase.md",
+      "test": "benchmarks/taper/staircase.py; tests/test_taper.py::test_staircase_of_steps_approaches_taper (slow)"
+    },
+    {
+      "id": "wp5-butterweck-bottle",
+      "card": "WP5 acceptance (L1 items P5, P6)",
+      "component": "VariableGuide, 140 mm taper 3.10 x 1.55 -> 22.86 x 10.16 mm, 75 GHz, bottle (fitted) and linear width, linear height",
+      "reference": "Butterweck & de Ronde, Philips Tech. Rev. 29 (1968) p. 96: H10 -> H30 < -40 dB (bottle), about -18 dB (linear), measured, no uncertainty",
+      "reference_type": "literature",
+      "data_file": "benchmarks/taper/data/butterweck_bottle.npz, fit_bottle.npz",
+      "tolerance": "bottle below -40 dB; linear reported",
+      "status": "bottle -40.6 dB (fitted profile: not an independent check, see wrmodes.profiles.BottleProfile); linear -20.5 dB vs about -18 dB measured",
+      "test": "tests/test_taper.py::test_butterweck_bottle_vs_linear_family_zero; benchmarks/taper/butterweck_bottle.py"
+    },
+    {
+      "id": "wp5-butterweck-fig15",
+      "card": "WP5 acceptance (L1 items P8, P9)",
+      "component": "VariableGuide (E plane), strangled 90 deg E-plane bend 22.86 x 10.13 mm, b1 = 2 mm, r = 420 mm",
+      "reference": "Butterweck & de Ronde (1968) pp. 97-98, fig. 15: 'a few tenths of a decibel, mainly due to the wall losses in the flat guide'",
+      "reference_type": "literature",
+      "data_file": "benchmarks/taper/data/butterweck_fig15.npz",
+      "tolerance": "none (reported, not pass/fail)",
+      "status": "reported: 0.15-0.33 dB (aluminium, symmetric arc tapers, 40-75 GHz), 0.06-0.17 dB with a raised-cosine taper (mainly ohmic, as the paper says); asymmetric reading 0.5-1.5 dB (offset axis, rejected); geometry read from a sketch",
+      "test": "benchmarks/taper/butterweck_fig15.py"
+    },
+    {
+      "id": "wp5-comsol-e2",
+      "card": "CC2 / WP5",
+      "component": "Taper, linear H-plane 22.86 -> 45 mm, L = 0.1 and 0.2 m, 15 GHz",
+      "reference": "COMSOL campaign 2 case E2 (benchmarks/comsol/CAMPAIGN_2.md)",
+      "reference_type": "COMSOL",
+      "data_file": "benchmarks/taper/data/e2_predictions.npz (predictions)",
+      "tolerance": "COMSOL mesh-check error + 0.02 dB (CONVENTIONS.md section 8)",
+      "status": "predictions ready; waiting for data (Daniel runs COMSOL)",
+      "test": "WP7b benchmarks/comsol/campaign_2/compare_campaign_2.py"
+    },
+    {
+      "id": "wp5-comsol-e3",
+      "card": "CC2 / WP5",
+      "component": "StrangledBend(90, 0.05, 1.6e-3, 0.05, 'raised_cosine') in WR-90, 18 and 40 GHz, PEC and aluminium 3.774e7 S/m",
+      "reference": "COMSOL campaign 2 case E3 (benchmarks/comsol/CAMPAIGN_2.md)",
+      "reference_type": "COMSOL",
+      "data_file": "benchmarks/taper/data/e3_predictions.npz (predictions)",
+      "tolerance": "COMSOL mesh-check error + 0.02 dB; 1e-4 of the input power per converted mode",
+      "status": "predictions ready; waiting for data (Daniel runs COMSOL)",
+      "test": "WP7b; tests/test_taper.py::test_e3_predictions_regression (slow, regression)"
     }
   ]
 }
