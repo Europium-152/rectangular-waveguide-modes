@@ -14,8 +14,10 @@ Cases:
   modes with m = 1 (the class of TE1,0: the step keeps a, so m is conserved).
 
 Run: PYTHONPATH=src python benchmarks/taper/staircase.py   (about 3 min)
-     PYTHONPATH=src python benchmarks/taper/staircase.py --cases b-taper --ns 80 160 320 640 1280 \
-         --out staircase_b_long.npz   (about 1 h)
+     PYTHONPATH=src python benchmarks/taper/staircase.py --cases b-taper --ns 160 320 640 \
+         --out staircase_b_long.npz   (about 15 min)
+     PYTHONPATH=src python benchmarks/taper/staircase.py --cases b-taper --ns 320 640 1280 --no-cf-check \
+         --out staircase_b_1280.npz   (about 15 min)
 Output: benchmarks/taper/data/staircase.npz (and the files named by --out)
 """
 import os
@@ -82,7 +84,7 @@ def block(g, p1, p2):
     return S[np.ix_(idx, idx)]
 
 
-def main(cases=None, ns=None, decay=None, out="staircase.npz"):
+def main(cases=None, ns=None, decay=None, out="staircase.npz", cf_check=True):
     global NS, DECAY
     if ns is not None:
         NS = tuple(ns)
@@ -105,13 +107,15 @@ def main(cases=None, ns=None, decay=None, out="staircase.npz"):
         d = np.array([np.max(np.abs(S - ref)) for S in Ss])
         # observed order from the last three, then Richardson of the last two
         diffs = [np.max(np.abs(Ss[k + 1] - Ss[k])) for k in range(len(NS) - 1)]
-        order = np.log2(diffs[-2] / diffs[-1])
+        order = np.log2(diffs[-2] / diffs[-1]) if len(diffs) >= 2 else 1.0
         p = max(order, 0.5)
         rich = Ss[-1] + (Ss[-1] - Ss[-2]) / (2 ** p - 1)
         drich = np.max(np.abs(rich - ref))
         # sensitivity to the section truncation at the largest n
-        S12 = block(staircase(case, NS[-1], cf_sections(case, NS[-1], 2 * DECAY)), p1, p2)
-        dcf = np.max(np.abs(S12 - Ss[-1]))
+        dcf = np.nan
+        if cf_check:
+            S12 = block(staircase(case, NS[-1], cf_sections(case, NS[-1], 2 * DECAY)), p1, p2)
+            dcf = np.max(np.abs(S12 - Ss[-1]))
         print(f"{name}: {len(p1)} + {len(p2)} propagating port modes; taper {tt:.1f} s")
         for n, dd, t in zip(NS, d, times):
             print(f"   n = {n:4d}: max |S_stair - S_taper| = {dd:.2e}   ({t:.1f} s)")
@@ -139,5 +143,6 @@ if __name__ == "__main__":
     ap.add_argument("--ns", nargs="*", type=int, default=None)
     ap.add_argument("--decay", type=float, default=None)
     ap.add_argument("--out", default="staircase.npz")
+    ap.add_argument("--no-cf-check", action="store_true", help="skip the doubled section truncation at the largest n")
     a = ap.parse_args()
-    main(a.cases, a.ns, a.decay, a.out)
+    main(a.cases, a.ns, a.decay, a.out, not a.no_cf_check)
