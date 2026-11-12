@@ -55,7 +55,8 @@ down are `tests/test_conventions.py` and `tests/test_gsm.py`. The derivation beh
 * The global guide frame is attached to the guide: $x$ is always along side $w$. Bends transport it along the centre
   line (rotation about the local $v$). A twist (WP6) rotates it together with the cross-section, so a twist's GSM
   has the global frame at both ports and is **not** followed by a `FrameChange`. The twist angle changes only the
-  orientation in space of the components after it.
+  orientation in space of the components after it. A positive twist angle turns the cross-section about its
+  centre from $+x$ towards $+y$, i.e. right-handed about the direction of propagation $+z$.
 * A bend turning the other way within the same plane uses a negative κ, not a different frame.
 
 ## 3. Modes and bases
@@ -92,6 +93,11 @@ down are `tests/test_conventions.py` and `tests/test_gsm.py`. The derivation beh
   components) and say so. `ModeBasis.propagating(..., frame=X)` used for a single component in its own frame keeps
   only the live families of that frame. Coupled-mode (transfer-matrix) solvers use `cutoff_factor = 1`;
   solvers that need evanescent modes state their own default and show convergence in it.
+* Components that couple families (twists) complete the line's basis before solving: they add every family up to
+  the basis's highest cutoff, since the 'live' rule above is a rule for family-conserving components. Near the
+  cutoff of a mode they couple, `cutoff_factor = 1` can drop a mode that matters (about 5 % of the second-order
+  conversion of Doane & Anderson's triangular twist at 16.5 GHz, WP6): studies with twists show convergence in
+  `cutoff_factor` there.
 
 ## 4. Mode fields
 
