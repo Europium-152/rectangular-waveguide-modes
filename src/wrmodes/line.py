@@ -15,7 +15,9 @@ Protocol (see `wrmodes.components.base.Component`):
   input guide must be the line's current guide; the line then calls ``gsm(f, basis1, basis2)`` with basis2 chosen
   by the line's truncation rule in the output guide, in the component's frame.
 * ``guide`` / ``with_guide(guide)`` (optional): a component without ``guides`` and without a guide of its own is
-  attached to the current guide of the line; a component whose guide differs from it is refused.
+  attached to the current guide of the line; a component whose guide differs from it is refused. A component whose
+  ``guides`` is None until it is attached (`Taper`, `StrangledBend` without a guide) gets its ``guides`` from the
+  attached copy, so it may change the cross-section too.
 
 Nested lines are flattened into the outer line.
 """
@@ -135,7 +137,15 @@ class Line(Component):
                 add(c, False, c, g_out)
                 guide_now = g_out
             else:
-                add(_attach(c, guide_now), False, c, guide_now)
+                e = _attach(c, guide_now)
+                g2 = getattr(e, "guides", None)          # attached components that change the cross-section (Taper)
+                if g2 is not None:
+                    if g2[0] != guide_now:
+                        raise ValueError(f"{e!r} starts in {g2[0]!r}, but the line is in {guide_now!r} at this point")
+                    add(e, False, e, g2[1])
+                    guide_now = g2[1]
+                else:
+                    add(e, False, c, guide_now)
         if plane_now != plane:
             frame_change(plane_now, plane, guide_now)
         self.elements = tuple(elements)
