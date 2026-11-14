@@ -107,3 +107,14 @@ needs parallel execution. Order:
 Each step: agent → PR → review → Daniel merges → next. A discrepancy found by WP7b goes back to the owning card as a
 fix PR before Gate B. WP8a waits for wave 3. Gate B needs every wave 2 acceptance table met or a discrepancy report
 settled, WP7b's comparisons, and campaign 2.
+
+## Notes for wave 3 (from wave 2 reports)
+
+* Strangled bend (WP8): at 90 GHz, 50 mm raised-cosine tapers from WR-90 to 1.6 mm reflect 1.6 % into TM12, which
+  is generated near its cutoff plane in the taper and bounces back from it, and transmit 1.4 % as TM12 (WP5).
+  Longer or shaped tapers are a design item of the study.
+* Butterweck & de Ronde fig. 15: the symmetric reading with flat-guide bend radius about 20 mm is the one on record
+  (WP5 report); the asymmetric reading contradicts the paper's "mainly wall loss".
+* `profile='bottle'` is wrmodes' fit (λ = 3.5) to an unscaled sketch, so the −40 dB bottle check is not an
+  independent validation (WP5).
+* Studies with twists: show convergence in `cutoff_factor` near cutoffs (CONVENTIONS §3, WP6).

@@ -164,7 +164,8 @@ $\tfrac12\iint(E^+_p\times H^+_q)\cdot\hat z\,ds = a_p a_q\,\delta_{pq}$.
   Cascades with such components keep enough straight length, or enough evanescent modes, for the product to be
   well conditioned (WP3 report, open issue 1).
 * **Components with a varying cross-section** (tapers, strangled bends) measure their length along the centre
-  line, and their curvature and offsets refer to it (T2 §10).
+  line, and their curvature and offsets refer to it (T2 §10). With centre offsets $u_0(z), v_0(z)$ the length is
+  measured along the reference line $u = v = 0$ of the component, not along the moving centre (WP5).
 * **Cascade**: Redheffer star product, `A @ B` or `cascade(A, B, ...)`, in the order of propagation. When
   $I - A_{22}B_{11}$ is singular because a mode is trapped between the two components without coupling to the
   outer ports (e.g. two junctions on the same plane), the product uses the pseudo-inverse, which is exact for such
