@@ -156,8 +156,13 @@ continues in exactly the input guide. WR-90 at 60 GHz: 0 of 200 flat heights giv
     (TE1,0 column 1e-6, block 1e-3; measured 3e-9 / 1.0e-4).
   * `tests/test_components.py` and `tests/test_line.py`: the WP1 tests that required evanescent modes to be
     uncoupled now check that they are coupled and bound the change of the propagating block.
-* Full fast suite: see the PR (run at the end of this card). Slow tests of the touched files: `test_twist.py` 6,
-  `test_taper.py` and `test_wp7b_adversarial.py` slow tests pass.
+* Full fast suite (`python -m pytest -q -m "not slow"`, scikit-fem and gmsh installed): 714 passed, 3 skipped,
+  1 xfailed (WP3's strict xfail, unrelated) in 20 min on the 2-core container (WP6 report: 15 min for 614 tests).
+  The WF2-related slow spots are WP7b's triangular-twist reference tests at the new default (22 / 40 s at 16.5 /
+  18 GHz) and the campaign-2 E4 smoke test (41 s); the slowest tests are WP4's offset-step adversarial tests
+  (150-190 s each, untouched). Slow tests of the touched files pass: `test_twist.py` (6), `test_taper.py`,
+  `test_components.py`, `test_line.py`, `test_wp7b_adversarial.py`, `test_wp1_adversarial.py`,
+  `test_wp7b_references.py` (7), `test_loss.py` (all 50), and `test_bend_evanescent_fem.py` (3).
 
 ## Open issues
 
