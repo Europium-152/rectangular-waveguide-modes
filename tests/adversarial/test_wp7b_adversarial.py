@@ -122,14 +122,21 @@ def test_taper_turned_around_equals_the_reverse_taper():
 # ----------------------------------------------------------------------------------------------- WP6: twists
 def test_360_degree_twist_is_two_180_degree_twists():
     """A constant-rate 360 deg twist equals the cascade of two 180 deg halves (exact expm for a constant rate;
-    the co-rotating frame needs no frame change between them)."""
+    the co-rotating frame needs no frame change between them).
+
+    WF2: the twist solves on an internal list larger than the port basis (mode_factor) and drops the internal
+    evanescent modes at its ports, so the halves are joined in a basis that carries them (the internal list, all
+    families up to mode_factor * f); the propagating block of the cascade is then the full twist's."""
     g = Guide(W90, H90)
     f = 30e9
-    full = wr.Twist(360, 1.0, guide=g).gsm(f)
+    full = wr.Twist(360, 1.0, guide=g)
     half = wr.Twist(180, 0.5, guide=g)
-    two = half.gsm(f) @ half.gsm(f)
-    _finite_lossless(full, unit=1e-9)
-    assert np.max(np.abs(full.S - two.S)) < 1e-8
+    b = full.default_basis(f, cutoff_factor=full.mode_factor)[0]
+    assert full.solve_basis(f, b) == b
+    two = half.gsm(f, b) @ half.gsm(f, b)
+    one = full.gsm(f, b)
+    _finite_lossless(full.gsm(f), unit=1e-9)
+    assert np.max(np.abs(one.S - two.S)) < 1e-8
 
 
 def test_slow_360_degree_twist_is_nearly_adiabatic():

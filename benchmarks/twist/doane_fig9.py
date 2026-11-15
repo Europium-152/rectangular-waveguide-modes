@@ -23,6 +23,10 @@ from wrmodes.components import Guide, Twist, TwistProfile  # noqa: E402
 from wrmodes.components.twist import twist_gsm_blocks  # noqa: E402
 from wrmodes.modes import ModeBasis  # noqa: E402
 
+WP6 = dict(mode_factor=1.0, tail=False)
+"""WP6's model (port basis completed, plain truncation): this script records WP6's results; WF2 changed the
+Twist defaults (internal list, quasi-static tail; docs/reports/WF2.md)."""
+
 INCH = 0.0254
 A, B, L = 0.872 * INCH, 1.872 * INCH, 20 * INCH
 GUIDE = Guide(A, B)
@@ -43,7 +47,7 @@ def fig9():
 
 def solve(f, profile, cf):
     port = GUIDE.basis(f, 1.0)
-    g = Twist(90, L, profile, guide=GUIDE, cutoff_factor=cf).gsm(f, port)
+    g = Twist(90, L, profile, guide=GUIDE, cutoff_factor=cf, **WP6).gsm(f, port)
     j = port.index("TE1,0")
     col = np.abs(g.S21[:, j]) ** 2
     track = [col[port.index(m)] if m in port else np.nan for m in TRACK]

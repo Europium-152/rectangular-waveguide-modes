@@ -25,6 +25,10 @@ from wrmodes.components import Guide, Twist, Straight  # noqa: E402
 from wrmodes.components.twist import helical_propagation_constants  # noqa: E402
 from wrmodes.modes import ModeBasis  # noqa: E402
 
+WP6 = dict(mode_factor=1.0, tail=False)
+"""WP6's model (port basis completed, plain truncation): this script records WP6's results; WF2 changed the
+Twist defaults (internal list, quasi-static tail; docs/reports/WF2.md)."""
+
 INCH = 0.0254
 A, B, L20 = 0.872 * INCH, 1.872 * INCH, 20 * INCH
 TALL = Guide(A, B)
@@ -37,7 +41,7 @@ def finite_pairs():
                         ("WR187 tall", TALL, 16.5e9)):
         lam = cst.c / f
         for n in (5, 20, 80, 320):
-            g = Twist(90, n * lam, guide=g0).gsm(f) @ Twist(-90, n * lam, guide=g0).gsm(f)
+            g = Twist(90, n * lam, guide=g0, **WP6).gsm(f) @ Twist(-90, n * lam, guide=g0, **WP6).gsm(f)
             j = g.basis1.index("TE1,0")
             dev = np.abs(np.abs(g.S21) - np.eye(len(g.basis1))).max()
             rows.append((f, n, len(g.basis1), 1 - abs(g.S21[j, j]) ** 2, dev, g.unitarity_defect()))
@@ -73,13 +77,13 @@ def slices():
         j = port.index("TE1,0")
         ref = None
         for n in (128, 256, 512, 1024, 2048, 4096):
-            g = Twist(90, L20, p, guide=TALL, slices=n).gsm(f, port)
+            g = Twist(90, L20, p, guide=TALL, slices=n, **WP6).gsm(f, port)
             S = g.S
             d = np.nan if ref is None else np.abs(S - ref).max()
             ref = S
             out.append((n, 1 - abs(g.S21[j, j]) ** 2, d))
             print(f"  {p:10s} {n:5d} slices: spurious {100 * out[-1][1]:.7f} %, max |dS| vs previous {d:.1e}")
-        g = Twist(90, L20, p, guide=TALL).gsm(f, port)
+        g = Twist(90, L20, p, guide=TALL, **WP6).gsm(f, port)
         print(f"  {p:10s} adaptive: {g.info['n_slices']} slices, error estimate {g.info['error_estimate']:.1e}")
     return np.array(out)
 
@@ -89,7 +93,7 @@ def lossy():
     out = []
     for p in ("constant", "cosine", "triangular"):
         for f in (15e9, 18e9):
-            g, g0, s = (Twist(90, L20, p, guide=al).gsm(f), Twist(90, L20, p, guide=TALL).gsm(f),
+            g, g0, s = (Twist(90, L20, p, guide=al, **WP6).gsm(f), Twist(90, L20, p, guide=TALL, **WP6).gsm(f),
                         Straight(L20, guide=al).gsm(f))
             j = g.basis1.index("TE1,0")
             ohm = 1 - np.sum(np.abs(g.S21[:, j]) ** 2) - np.sum(np.abs(g.S11[:, j]) ** 2)
@@ -108,7 +112,7 @@ def timing():
     for p in ("constant", "cosine", "triangular"):
         for cf in (1.0, 1.5):
             t = time.perf_counter()
-            g = Twist(90, L20, p, guide=TALL, cutoff_factor=cf).gsm(18e9, TALL.basis(18e9))
+            g = Twist(90, L20, p, guide=TALL, cutoff_factor=cf, **WP6).gsm(18e9, TALL.basis(18e9))
             dt = time.perf_counter() - t
             out.append((cf, g.info["n_modes"], g.info["n_slices"], dt))
             print(f"  {p:10s} cutoff_factor {cf}: {g.info['n_modes']} modes, {g.info['n_slices']} slices, {dt:.2f} s")
