@@ -78,11 +78,11 @@ def test_strangled_bend_flat_guide_just_below_and_above_a_cutoff(side):
     assert abs(g.S21[i, i]) ** 2 + np.sum(np.abs(g.S11[:, i]) ** 2) <= 1 + 1e-8
 
 
-@pytest.mark.xfail(strict=True, reason="docs/discrepancies/2026-11-15-wp7b-strangled-bend-port-basis-order.md")
 def test_strangled_bend_port_bases_are_equal():
     """Both ports of a StrangledBend are the same full-height guide, so basis2 == basis1 (CONVENTIONS 3) and two
     GSMs cascade directly. WR-90 in the E frame has exactly degenerate pairs (22.86 = 2.25 x 10.16 mm: local TE4,0
-    and TE0,9 at 59.02 GHz); a port-2 height that differs from h by one rounding error reorders them."""
+    and TE0,9 at 59.02 GHz); a port-2 height that differs from h by one rounding error reorders them.
+    Fixed by WF2 (docs/discrepancies/2026-11-15-wp7b-strangled-bend-port-basis-order.md, Resolution)."""
     f = 60e9
     unequal = [b1 for b1 in np.linspace(1.5e-3, 2.6e-3, 200)
                if _differ(*wr.StrangledBend(90, 0.05, b1, 0.03, guide=Guide(W90, H90)).default_basis(f))]
