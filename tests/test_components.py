@@ -103,7 +103,7 @@ def test_evanescent_modes_are_exact_in_the_straight_limit():
 
 
 def test_propagating_path_is_bitwise_unchanged():
-    """WF2 item 2: with propagating-mode bases SmoothBend keeps its transfer-matrix route, bitwise (frozen outputs
+    """WF2 item 2: with propagating-mode bases SmoothBend keeps its transfer-matrix route, unchanged (frozen outputs
     of origin/main before WF2, tests/data/make_smoothbend_propagating.py)."""
     import json
     import os
@@ -119,8 +119,11 @@ def test_propagating_path_is_bitwise_unchanged():
     assert json.loads(str(ref.pop("meta")))["git_commit"].startswith("7cb7cf1")
     new = mk.compute()
     assert sorted(new) == sorted(ref)
+    # Bitwise on the machine that froze them (checked by WF2 against a separate origin/main checkout). Across
+    # platforms the BLAS/LAPACK of a star product rounds differently in the last bits (PR #29 CI: one Line case on
+    # macOS, Windows and Python 3.9), so the frozen comparison allows a few ulps.
     for k in ref:
-        assert np.array_equal(new[k], ref[k]), k
+        assert np.array_equal(new[k], ref[k]) or np.allclose(new[k], ref[k], rtol=1e-12, atol=1e-15), k
 
 
 @pytest.mark.parametrize("plane", ["H", "E"])
