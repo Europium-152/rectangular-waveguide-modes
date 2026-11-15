@@ -149,7 +149,11 @@ def test_extreme_aspect_ratio_eplane_bend():
 # ----------------------------------------------------------------------------------------- evanescent modes
 def test_evanescent_modes_through_a_long_straight_do_not_overflow():
     """cutoff_factor 3 on a 10 m line at 20 GHz: evanescent S21 ~ exp(-|beta| 10 m) underflows to 0; nothing may be
-    NaN or inf, and the propagating block must not change (WP1 card)."""
+    NaN or inf, and the propagating block must not change (WP1 card).
+
+    WF2 (tasks/WF2-wave2-fixes.md item 2) supersedes the last clause: SmoothBend now couples the evanescent modes
+    of its basis, so the propagating block of the bend changes by what the evanescent modes contribute inside it
+    (here 3e-9 in power on the TE1,0 column, 1.0e-4 over the block); the straights still pass them unchanged."""
     segs = [ref_line.straight(5.0), ref_line.bend(0.4, ref_line.sech_curvature(90, 0.4), "H"), ref_line.straight(5.0)]
     line = _line(segs)
     g3 = line.gsm(20e9, cutoff_factor=3.0)
@@ -157,7 +161,9 @@ def test_evanescent_modes_through_a_long_straight_do_not_overflow():
     assert np.all(np.isfinite(g3.S))
     names = g1.basis1.names
     b3, b1 = _blocks(g3, names), _blocks(g1, names)
-    assert max(np.max(np.abs(b3[k] - b1[k])) for k in b1) < 1e-10
+    j = names.index("TE1,0")
+    assert max(np.max(np.abs(np.abs(b3[k][:, j]) ** 2 - np.abs(b1[k][:, j]) ** 2)) for k in b1) < 1e-6
+    assert max(np.max(np.abs(np.abs(b3[k]) ** 2 - np.abs(b1[k]) ** 2)) for k in b1) < 1e-3
     assert len(g3.basis1) > len(g1.basis1)
 
 

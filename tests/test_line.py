@@ -216,15 +216,20 @@ def test_line_refuses_components_of_another_guide():
         Line(WR90, [Straight(1.0, guide=Guide(0.02, 0.01))])
 
 
-def test_evanescent_modes_in_a_mixed_line_do_not_change_the_propagating_result():
+def test_evanescent_modes_in_a_mixed_line_change_the_propagating_result_little():
+    """WF2: SmoothBend couples the evanescent modes of the basis (before WF2 they were uncoupled and the propagating
+    result was unchanged to 1e-13). For these sech bends the TE1,0 column moves by 2e-6 in power; entries between
+    high-order modes, which couple strongly to the evanescent ones inside the bends, by up to 1.3e-3."""
     f = 33e9
     line = Line(WR90, components([("bend", "H", 0.3, SechCurvature(60, 0.3)), ("straight", 0.05),
                                   ("bend", "E", 0.4, SechCurvature(90, 0.4))]))
     g1, g15 = line.gsm(f), line.gsm(f, cutoff_factor=1.5)
     assert len(g15.basis1) > len(g1.basis1)
     idx = [g15.basis1.index(m) for m in g1.basis1]
-    assert np.allclose(g15.S[np.ix_(idx + [i + len(g15.basis1) for i in idx], idx + [i + len(g15.basis1) for i in idx])],
-                       g1.S, atol=1e-13, rtol=0)
+    n = len(g15.basis1)
+    S = g15.S[np.ix_(idx + [i + n for i in idx], idx + [i + n for i in idx])]
+    D = np.abs(np.abs(S) ** 2 - np.abs(g1.S) ** 2)
+    assert D[:, g1.basis1.index("TE1,0")].max() < 1e-5 and D.max() < 3e-3
     assert_lossless(g15)
 
 
@@ -406,3 +411,31 @@ def test_cache_for_ensembles_of_straight_lengths():
     CountingBend.calls = 0
     Line(Guide(0.03, 0.012), [b60]).gsm(f, cache=cache)
     assert CountingBend.calls == 1
+
+
+# ------------------------------------------------------------------------------------------ WF2: near-field warning
+def test_warns_once_for_non_uniform_components_joined_directly_without_evanescent_modes():
+    """WF2 item 2 (wrmodes.line, Evanescent near fields): a bend directly at a step, with the default
+    cutoff_factor = 1, warns once per line; no warning with evanescent modes in the basis, or with a straight of at
+    least NEAR_FIELD_DECAY_LENGTHS decay lengths of the least-attenuated evanescent mode between them."""
+    from wrmodes.line import EvanescentJunctionWarning, NEAR_FIELD_DECAY_LENGTHS, _least_attenuated
+    import warnings
+    from wrmodes.modematch import Step
+    f = 20e9
+    W, H = WR90.w, WR90.h
+    bend = SmoothBend(0.05, ConstantCurvature(1 / 0.1))
+    step = Step(W, H, 1.1 * W, H)
+    ln = Line(WR90, [bend, step])
+    with pytest.warns(EvanescentJunctionWarning, match="joined directly"):
+        ln.gsm(f)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", EvanescentJunctionWarning)
+        ln.gsm(f)                                                  # once per line
+        Line(WR90, [bend, step]).gsm(f, cutoff_factor=3)           # evanescent modes carried
+        alpha, mode = _least_attenuated(WR90, f)
+        d = NEAR_FIELD_DECAY_LENGTHS / alpha
+        Line(WR90, [bend, Straight(1.01 * d), step]).gsm(f)       # far enough apart
+        Line(WR90, [bend, Straight(0.2), SmoothBend(0.05, ConstantCurvature(-1 / 0.1))]).gsm(f)
+        Line(WR90, [Straight(0.1), bend, Straight(0.1)]).gsm(f)    # one non-uniform component only
+    with pytest.warns(EvanescentJunctionWarning, match=mode.name):
+        Line(WR90, [bend, Straight(0.99 * d), FrameChange("H", "E"), FrameChange("E", "H"), step]).gsm(f)
