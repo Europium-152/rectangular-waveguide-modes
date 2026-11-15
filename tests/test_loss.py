@@ -145,6 +145,7 @@ def test_lossless_limit_is_exactly_wrmodes_0_1_and_wp1():
     b = WR90.basis(f, 1.5)
     assert np.array_equal(Straight(2.0, guide=WR90).gsm(f, b).S, straight(b, f, 2.0).S)
     bend = SmoothBend(0.4, SechCurvature(90, 0.4), guide=WR90)
+    b = WR90.basis(f)              # WF2: with evanescent modes the bend takes the VariableGuide route (coupled)
     g = bend.gsm(f, b)
     # the 0.1 solver with and without the new argument
     sub = b.subset(b.family(0))
@@ -250,8 +251,9 @@ def test_lossy_line_of_straights_and_bends():
     p = g15.basis1.propagating_mask(f)
     assert g15.basis1.subset(np.flatnonzero(p)) == g.basis1
     i = g.basis1.index("TE1,0")
-    # the evanescent modes of the straights do not touch the propagating block (they are uncoupled there)
-    assert abs(abs(g.S21[i, i]) - abs(g15.S21[np.ix_(p, p)][i, i])) < 1e-9
+    # the evanescent modes of the straights do not touch the propagating block (they are uncoupled there); since WF2
+    # the bends couple them, which moves |S21(TE1,0)| by 2.6e-7 here
+    assert abs(abs(g.S21[i, i]) - abs(g15.S21[np.ix_(p, p)][i, i])) < 1e-6
     g0 = wr.Line(WR90, [Straight(1.0), SmoothBend(0.4, SechCurvature(90, 0.4), plane="H"), Straight(2.0),
                         SmoothBend(0.4, SechCurvature(90, 0.4), plane="E"), Straight(1.0)]).gsm(f)
     alpha = loss.attenuation_constant("TE1,0", W, H, f, AL)
@@ -311,9 +313,11 @@ def test_kappa_lambda1_is_included():
 
 
 def test_straight_shortcut_of_a_bend_accounts_for_loss():
-    """Below the TE2,0 cutoff the H-plane bend of TE1,0 has K = 0: a lossy straight over the centre line."""
+    """Below the TE2,0 cutoff the H-plane bend of TE1,0 has K = 0 among the propagating modes: a lossy straight over
+    the centre line (propagating basis; WF2: with evanescent modes the bend couples TE1,0 to the evanescent TE2,0,
+    a change of 2.2e-3 in S21 at 11 GHz, checked at the end)."""
     f, L = 11e9, 0.5
-    b = WR90_AL.basis(f, 2.0)
+    b = WR90_AL.basis(f)
     g = SmoothBend(L, SechCurvature(90, L), guide=WR90_AL).gsm(f, b)
     assert g.info[0] is None
     i = b.index("TE1,0")
@@ -325,9 +329,11 @@ def test_straight_shortcut_of_a_bend_accounts_for_loss():
     D = np.diag([-1j * beta, 1j * beta])
     ref = from_transfer_matrix(expm((D - lam) * L), sub, f)
     assert abs(g.S21[i, i] - ref.S21[0, 0]) < 1e-14 and abs(g.S11[i, i] - ref.S11[0, 0]) < 1e-14
-    for e in np.flatnonzero(~b.propagating_mask(f)):   # evanescent modes: own attenuation added to their decay
-        lam = loss.loss_matrices(b, f, loss.surface_impedance(f, AL))[0][e, e]
-        assert abs(g.S21[e, e] - np.exp(-(1j * b.beta(f)[e] + lam) * L)) <= 1e-14 * abs(g.S21[e, e]) + 1e-300
+    b2 = WR90_AL.basis(f, 2.0)
+    g2 = SmoothBend(L, SechCurvature(90, L), guide=WR90_AL).gsm(f, b2)
+    assert g2.info["route"] == "VariableGuide"
+    assert 1e-4 < abs(g2.S21[b2.index("TE1,0"), b2.index("TE1,0")] - g.S21[i, i]) < 1e-2
+    assert g2.reciprocity_defect() < 1e-12 and 0 < g2.passivity_margin() < 0.05
 
 
 def _dissipated_power(f, sub, res, curvature, Z):

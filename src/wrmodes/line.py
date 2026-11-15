@@ -20,13 +20,24 @@ Protocol (see `wrmodes.components.base.Component`):
   attached copy, so it may change the cross-section too.
 
 Nested lines are flattened into the outer line.
+
+Evanescent near fields (WF2). Two non-uniform components (anything but `Straight` and `FrameChange`) joined
+**directly** exchange their evanescent near fields: the cascade is right only if the basis at the junction carries
+the evanescent modes (CONVENTIONS.md section 8, zero-length cascades). "Directly" means that the straights between
+them (frame changes count as zero length) are shorter than `NEAR_FIELD_DECAY_LENGTHS` = 3 decay lengths 1/|beta| of
+the least-attenuated evanescent mode of the guide there, so that this mode keeps more than e^-3 = 5 % of its
+amplitude from one component to the other. When such a junction has a basis without evanescent modes (the default
+cutoff_factor = 1), `Line.gsm` issues one `EvanescentJunctionWarning` per line (WP7b: 0.4-4 % of the power off for a
+short bend directly at a miter; with cutoff_factor 3 and evanescent-coupling bends within 2e-4).
 """
+import warnings
 import os
 import pickle
 import multiprocessing as mp
 from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
+import scipy.constants as cst
 
 from .gsm import GSM, straight
 from .modes import Mode
@@ -36,7 +47,32 @@ from .components.guide import Guide, map_basis, _check_plane
 from .components.frames import FrameChange
 from .components import Straight, SmoothBend, SechCurvature, ConstantCurvature   # noqa: F401 (re-exported by wrmodes)
 
-__all__ = ["Line", "SweepResult"]
+__all__ = ["Line", "SweepResult", "EvanescentJunctionWarning", "NEAR_FIELD_DECAY_LENGTHS"]
+
+NEAR_FIELD_DECAY_LENGTHS = 3.0
+"""Two non-uniform components closer than this many decay lengths of the least-attenuated evanescent mode are joined
+"directly" (module docstring)."""
+
+
+class EvanescentJunctionWarning(UserWarning):
+    """Two non-uniform components are joined directly while the line's basis there has no evanescent modes."""
+
+
+def _nonuniform(e):
+    return not isinstance(e, (Straight, FrameChange))
+
+
+def _least_attenuated(guide, f):
+    """(|beta|, Mode) of the evanescent mode of `guide` with the lowest cutoff above f (any family), or None."""
+    from .modes import ModeBasis
+    k = 2 * np.pi * f / cst.c
+    full = ModeBasis.below(2.0 * f, guide.w, guide.h)
+    chi = np.array([np.pi * np.hypot(m.m / guide.w, m.n / guide.h) for m in full.modes])
+    ev = chi > k
+    if not np.any(ev):
+        return None
+    i = int(np.flatnonzero(ev)[np.argmin(chi[ev])])
+    return float(np.sqrt(chi[i] ** 2 - k * k)), full.modes[i]
 
 
 def _attach(component, guide):
@@ -225,7 +261,14 @@ class Line(Component):
                                  f"is {a:g} x {b:g} in the {self.plane} frame")
         memo = {} if cache is None else cache
         current, guide_now, out = basis1, self.guide, None
+        last, gap = None, 0.0                 # last non-uniform element and the straight length since it
         for e, key, g_out in zip(self.elements, self._keys, self._guides_out):
+            if _nonuniform(e):
+                if last is not None and not getattr(self, "_junction_warned", False):
+                    self._check_junction(f, last, e, gap, current, guide_now)
+                last, gap = e, 0.0
+            elif isinstance(e, Straight):
+                gap += float(e.length)
             if isinstance(e, FrameChange):
                 nxt = map_basis(current, e.from_plane, e.to_plane)
             elif g_out != guide_now:
@@ -247,6 +290,25 @@ class Line(Component):
         if basis2 is not None and basis2 != current:
             raise ValueError(f"basis2 {basis2!r} is not the line's output basis {current!r}")
         return GSM(out.S11, out.S12, out.S21, out.S22, out.basis1, out.basis2, f, self.name)
+
+    def _check_junction(self, f, left, right, gap, basis, guide):
+        """Warn once if `left` and `right` are joined directly while `basis` has no evanescent modes."""
+        if len(basis) == 0 or not np.all(basis.propagating_mask(f)):
+            return
+        la = _least_attenuated(guide, f)
+        if la is None:
+            return
+        alpha, mode = la
+        if alpha * gap >= NEAR_FIELD_DECAY_LENGTHS:
+            return
+        self._junction_warned = True
+        warnings.warn(
+            f"{self.name}: {left.name or type(left).__name__!s} and {right.name or type(right).__name__!s} are joined "
+            f"directly ({gap * 1e3:.3g} mm apart, less than {NEAR_FIELD_DECAY_LENGTHS:g} decay lengths "
+            f"{NEAR_FIELD_DECAY_LENGTHS / alpha * 1e3:.3g} mm of {mode.name} at {f / 1e9:.4g} GHz) while the line's "
+            f"basis there has no evanescent modes, so their near fields do not interact in the cascade (a few % of "
+            f"the power for a bend directly at a miter). Use cutoff_factor >= 3 or a longer straight between them. "
+            f"(Warned once per line.)", EvanescentJunctionWarning, stacklevel=3)
 
     # ------------------------------------------------------------------------------------------ sweeps
     def sweep(self, freqs, input_mode, processes=None, cutoff_factor=1.0, keep_gsm=False,

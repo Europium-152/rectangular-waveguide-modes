@@ -1,5 +1,6 @@
 """Smooth bends of constant cross-section, computed with the coupled-mode transfer-matrix solver of wrmodes 0.1."""
 import numpy as np
+import scipy.constants as cst
 
 from ..gsm import GSM, straight, from_transfer_matrix, block_diag
 from ..transfer_matrix import solve_transfer_matrix, coupled_mode_matrices
@@ -8,6 +9,9 @@ from .guide import Guide, _check_plane
 from ..loss import bend_loss_matrices, straight_gsm_from_loss_matrix
 
 __all__ = ["SmoothBend", "SechCurvature", "ConstantCurvature"]
+
+DEFAULT_MODE_FACTOR = 2.0
+"""Smallest internal cutoff factor of the evanescent-mode route of `SmoothBend` (see its mode_factor)."""
 
 
 class SechCurvature:
@@ -86,6 +90,10 @@ class SmoothBend(Component):
         does not couple n of different parity), which keeps the coupling of the families by the lossy walls
         v = +-b/2 (see Wall loss). 'coupled' costs 5-15 times more at 90 GHz (34-37 s per SPARC bend). Use it
         for multimode method-vs-method validation (CONVENTIONS.md section 8).
+    mode_factor : float, optional
+        Only used when the port bases contain evanescent modes (see Evanescent modes): cutoff factor of the internal
+        mode list of each family. None (default): twice the cutoff factor the port basis reaches (its highest cutoff
+        over f), at least 2; e.g. 6 for a line at cutoff_factor 3.
 
     Method
     ------
@@ -114,22 +122,31 @@ class SmoothBend(Component):
     for near-cutoff modes, where it is below the error of the first-order model itself (about 2.8e-4, T1 section
     5). In an E-plane bend the local walls v = +-b/2 are the narrow walls of the guide.
 
-    **Evanescent modes** in the basis (needed next to miters and steps) are not coupled: they are propagated as
-    uncoupled straight modes, exp(-i beta L) = exp(-|beta| L), over the centre-line length, with no reflection.
-    This is an approximation. It is exact in the straight limit (kappa = 0); in a bend it neglects the coupling of
-    evanescent modes to the propagating ones and to each other. It is good when, for every evanescent mode e,
-    |beta_e| is large compared with the curvature coupling (of order kappa |K_pe|) and |beta_e| L >> 1, so that an
-    evanescent mode excited at one end (by a neighbouring miter or step) has decayed before the curvature can
-    convert it. Both conditions fail for modes just below cutoff (|beta_e| -> 0). The error of this approximation
-    next to a miter or a step has not been quantified. The result for the propagating modes does not depend on
-    whether evanescent modes are included (they are separate blocks). Local families without any propagating mode
-    (which the line's basis contains for E-plane components) are treated in the same way.
+    **Evanescent modes** in the basis (needed next to miters, steps and other discontinuities) are coupled (WF2):
+    when the port basis contains evanescent modes, the bend is solved as a `VariableGuide` with constant a, b and
+    curvature kappa(z) (`variable_guide`), whose method builds the GSM directly from 4th-order Magnus slices joined
+    by Redheffer star products (CONVENTIONS.md section 6; T2 section 8.2, WP5), on an internal list of every mode of
+    each local family with cutoff below mode_factor * f plus the port modes, and returns the port sub-block. The
+    internal modes outside the port basis are dropped at the ports (zero incident wave, outgoing wave discarded).
+    The two methods solve the same coupled-mode equations (JINST paper; T0 curvature matrices, exact in kappa for a
+    coplanar bend); with propagating modes only, the transfer-matrix route above is used and its results are
+    unchanged (bitwise) from wrmodes 1.0a. Measured against one FEM domain containing a short circular bend
+    (R = 2a and 10a, L = a/4 ... 2a) directly followed by the optical 90 deg miter in WR-90 at 20 and 40 GHz
+    (`benchmarks/validation_v2/compare_wf2.py`): a `Line` [SmoothBend, fem2d.Miter] at cutoff_factor 3 is within
+    1.7e-4 of the input power (R = 2a) and 2.5e-5 (R = 10a), against 2-4e-2 and 4-6e-3 when the bend passed the
+    evanescent modes as uncoupled straight modes (WP7b). The remaining difference is the truncation of the junction
+    (cutoff_factor 4: 7e-5 at R = 2a). Cost: the internal list grows like mode_factor^2 per family and the slicing
+    with the evanescent decay rates; a 40 cm sech bend in WR-90 at 40 GHz with cutoff_factor 3 takes about 2 min
+    (2-core machine), against milliseconds for propagating modes only. A wall loss is included as in
+    `VariableGuide` (T1 loss of the cross-section weighted by h, off-diagonal entries between the modes that
+    propagate). Local families without any propagating mode (which the line's basis contains for E-plane
+    components) are solved in the same way.
 
     The families are combined with `block_diag` in exactly the order of the given basis.
     """
 
     def __init__(self, length, curvature, plane="H", breakpoints=None, atol=1e-6, guide=None, max_slices=4096,
-                 name="", families="separate"):
+                 name="", families="separate", mode_factor=None):
         length = float(length)
         if not length > 0:
             raise ValueError("length must be positive")
@@ -145,6 +162,9 @@ class SmoothBend(Component):
         if families not in ("separate", "coupled"):
             raise ValueError("families must be 'separate' or 'coupled'")
         self.families = families
+        if mode_factor is not None and mode_factor < 1:
+            raise ValueError("mode_factor must be >= 1")
+        self.mode_factor = None if mode_factor is None else float(mode_factor)
         self.name = name or f"{plane}-plane bend {length:g} m"
 
     def __repr__(self):
@@ -152,7 +172,7 @@ class SmoothBend(Component):
 
     def with_guide(self, guide):
         return type(self)(self.length, self.curvature, self.plane, self.breakpoints, self.atol, guide,
-                          self.max_slices, self.name, self.families)
+                          self.max_slices, self.name, self.families, self.mode_factor)
 
     @property
     def curvature_function(self):
@@ -197,7 +217,8 @@ class SmoothBend(Component):
 
         Each GSM carries `info`, a dict family n -> solver diagnostics (n_slices, error_estimate, success), with
         None for families that are straight sections (keys 'even' and 'odd', the parity of n, with
-        families='coupled' in a lossy guide).
+        families='coupled' in a lossy guide). With evanescent modes in the basis, `info` is the `VariableGuide`
+        info with route='VariableGuide'.
         """
         if basis1 is None:
             basis1 = self.default_basis(f)[0]
@@ -211,6 +232,8 @@ class SmoothBend(Component):
             out = GSM(Z, Z, Z, Z, basis1, basis1, f, self.name)
             out.info = {}
             return out
+        if not np.all(basis1.propagating_mask(f)):
+            return self._gsm_evanescent(f, basis1)
         lossm = self._loss_matrix(basis1, f)
         N = len(basis1)
 
@@ -244,3 +267,43 @@ class SmoothBend(Component):
         out = block_diag(*parts, basis1=basis1, basis2=basis1, name=self.name)
         out.info = info
         return out
+
+    def variable_guide(self):
+        """The bend as a `VariableGuide` (constant a, b; curvature kappa(z)): the solver used when the port bases
+        contain evanescent modes (see Evanescent modes). Needs a guide or is given the sides by `gsm`."""
+        if self.guide is None:
+            raise ValueError("variable_guide needs a guide (SmoothBend(..., guide=Guide(w, h)))")
+        a, b = self.guide.dims(self.plane)
+        return self._as_variable_guide(a, b)
+
+    def _as_variable_guide(self, a, b, mode_factor=None):
+        from .taper import VariableGuide, GeometryFunction
+        L = self.length
+        mf = mode_factor if self.mode_factor is None else self.mode_factor
+        mf = 2.0 if mf is None else mf
+        kap = self.curvature
+        if isinstance(kap, ConstantCurvature):
+            kap = kap.kappa
+        if callable(kap):
+            kfun = GeometryFunction(kap, df=_zero, name="curvature")      # kappa' is not used by the V-I system
+            uniform = None
+        else:
+            kfun = float(kap)
+            uniform = [(0.0, L)]
+        return VariableGuide(L, a, b, kappa=kfun, plane=self.plane, guide=self.guide, mode_factor=mf,
+                             families=self.families, breakpoints=self.breakpoints, uniform=uniform, atol=self.atol,
+                             name=self.name)
+
+    def _gsm_evanescent(self, f, basis1):
+        """GSM with the evanescent modes coupled (VariableGuide's direct slice-GSM method, WF2)."""
+        chi = max(np.pi * np.hypot(m.m / basis1.a, m.n / basis1.b) for m in basis1.modes)
+        cf_port = chi / (2 * np.pi * f / cst.c)                    # cutoff factor reached by the port basis
+        vg = self._as_variable_guide(basis1.a, basis1.b, max(DEFAULT_MODE_FACTOR, 2.0 * cf_port))
+        g = vg.gsm(f, basis1, basis1)
+        out = GSM(g.S11, g.S12, g.S21, g.S22, basis1, basis1, f, self.name)
+        out.info = dict(route="VariableGuide", **g.info)
+        return out
+
+
+def _zero(z):
+    return np.zeros(np.shape(z))

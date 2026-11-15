@@ -664,8 +664,8 @@
       "reference": "2D FEM eigenmodes in helical coordinates (Nedelec/Lagrange order 3), mode matching at the end planes, cascade of constant-rate sections for variable rates with Richardson in 1/n^2 (helical_fem.py, ref_twist.py); no T3/T3b coupled-mode matrix",
       "data_file": "benchmarks/validation_v2/data/twist_<case>.npz",
       "tolerance": "0.01 dB on TE1,0; 1e-4 of the input power per spurious mode",
-      "test": "benchmarks/validation_v2/compare_v2.py twists; tests/adversarial/test_wp7b_references.py",
-      "status": "triangular passes (<= 7.4e-5); cosine passes at 15, 16.5 GHz, 1.6e-4 at 18 GHz; constant (4e-4), square 5 lambda (4.6e-3), strong twists (2.4e-4, 2.6e-2) NOT met at WP6's default: docs/discrepancies/2026-11-15-wp7b-twist-truncation.md"
+      "test": "benchmarks/validation_v2/compare_v2.py twists; benchmarks/validation_v2/compare_wf2.py twists; tests/adversarial/test_wp7b_references.py; tests/test_twist.py::test_default_against_helical_fem_reference",
+      "status": "met after WF2 (Twist internal list + quasi-static tail, defaults mode_factor 3 / 2): worst dP 9.0e-6 (constant), 1.2e-5 (cosine), 2.3e-5 (triangular), 6.1e-5 / 2.6e-6 (square 5 / 20 lambda), <= 1e-6 (tau a = 0.1); tau a = 0.5: 1.9e-4 at the default, 8e-5 / 2e-5 with mode_factor 4 / 6. Before WF2: docs/discrepancies/2026-11-15-wp7b-twist-truncation.md (Resolution)"
     },
     {
       "id": "wp7b-miter-fem-sweep",
@@ -696,9 +696,9 @@
       "reference_type": "independent method",
       "reference": "one Coplanar2D domain containing arc and miter (ref_evanescent_bends.py); decomposition into bend-model and zero-distance cascade errors",
       "data_file": "benchmarks/validation_v2/data/evanescent_bend_miter.npz",
-      "tolerance": "reported (no target)",
-      "test": "benchmarks/validation_v2/summarize_refs.py",
-      "status": "reported: Line [SmoothBend, Miter] at zero distance 2-3 % of the power off (evanescent modes of the bend uncoupled); FEM-arc cascade with cutoff factor 3 within 2e-4"
+      "tolerance": "WF2: 2e-4 (R = 2a) and 3e-5 (R = 10a) of the input power over the propagating block, at cutoff_factor 3",
+      "test": "benchmarks/validation_v2/summarize_refs.py; benchmarks/validation_v2/compare_wf2.py bends; tests/test_bend_evanescent_fem.py (fem job)",
+      "status": "met after WF2 (SmoothBend couples evanescent modes through VariableGuide): <= 1.7e-4 (R = 2a), <= 2.5e-5 (R = 10a) at cutoff_factor 3; before WF2 2-4e-2 / 4-6e-3"
     },
     {
       "id": "wp7b-marcuvitz-524a",
@@ -721,6 +721,28 @@
       "tolerance": "COMSOL mesh-check change + 0.02 dB; E4: + 1e-4 of the input power per output mode",
       "test": "tests/adversarial/test_wp7b_campaign2.py (synthetic exports)",
       "status": "script ready and tested; waiting for data"
+    },
+    {
+      "id": "wf2-smoothbend-propagating-bitwise",
+      "card": "WF2 item 2",
+      "component": "SmoothBend with propagating-mode bases (perfect and aluminium walls, H and E plane, sech and constant curvature, families separate and coupled; alone and in a Line)",
+      "reference_type": "closed form",
+      "reference": "frozen outputs of origin/main 7cb7cf1 (before WF2), tests/data/make_smoothbend_propagating.py",
+      "data_file": "tests/data/smoothbend_propagating.npz",
+      "tolerance": "bitwise equality",
+      "test": "tests/test_components.py::test_propagating_path_is_bitwise_unchanged",
+      "status": "met (14 GSMs bitwise equal)"
+    },
+    {
+      "id": "wf2-strangled-bend-port-bases",
+      "card": "WF2 item 3 (WP7b adversarial, WP5)",
+      "component": "StrangledBend in WR-90 at 60 GHz, 200 flat heights 1.5-2.6 mm; Taper port 2",
+      "reference_type": "closed form",
+      "reference": "CONVENTIONS.md section 3: both ports are the same guide, so basis2 == basis1 (same ordered modes)",
+      "data_file": "benchmarks/validation_v2/data/compare_wf2_ports.json",
+      "tolerance": "exact equality of the bases",
+      "test": "tests/adversarial/test_wp7b_adversarial.py::test_strangled_bend_port_bases_are_equal; tests/test_taper.py::test_port_bases_built_from_the_given_end_guides",
+      "status": "met after WF2 (0 of 200 differ; 25 before): docs/discrepancies/2026-11-15-wp7b-strangled-bend-port-basis-order.md (Resolution)"
     }
   ]
 }

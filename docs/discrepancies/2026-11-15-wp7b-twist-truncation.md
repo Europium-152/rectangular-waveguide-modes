@@ -78,3 +78,34 @@ agree to 7e-8). The remaining 2 % relative difference in TE1,2 at 18 GHz is insi
    report, and keep the default.
 2. The 2 % relative difference of TE1,2 in the triangular twist at 18 GHz (8e-5 absolute, inside the tolerance) is
    recorded for E4: COMSOL's per-mode powers can resolve it only if their mesh check reaches ~5e-5.
+
+## Resolution (WF2, 15 Nov 2026)
+
+Decision 1 (a), as accepted by Daniel on 15 Nov 2026 (card `tasks/WF2-wave2-fixes.md`, item 1); implemented in
+`src/wrmodes/components/twist.py`, report `docs/reports/WF2.md`, comparison `benchmarks/validation_v2/compare_wf2.py`
+(REPORT.md, "After WF2"). The helical-FEM reference is unchanged.
+
+* **Cause.** The V-I form of the twist equations has the structure of the taper system of T2b, and the slow
+  convergence has the same origin as there (T2b section 7): on the helicoidal walls H_n = w_n H_z, while every basis
+  field has H_n = 0, so the currents of the high TE modes answer the twist quasi-statically (Z_q = omega mu0 does not
+  grow with q). This holds for any rate; it is not an O((tau/k)^2) effect, and the WP6 docstring's statement is
+  corrected.
+* **Fix.** `Twist` solves on an internal list larger than its port bases (`mode_factor`; default 3 f for constant and
+  2 f for variable rates, chosen from the convergence below) and eliminates every mode outside it quasi-statically,
+  Y -> Y - theta'^2 Q (`twist_tail_matrix`: the B5' correction of T2b with the factor r of a harmonic drive, the
+  lattice sum extrapolated in 1/R). Q is real symmetric, so the GSM stays reciprocal and lossless to round-off. The
+  port bases are the line's; `tail=False, mode_factor=1` is WP6's model.
+* **Result at the defaults** (worst ΔP per mode, incident TE1,0): Doane constant 5.1e-6 / 1.1e-6 / 9.0e-6, cosine
+  2.4e-6 / 1.3e-6 / 1.2e-5, triangular 5.7e-6 / 1.4e-5 / 2.3e-5 at 15 / 16.5 / 18 GHz; square guide 6.1e-5 (5 λ) and
+  2.6e-6 (20 λ); τa = 0.1 3.1e-7 / 9.6e-7 (15 / 30 GHz). τa = 0.5 at 30 GHz: 1.9e-4 at the default, 8.0e-5 with
+  mode_factor 4 and 2.0e-5 with 6 (documented in the docstring). All within 0.01 dB on TE1,0.
+* **Convergence** (Doane constant, 15 GHz, with the tail): mode_factor 1.5 / 2 / 3 / 4: 5.2e-5 / 1.3e-5 / 5.1e-6 /
+  2.5e-6 (without the tail 2.2e-4 / 2.2e-4 / 1.4e-4 / 1.4e-4); `convergence_study` reports both and the Richardson
+  extrapolation of the plain series in 1/chi_max, which agrees with the tail result to 1.5e-5 (TE2,1).
+* **Point 2** (the 2 % TE1,2 difference of the triangular twist at 18 GHz): it was the truncation; at the default
+  TE1,2 is 0.3739 % against the reference's 0.3761 % (WP6: 0.3836 %).
+* **Cost.** Doane's three twists at 15, 16.5, 18 GHz: 169 s at the defaults on the 2-core container (constant
+  1.5 s, cosine 84 s, triangular 84 s), against about 1 s per variable-rate GSM before. mode_factor 1 with the tail
+  costs about 1 s and is 1.5e-4 off for the triangular twist at 18 GHz.
+* Tests: the strict xfail `test_doane_constant_twist_against_helical_fem_15GHz` passes (marker removed); new tests in
+  `tests/test_twist.py` compare the defaults with the stored references.

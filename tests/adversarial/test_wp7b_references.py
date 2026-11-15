@@ -92,8 +92,9 @@ def test_doane_triangular_twist_against_helical_fem(f):
     check(ref, tw.gsm(f), "TE1,0")
 
 
-@pytest.mark.xfail(strict=True, reason="docs/discrepancies/2026-11-15-wp7b-twist-truncation.md")
 def test_doane_constant_twist_against_helical_fem_15GHz():
+    """Strict xfail until WF2 (docs/discrepancies/2026-11-15-wp7b-twist-truncation.md, Resolution): 4.1e-4 at WP6's
+    default, 5e-6 at WF2's (internal list to 3 f, quasi-static tail)."""
     ref, c = _twist_ref("doane_constant", 15e9)
     tw = wr.Twist(90, c["L"], profile="constant", guide=Guide(c["a"], c["b"]))
     check(ref, tw.gsm(15e9), "TE1,0")

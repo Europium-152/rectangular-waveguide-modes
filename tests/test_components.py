@@ -98,31 +98,83 @@ def test_evanescent_modes_are_exact_in_the_straight_limit():
     basis = WR90.basis(f, 1.6)
     assert (~basis.propagating_mask(f)).sum() >= 3
     g = SmoothBend(0.3, ConstantCurvature(0.0), guide=WR90).gsm(f, basis)
+    assert g.info["route"] == "VariableGuide"
     assert np.allclose(g.S, straight(basis, f, 0.3).S, atol=1e-12, rtol=0)
 
 
+def test_propagating_path_is_bitwise_unchanged():
+    """WF2 item 2: with propagating-mode bases SmoothBend keeps its transfer-matrix route, unchanged (frozen outputs
+    of origin/main before WF2, tests/data/make_smoothbend_propagating.py)."""
+    import json
+    import os
+    import sys
+    here = os.path.join(os.path.dirname(__file__), "data")
+    sys.path.insert(0, here)
+    try:
+        import make_smoothbend_propagating as mk
+    finally:
+        sys.path.pop(0)
+    with np.load(os.path.join(here, "smoothbend_propagating.npz")) as z:
+        ref = {k: z[k] for k in z.files}
+    assert json.loads(str(ref.pop("meta")))["git_commit"].startswith("7cb7cf1")
+    new = mk.compute()
+    assert sorted(new) == sorted(ref)
+    # Bitwise on the machine that froze them (checked by WF2 against a separate origin/main checkout). Across
+    # platforms the BLAS/LAPACK of a star product rounds differently in the last bits (PR #29 CI: one Line case on
+    # macOS, Windows and Python 3.9), so the frozen comparison allows a few ulps.
+    for k in ref:
+        assert np.array_equal(new[k], ref[k]) or np.allclose(new[k], ref[k], rtol=1e-12, atol=1e-15), k
+
+
 @pytest.mark.parametrize("plane", ["H", "E"])
-def test_propagating_result_does_not_depend_on_evanescent_modes(plane):
+def test_evanescent_modes_are_coupled(plane):
+    """WF2 item 2: with evanescent modes in the basis the bend is solved as a VariableGuide (curvature kappa(z),
+    constant a, b): the evanescent modes are coupled to the propagating ones, the GSM is reciprocal, lossless and
+    symmetric. For the 40 cm 90 deg sech bend at 40 GHz the TE1,0 (H) / TE0,1 (E) column of the propagating block
+    moves by < 1.4e-7 in power from the propagating-only result; entries between high-order modes near the
+    degenerate TE2,2 / TM2,2 pair (H) or TM1,5 (E) move by 2.8e-4 / 4.8e-4 (converged in the internal list)."""
     f = 40e9
     bend = SmoothBend(0.4, SechCurvature(90, 0.4), plane=plane, guide=WR90)
     g1 = bend.gsm(f)
-    b15 = WR90.basis(f, 1.6, plane=plane)
-    g15 = bend.gsm(f, b15)
-    ev = ~b15.propagating_mask(f)
+    b16 = WR90.basis(f, 1.6, plane=plane)
+    g16 = bend.gsm(f, b16)
+    assert g16.info["route"] == "VariableGuide" and g16.basis1 == b16 == g16.basis2
+    ev = ~b16.propagating_mask(f)
     assert ev.sum() >= 3
-    idx = [b15.index(m) for m in g1.basis1]
-    assert np.array_equal(g15.S21[np.ix_(idx, idx)], g1.S21) and np.array_equal(g15.S11[np.ix_(idx, idx)], g1.S11)
-    # evanescent modes: uncoupled, straight, no reflection
-    beta = b15.beta(f)
-    e = np.where(ev)[0]
-    assert np.allclose(np.diag(g15.S21)[e], np.exp(-1j * beta[e] * 0.4), rtol=1e-14, atol=0)
-    assert np.all(g15.S11[e] == 0) and np.all(g15.S21[np.ix_(e, ~ev)] == 0)
-    assert_lossless(g15)
-    assert g15.reciprocity_defect() == 0 or g15.reciprocity_defect() < 1e-12
+    assert np.abs(g16.S21[np.ix_(ev, ~ev)]).max() > 1e-8          # coupled now (WP1: exactly zero)
+    assert_lossless(g16)
+    assert np.max(np.abs(g16.S11 - g16.S22)) < 1e-9                # symmetric sech profile, one family per class
+    idx = [b16.index(m) for m in g1.basis1]
+    D = np.abs(np.abs(g16.S21[np.ix_(idx, idx)]) ** 2 - np.abs(g1.S21) ** 2)
+    j = g1.basis1.index("TE1,0" if plane == "H" else "TE0,1")
+    assert D[:, j].max() < 1e-6 and D.max() < 1e-3, (D[:, j].max(), D.max())
+
+
+def test_evanescent_route_is_variable_guide():
+    """The delegation is exact: the GSM equals VariableGuide(L, a, b, kappa) on the same bases, internal cutoff
+    factor twice that of the port basis."""
+    f = 30e9
+    L, R = 0.05, 0.05
+    bend = SmoothBend(L, ConstantCurvature(1 / R), guide=WR90)
+    b = WR90.basis(f, 2.0)
+    g = bend.gsm(f, b)
+    cf = max(np.pi * np.hypot(m.m / b.a, m.n / b.b) for m in b.modes) / (2 * np.pi * f / 299792458.0)
+    vg = wr.VariableGuide(L, b.a, b.b, kappa=1 / R, plane="H", guide=WR90, uniform=[(0, L)], mode_factor=2 * cf)
+    h = vg.gsm(f, b, b)
+    assert np.array_equal(g.S, h.S)
+    assert g.info["mode_factor"] == pytest.approx(2 * cf)
+
+
+def test_lossy_bend_with_evanescent_modes_is_passive_and_reciprocal():
+    lossy = Guide(WR90.w, WR90.h, 3.5e7)
+    f = 30e9
+    g = SmoothBend(0.1, ConstantCurvature(1 / 0.1), plane="E", guide=lossy).gsm(f, lossy.basis(f, 1.5, plane="E"))
+    assert g.reciprocity_defect() <= TOL * np.abs(g.S).max() and 0 < g.passivity_margin() < 0.05
 
 
 def test_e_plane_bend_with_families_without_propagating_modes():
-    """The line's E-frame basis can contain local families that are entirely evanescent."""
+    """The line's E-frame basis can contain local families that are entirely evanescent; they are coupled within
+    the family by the curvature, and decay like the straight evanescent modes."""
     f = 40e9
     be = WR90.basis(f, 1.6, plane="E")
     prop = be.propagating_mask(f)
@@ -131,7 +183,8 @@ def test_e_plane_bend_with_families_without_propagating_modes():
     g = SmoothBend(0.4, SechCurvature(60, 0.4), plane="E", guide=WR90).gsm(f, be)
     for n in dead:
         i = be.family(n)
-        assert np.allclose(g.S21[np.ix_(i, i)], np.diag(np.exp(-1j * be.beta(f)[i] * 0.4)), rtol=1e-14, atol=0)
+        assert np.abs(g.S21[np.ix_(i, i)]).max() < 1e-30            # decayed over 0.4 m, as e^(-|beta| L)
+        assert np.abs(g.S21[np.ix_(i, prop)]).max() == 0             # no coupling to other families
     assert_lossless(g)
 
 

@@ -98,6 +98,10 @@ down are `tests/test_conventions.py` and `tests/test_gsm.py`. The derivation beh
   cutoff of a mode they couple, `cutoff_factor = 1` can drop a mode that matters (about 5 % of the second-order
   conversion of Doane & Anderson's triangular twist at 16.5 GHz, WP6): studies with twists show convergence in
   `cutoff_factor` there.
+* Components whose mode series converges slowly (about like $1/\chi_{max}$: tapers, twists) solve on an **internal**
+  mode list larger than their port bases (`mode_factor`) and correct for the modes outside it with a closed-form
+  tail (B5′ for tapers, T2b §7; `twist_tail_matrix` for twists, WF2). The port bases stay the line's; the
+  docstring states the measured convergence of the defaults.
 
 ## 4. Mode fields
 
@@ -231,6 +235,11 @@ reflects near-cutoff modes.
 Zero-length cascades (two components joined without a straight between them) depend on the evanescent entries of
 both GSMs: those entries must be converged (mesh and mode count), and every component must couple the families
 it shares with its neighbour (a component that treats a family as uncoupled is not interchangeable there).
+Components couple the evanescent modes they are given (WF2: `SmoothBend` does so through the slice-GSM method when
+its bases carry evanescent modes). `Line` issues one `EvanescentJunctionWarning` per line when two components other
+than `Straight` and `FrameChange` are joined "directly", i.e. with less than three decay lengths of the
+least-attenuated evanescent mode between them, while the bases there carry no evanescent modes; the cure is a
+larger `cutoff_factor`.
 
 A component counts as validated when an agent that did not write it reproduces its results with a different
 method, within these targets (see `tasks/README.md`).

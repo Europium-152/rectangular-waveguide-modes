@@ -515,20 +515,28 @@ class VariableGuide(Component):
     def _local_to_guide(self, a, b, sigma):
         return Guide(a, b, sigma) if self.plane == "H" else Guide(b, a, sigma)
 
+    def _end_sides(self):
+        """Local sides ((a(0), b(0)), (a(L), b(L))) of the port guides, from the geometry functions. Subclasses whose
+        end sides are given exactly (`Taper`, `StrangledBend`) return the given values, so that both port bases are
+        built from exactly the guides the user specified (the profile evaluated at z = L can differ by a rounding
+        error, which reorders exactly degenerate modes)."""
+        g = _Geometry(self, [0.0, self.length])
+        return (float(g.a[0]), float(g.b[0])), (float(g.a[1]), float(g.b[1]))
+
     @property
     def guides(self):
         """(input Guide, output Guide) in the global frame, or None if the component has no guide yet (a `Line`
         then attaches its current guide)."""
         if self.guide is None:
             return None
-        g = _Geometry(self, [self.length])
-        return self.guide, self._local_to_guide(g.a[0], g.b[0], self.guide.sigma)
+        (_, _), (a2, b2) = self._end_sides()
+        return self.guide, self._local_to_guide(a2, b2, self.guide.sigma)
 
     def _guides(self):
         if self.guide is not None:
             return self.guides
-        g = _Geometry(self, [0.0, self.length])
-        return self._local_to_guide(g.a[0], g.b[0], None), self._local_to_guide(g.a[1], g.b[1], None)
+        (a1, b1), (a2, b2) = self._end_sides()
+        return self._local_to_guide(a1, b1, None), self._local_to_guide(a2, b2, None)
 
     @property
     def centre_line_length(self):
@@ -1028,6 +1036,9 @@ class Taper(VariableGuide):
         super().__init__(L, a, b, u0=u0, v0=v0, plane=plane, guide=guide, **kw)
         self._attached = guide is not None
 
+    def _end_sides(self):
+        return (self.a1, self.b1), (self.a2, self.b2)
+
     @property
     def guides(self):
         if not self._attached:
@@ -1114,6 +1125,7 @@ class StrangledBend(VariableGuide):
             h, w = 2 * self.b_flat, 1.0               # placeholder until attached
         else:
             h, w = guide.h, guide.w
+        self._h, self._w = float(h), float(w)
         if self._attached and not self.b_flat < h:
             raise ValueError("b_flat must be smaller than the guide height")
         Lt, fl = self.taper_length, self.flat_length
@@ -1134,6 +1146,10 @@ class StrangledBend(VariableGuide):
                               f"b1 = {self.b_flat:g} m")
         super().__init__(L, a, w, kappa=kappa, plane="E", guide=guide, breakpoints=bps, uniform=uniform, **kw)
         self.z_marks = (0.0, z1, z2, z3, z4, L)
+
+    def _end_sides(self):
+        # both ports are the full-height guide: local a = h, b = w (E frame), exactly as given
+        return (self._h, self._w), (self._h, self._w)
 
     @property
     def guides(self):

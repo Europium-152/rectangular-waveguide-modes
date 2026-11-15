@@ -78,11 +78,11 @@ def test_strangled_bend_flat_guide_just_below_and_above_a_cutoff(side):
     assert abs(g.S21[i, i]) ** 2 + np.sum(np.abs(g.S11[:, i]) ** 2) <= 1 + 1e-8
 
 
-@pytest.mark.xfail(strict=True, reason="docs/discrepancies/2026-11-15-wp7b-strangled-bend-port-basis-order.md")
 def test_strangled_bend_port_bases_are_equal():
     """Both ports of a StrangledBend are the same full-height guide, so basis2 == basis1 (CONVENTIONS 3) and two
     GSMs cascade directly. WR-90 in the E frame has exactly degenerate pairs (22.86 = 2.25 x 10.16 mm: local TE4,0
-    and TE0,9 at 59.02 GHz); a port-2 height that differs from h by one rounding error reorders them."""
+    and TE0,9 at 59.02 GHz); a port-2 height that differs from h by one rounding error reorders them.
+    Fixed by WF2 (docs/discrepancies/2026-11-15-wp7b-strangled-bend-port-basis-order.md, Resolution)."""
     f = 60e9
     unequal = [b1 for b1 in np.linspace(1.5e-3, 2.6e-3, 200)
                if _differ(*wr.StrangledBend(90, 0.05, b1, 0.03, guide=Guide(W90, H90)).default_basis(f))]
@@ -122,14 +122,21 @@ def test_taper_turned_around_equals_the_reverse_taper():
 # ----------------------------------------------------------------------------------------------- WP6: twists
 def test_360_degree_twist_is_two_180_degree_twists():
     """A constant-rate 360 deg twist equals the cascade of two 180 deg halves (exact expm for a constant rate;
-    the co-rotating frame needs no frame change between them)."""
+    the co-rotating frame needs no frame change between them).
+
+    WF2: the twist solves on an internal list larger than the port basis (mode_factor) and drops the internal
+    evanescent modes at its ports, so the halves are joined in a basis that carries them (the internal list, all
+    families up to mode_factor * f); the propagating block of the cascade is then the full twist's."""
     g = Guide(W90, H90)
     f = 30e9
-    full = wr.Twist(360, 1.0, guide=g).gsm(f)
+    full = wr.Twist(360, 1.0, guide=g)
     half = wr.Twist(180, 0.5, guide=g)
-    two = half.gsm(f) @ half.gsm(f)
-    _finite_lossless(full, unit=1e-9)
-    assert np.max(np.abs(full.S - two.S)) < 1e-8
+    b = full.default_basis(f, cutoff_factor=full.mode_factor)[0]
+    assert full.solve_basis(f, b) == b
+    two = half.gsm(f, b) @ half.gsm(f, b)
+    one = full.gsm(f, b)
+    _finite_lossless(full.gsm(f), unit=1e-9)
+    assert np.max(np.abs(one.S - two.S)) < 1e-8
 
 
 def test_slow_360_degree_twist_is_nearly_adiabatic():

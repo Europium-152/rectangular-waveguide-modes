@@ -13,7 +13,8 @@ import scipy.constants as cst
 import wrmodes as wr
 from wrmodes.components import Guide, Straight, SmoothBend, SechCurvature, Twist, TwistProfile
 from wrmodes.components.twist import (twist_coupling_matrix, twist_system_matrices, helical_propagation_constants,
-                                      zero_length_twist_transfer_matrix, twist_gsm_blocks)
+                                      zero_length_twist_transfer_matrix, twist_gsm_blocks, twist_tail_matrix,
+                                      twist_tail_system_matrix, DEFAULT_MODE_FACTOR)
 from wrmodes.gsm import GSM, from_transfer_matrix
 from wrmodes.modes import ModeBasis, Mode, eplane_frame_signs
 
@@ -22,6 +23,10 @@ WR187_TALL = Guide(0.872 * INCH, 1.872 * INCH)          # a = 22.149 mm along u,
 L20 = 20 * INCH
 C = 8 / np.pi ** 2
 TOL = 1e-10
+LEGACY = dict(mode_factor=1.0, tail=False)
+"""WP6's model: the port basis completed, plain truncation (T3/T3b tables, Doane Fig. 9 discrepancy numbers)."""
+QUICK = dict(mode_factor=1.5)
+"""A cheaper internal list for property tests of variable rates (the tail is on)."""
 
 
 def assert_lossless(g, tol=TOL):
@@ -83,7 +88,7 @@ def test_square_guide_two_mode_law(profile, angle):
     g0 = Guide(0.02, 0.02)
     f, L = 10e9, 0.137
     prof = (lambda t: 1 + 0.7 * np.sin(3 * t) ** 2) if profile == "callable" else profile
-    tw = Twist(angle, L, prof, guide=g0, atol=1e-13)
+    tw = Twist(angle, L, prof, guide=g0, atol=1e-13, **LEGACY)          # the law of the two-mode system
     g = tw.gsm(f)
     assert g.basis1.names == ["TE0,1", "TE1,0"]
     beta = g.basis1.beta(f)[0].real
@@ -117,7 +122,7 @@ def test_finite_inverse_pair_tends_to_identity_for_long_twists():
     out = []
     for n in (5, 20, 80):
         L = n * lam
-        g = Twist(90, L, guide=WR187_TALL).gsm(f) @ Twist(-90, L, guide=WR187_TALL).gsm(f)
+        g = Twist(90, L, guide=WR187_TALL, **LEGACY).gsm(f) @ Twist(-90, L, guide=WR187_TALL, **LEGACY).gsm(f)
         assert_lossless(g)
         out.append(spurious(g))
     assert out[0] > out[1] > out[2] and out[2] < 2e-4
@@ -132,7 +137,7 @@ def test_zero_angle_is_a_straight(sigma, cf, profile):
     g0 = Guide(WR187_TALL.w, WR187_TALL.h, sigma=sigma)
     f, L = 15e9, 0.3
     basis = g0.basis(f, cf)
-    g = Twist(0.0, L, profile, guide=g0).gsm(f, basis)
+    g = Twist(0.0, L, profile, guide=g0, **QUICK).gsm(f, basis)
     s = Straight(L, guide=g0).gsm(f, basis)
     assert np.abs(g.S - s.S).max() < 1e-12
 
@@ -141,8 +146,9 @@ def test_zero_angle_is_a_straight(sigma, cf, profile):
 @pytest.mark.parametrize("profile", ["constant", "cosine", "triangular"])
 @pytest.mark.parametrize("f", [15e9, 18e9])
 def test_doane_twists_are_reciprocal_and_lossless(profile, f):
-    g = Twist(90, L20, profile, guide=WR187_TALL).gsm(f)
+    g = Twist(90, L20, profile, guide=WR187_TALL, **({} if profile == "constant" else QUICK)).gsm(f)
     assert_lossless(g)
+    assert g.info["tail"] and g.info["route"] == "gsm"
     assert g.basis1 == g.basis2 == WR187_TALL.basis(f)
 
 
@@ -150,7 +156,7 @@ def test_doane_twists_are_reciprocal_and_lossless(profile, f):
 def test_evanescent_basis_gsm_is_symmetric_and_unitary(profile):
     """GSM built directly with evanescent modes of all families (CONVENTIONS.md section 6)."""
     f = 15e9
-    tw = Twist(90, 0.2, profile, guide=WR187_TALL, cutoff_factor=1.3)
+    tw = Twist(90, 0.2, profile, guide=WR187_TALL, cutoff_factor=1.3, **QUICK)
     g = tw.gsm(f, WR187_TALL.basis(f, 1.3, evanescent_families="all"))
     assert g.info["route"] == "gsm"
     assert_lossless(g)
@@ -159,13 +165,13 @@ def test_evanescent_basis_gsm_is_symmetric_and_unitary(profile):
 def test_lossy_twist_is_passive_and_reciprocal():
     g0 = Guide(WR187_TALL.w, WR187_TALL.h, sigma=3.5e7)
     for profile in ("constant", "cosine"):
-        g = Twist(90, L20, profile, guide=g0).gsm(16e9)
+        g = Twist(90, L20, profile, guide=g0, **QUICK).gsm(16e9)
         assert g.reciprocity_defect() <= TOL * np.abs(g.S).max()
         m = g.passivity_margin()
         assert 0 < m < 1e-2
         # the TE1,0 attenuation is that of the straight guide to first order (the twist only redistributes power)
         s = Straight(L20, guide=g0).gsm(16e9)
-        lossless = Twist(90, L20, profile, guide=WR187_TALL).gsm(16e9)
+        lossless = Twist(90, L20, profile, guide=WR187_TALL, **QUICK).gsm(16e9)
         j = g.basis1.index("TE1,0")
         p_loss = 1 - np.sum(np.abs(g.S21[:, j]) ** 2) - np.sum(np.abs(g.S11[:, j]) ** 2)
         p_straight = 1 - np.abs(s.S21[j, j]) ** 2
@@ -187,10 +193,11 @@ def test_turning_a_twist_around_reverses_the_profile_and_keeps_the_angle():
     """T3 box T3-5: P S_swapped P of a twist is the twist with profile theta'(L - z) and the same angle."""
     f = 16e9
     ramp, pmar = (lambda t: 0.2 + t), (lambda t: 1.2 - t)
-    g = Twist(90, 0.3, ramp, guide=WR187_TALL, atol=1e-10).gsm(f).reversed()
-    h = Twist(90, 0.3, pmar, guide=WR187_TALL, atol=1e-10).gsm(f)
+    kw = dict(guide=WR187_TALL, atol=1e-10, mode_factor=1.3)            # with the tail (even in theta')
+    g = Twist(90, 0.3, ramp, **kw).gsm(f).reversed()
+    h = Twist(90, 0.3, pmar, **kw).gsm(f)
     assert np.abs(g.S - h.S).max() < 1e-9
-    h_neg = Twist(-90, 0.3, pmar, guide=WR187_TALL, atol=1e-10).gsm(f)
+    h_neg = Twist(-90, 0.3, pmar, **kw).gsm(f)
     assert np.abs(g.S - h_neg.S).max() > 1e-2
 
 
@@ -208,8 +215,8 @@ def test_named_profiles_and_callable_normalization():
     f = 17e9
     for shape, kind, bp in ((lambda t: 3 + 0 * t, "constant", None), (lambda t: np.sin(np.pi * t), "cosine", None),
                             (lambda t: np.minimum(t, 1 - t), "triangular", [0.5])):
-        g1 = Twist(90, L, shape, guide=WR187_TALL, breakpoints=bp, atol=1e-10).gsm(f)
-        g2 = Twist(90, L, kind, guide=WR187_TALL, atol=1e-10).gsm(f)
+        g1 = Twist(90, L, shape, guide=WR187_TALL, breakpoints=bp, atol=1e-10, mode_factor=1.3).gsm(f)
+        g2 = Twist(90, L, kind, guide=WR187_TALL, atol=1e-10, mode_factor=1.3).gsm(f)
         assert np.abs(g1.S - g2.S).max() < 1e-8
     with pytest.raises(ValueError):
         TwistProfile("raised", 1.0, 1.0)
@@ -234,7 +241,7 @@ def test_argument_and_frame_checks():
 
 # ======================================================================================== T3 / T3b tables
 # Total spurious power 1 - |S21(TE10, TE10)|^2 and the three largest converted modes, 20-inch 90 deg twists in tall
-# WR187, all propagating modes. Computed with T3's prototype (docs/theory/T3/twist_formulas.py, transfer_matrix,
+# WR187, all propagating modes (WP6's model: LEGACY, plain truncation). Computed with T3's prototype (docs/theory/T3/twist_formulas.py, transfer_matrix,
 # 2400 Magnus slices); T3 section 6 prints 1.387 / 0.697 / 2.140, 0.352 / 0.867 / 0.943, 0.114 / 0.247 / 0.603 %.
 T3_TABLE = {
     ("constant", 15.0): (1.386475e-02, {"TE0,1": 1.086379e-02, "TE0,3": 1.165684e-03, "TE2,1": 8.999142e-04}),
@@ -255,7 +262,7 @@ T3_PRINTED = {("constant", 15.0): 1.387, ("constant", 16.5): 0.697, ("constant",
 @pytest.mark.parametrize("key", sorted(T3_TABLE))
 def test_t3_full_basis_tables(key):
     profile, fghz = key
-    g = Twist(90, L20, profile, guide=WR187_TALL).gsm(fghz * 1e9)
+    g = Twist(90, L20, profile, guide=WR187_TALL, **LEGACY).gsm(fghz * 1e9)
     total, top = T3_TABLE[key]
     assert abs(spurious(g) / total - 1) < 1e-3
     assert abs(100 * spurious(g) - T3_PRINTED[key]) <= 0.001             # one unit of T3's last printed digit
@@ -273,7 +280,7 @@ def test_t3b_square_guide_full_basis():
     for two_a_over_lam, L_over_lam, prof, psi_ref in rows:
         lam = 2 * a / two_a_over_lam
         f = cst.c / lam
-        g = Twist(90, L_over_lam * lam, prof, guide=g0).gsm(f)
+        g = Twist(90, L_over_lam * lam, prof, guide=g0, **LEGACY).gsm(f)
         j = g.basis1.index("TE1,0")
         # field at the centre: e_10 along +v, e_01 along -u (T3b box 5); angle of the major axis of the polarization
         # ellipse, from +v towards -u (T3b's "local angle")
@@ -308,7 +315,7 @@ def test_doane_fig9_cosine_curve():
     d = _fig9()
     sel = d["curve"] == "cosine"
     x, y, u = d["x"][sel], d["y"][sel], d["uncertainty"][sel]
-    tw = Twist(90, L20, "cosine", guide=WR187_TALL)
+    tw = Twist(90, L20, "cosine", guide=WR187_TALL, **LEGACY)          # WF2 moves these by < 2e-5 of the power
     for fx in (15.25, 15.5, 16.0, 16.25):                             # 15.1-16.35 GHz within 1 sigma (15.025: 1.1)
         i = np.argmin(abs(x - fx))
         p = 100 * spurious(tw.gsm(x[i] * 1e9))
@@ -326,7 +333,7 @@ def test_doane_fig9_constant_curve():
     d = _fig9()
     sel = d["curve"] == "constant"
     x, y = d["x"][sel], d["y"][sel]
-    tw = Twist(90, L20, "constant", guide=WR187_TALL)
+    tw = Twist(90, L20, "constant", guide=WR187_TALL, **LEGACY)        # WF2: TE2,1 +0.04 % at 15 / 18 GHz
     te01, tot = [], []
     for xx in x:
         g = tw.gsm(xx * 1e9)
@@ -344,7 +351,7 @@ def test_doane_fig9_triangular_curve_open_issue():
     d = _fig9()
     sel = d["curve"] == "triangular"
     x, y = d["x"][sel], d["y"][sel]
-    tw = Twist(90, L20, "triangular", guide=WR187_TALL)
+    tw = Twist(90, L20, "triangular", guide=WR187_TALL, **LEGACY)      # WF2 moves these by < 2.3e-5
     for fx, lo, hi in ((15.025, 2.2, 2.6), (17.975, 3.8, 4.2)):
         i = np.argmin(abs(x - fx))
         assert lo < 100 * spurious(tw.gsm(x[i] * 1e9)) / y[i] < hi
@@ -357,11 +364,11 @@ def test_near_cutoff_sensitivity_at_16_5_ghz():
     1.001) the result is continuous through the cutoff. The constant twist's TE2,1 (0.61 %) is insensitive."""
     f = 16.5e9
     port = WR187_TALL.basis(f)
-    tri = Twist(90, L20, "triangular", guide=WR187_TALL)
+    tri = Twist(90, L20, "triangular", guide=WR187_TALL, **LEGACY)
     p1 = spurious(tri.gsm(f, port))
     p2 = spurious(tri.replace(cutoff_factor=1.001).gsm(f, port))
     assert abs(p1 - 2.4742e-3) < 2e-7 and abs(p2 - 2.6026e-3) < 2e-6
-    con = Twist(90, L20, "constant", guide=WR187_TALL)
+    con = Twist(90, L20, "constant", guide=WR187_TALL, **LEGACY)
     for cf in (1.0, 1.001, 1.5):
         g = con.replace(cutoff_factor=cf).gsm(f, port)
         p = abs(g.S21[port.index("TE2,1"), port.index("TE1,0")]) ** 2
@@ -407,14 +414,14 @@ def test_line_twist_bend_twist():
     (the y-z plane), returned to the input orientation. Runs with no new Line rule and conserves power."""
     f = 15e9
     bend = SmoothBend(0.3, SechCurvature(90, 0.3), plane="H")
-    line = wr.Line(WR187_TALL, [Twist(90, 0.4, "cosine"), bend, Twist(-90, 0.4, "cosine")])
+    line = wr.Line(WR187_TALL, [Twist(90, 0.4, "cosine", **QUICK), bend, Twist(-90, 0.4, "cosine", **QUICK)])
     assert not any(line.inserted)
     g = line.gsm(f)
     assert_lossless(g)
     # the line is the cascade of the parts in the line's (global) basis
     b = WR187_TALL.basis(f)
-    ref = Twist(90, 0.4, "cosine", guide=WR187_TALL).gsm(f, b) @ bend.with_guide(WR187_TALL).gsm(f, b) @ \
-        Twist(-90, 0.4, "cosine", guide=WR187_TALL).gsm(f, b)
+    ref = Twist(90, 0.4, "cosine", guide=WR187_TALL, **QUICK).gsm(f, b) @ bend.with_guide(WR187_TALL).gsm(f, b) @ \
+        Twist(-90, 0.4, "cosine", guide=WR187_TALL, **QUICK).gsm(f, b)
     assert np.abs(g.S - ref.S).max() < 1e-13
     # with an E-plane component the line inserts frame changes around it, not around the twist
     line2 = wr.Line(WR187_TALL, [Twist(90, 0.4), SmoothBend(0.3, SechCurvature(90, 0.3), plane="E"), Twist(-90, 0.4)])
@@ -425,34 +432,168 @@ def test_line_twist_bend_twist():
 def test_line_with_evanescent_modes_and_loss():
     f = 15e9
     lossy = Guide(WR187_TALL.w, WR187_TALL.h, sigma=3.5e7)
-    line = wr.Line(lossy, [Straight(0.05), Twist(45, 0.2, "triangular"), Straight(0.05)])
+    line = wr.Line(lossy, [Straight(0.05), Twist(45, 0.2, "triangular", **QUICK), Straight(0.05)])
     g = line.gsm(f, cutoff_factor=1.2)
     assert g.reciprocity_defect() <= TOL * np.abs(g.S).max() and g.passivity_margin() > 0
 
 
+# ======================================================================================== WF2: tail elimination
+def test_tail_matrix_properties():
+    """twist_tail_matrix: real symmetric, block diagonal in the parity classes (m mod 2, n mod 2), independent of
+    the order of the basis, converged in the outer radius after the 1/R extrapolation; refuses incomplete lists."""
+    f = 15e9
+    a, b = WR187_TALL.w, WR187_TALL.h
+    basis = ModeBasis.below(2.0 * f, a, b)
+    Q = twist_tail_matrix(basis, f)
+    assert Q.dtype == float and np.array_equal(Q, Q.T) and np.abs(Q).max() > 0
+    m = np.array([md.m for md in basis]) % 2
+    n = np.array([md.n for md in basis]) % 2
+    other = (m[:, None] != m[None, :]) | (n[:, None] != n[None, :])
+    assert not np.any(Q[other])
+    perm = ModeBasis(a, b, list(reversed(basis.modes)), sort=False)
+    Qp = twist_tail_matrix(perm, f)
+    idx = [perm.index(md) for md in basis.modes]
+    assert np.abs(Qp[np.ix_(idx, idx)] - Q).max() < 1e-12 * np.abs(Q).max()
+    Q2 = twist_tail_matrix(basis, f, radii=(12.0, 24.0))
+    assert np.abs(Q2 - Q).max() < 1e-3 * np.abs(Q).max()
+    assert np.abs(twist_tail_matrix(basis, f, dynamic=False) - Q).max() > 1e-3 * np.abs(Q).max()
+    with pytest.raises(ValueError):
+        twist_tail_matrix(ModeBasis(a, b, [md for md in basis.modes if md.name != "TE0,1"]), f)
+
+
+def test_tail_term_is_lossless_and_reciprocal():
+    """X2 = (i/2)[[W, W], [-W, -W]] with W real symmetric on propagating modes: X2^H J + J X2 = 0 (J = diag(I, -I),
+    power) and X2^T K + K X2 = 0 (K = [[0, I], [-I, 0]], reciprocity), the two conditions D and X of T3b box 4 meet."""
+    f = 16e9
+    basis = WR187_TALL.basis(f)
+    X2 = twist_tail_system_matrix(basis, f, twist_tail_matrix(basis, f))
+    N = len(basis)
+    J = np.diag(np.r_[np.ones(N), -np.ones(N)])
+    assert np.abs(X2.conj().T @ J + J @ X2).max() < 1e-12 * np.abs(X2).max()
+    K = np.block([[np.zeros((N, N)), np.eye(N)], [-np.eye(N), np.zeros((N, N))]])
+    assert np.abs(X2.T @ K + K @ X2).max() < 1e-12 * np.abs(X2).max()
+    d, X = twist_system_matrices(basis, f)
+    assert np.abs(X.T @ K + K @ X).max() < 1e-12 * np.abs(X).max()
+
+
+def test_tail_constant_rate_expm_equals_sliced_route():
+    """A constant rate given as a callable shape goes through the Magnus slices with the theta'^2 X2 term; it must
+    agree with the exact expm route (and both carry the tail)."""
+    f, L = 16e9, 0.3
+    kw = dict(guide=WR187_TALL, mode_factor=1.3, atol=1e-10)
+    g1 = Twist(90, L, "constant", **kw).gsm(f)
+    g2 = Twist(90, L, lambda t: 1 + 0 * t, **kw).gsm(f)
+    assert g1.info["n_slices"] != g2.info["n_slices"]
+    assert np.abs(g1.S - g2.S).max() < 1e-8
+
+
+def test_default_mode_factors():
+    assert Twist(90, 0.2).mode_factor == DEFAULT_MODE_FACTOR["constant"] == 3.0
+    assert Twist(90, 0.2, "cosine").mode_factor == DEFAULT_MODE_FACTOR["variable"] == 2.0
+    assert Twist(90, 0.2, mode_factor=1.7).replace(angle_deg=45).mode_factor == 1.7
+    with pytest.raises(ValueError):
+        Twist(90, 0.2, mode_factor=0.5)
+
+
+def _helical_reference(name, f):
+    """WP7b's stored GSM (main setting) of case `name` at the frequency closest to f: (data, key, names, geometry,
+    exact frequency)."""
+    import json
+    path = os.path.join(os.path.dirname(__file__), "..", "benchmarks", "validation_v2", "data", f"twist_{name}.npz")
+    with np.load(path, allow_pickle=False) as z:
+        d = {k: z[k] for k in z.files}
+    meta = json.loads(str(d["meta"]))
+    fe = [r["f"] for r in meta["rows"] if r["tag"] == "main" and abs(r["f"] - f) < 1e7][0]
+    key = f"{name}_f{fe / 1e9:g}_main"
+    return d, key, [str(s) for s in d[f"{key}_names"]], meta["geometry"], fe
+
+
+def _worst_dP(g, d, key, names):
+    """Worst | |S|^2 difference | over the modes converted from TE1,0 (transmitted and reflected), and the TE1,0
+    transmission difference in dB."""
+    i_r, i_t = names.index("TE1,0"), g.basis1.index("TE1,0")
+    out = 0.0
+    for blk in ("S21", "S11"):
+        for j, n in enumerate(names):
+            if blk == "S21" and n == "TE1,0":
+                continue
+            out = max(out, abs(abs(getattr(g, blk)[g.basis1.index(n), i_t]) ** 2 - abs(d[f"{key}_{blk}"][j, i_r]) ** 2))
+    main = 20 * np.log10(abs(g.S21[i_t, i_t]) / abs(d[f"{key}_S21"][i_r, i_r]))
+    return out, main
+
+
+@pytest.mark.parametrize("name,f,tol", [("doane_constant", 15e9, 1.5e-5), ("doane_constant", 18e9, 1.5e-5),
+                                        ("square_const_5lam", 12.49e9, 8e-5), ("square_const_20lam", 12.49e9, 1e-5),
+                                        ("strong_tau0p1", 15e9, 2e-6), ("strong_tau0p1", 30e9, 3e-6)])
+def test_default_against_helical_fem_reference(name, f, tol):
+    """WF2 item 1: at the default settings the constant-rate twists are within the CONVENTIONS section 8 tolerance
+    (1e-4 of the input power per mode, 0.01 dB) of WP7b's helical-coordinate FEM (benchmarks/validation_v2), with
+    the margins measured here (tol); WP6's default was 4e-4 (Doane), 4.6e-3 (square, 5 lambda), 2.4e-4 (tau a = 0.1,
+    30 GHz) off."""
+    d, key, names, c, fe = _helical_reference(name, f)
+    g = Twist(90, c["L"], "constant", guide=Guide(c["a"], c["b"])).gsm(fe)
+    dP, ddb = _worst_dP(g, d, key, names)
+    assert dP < tol and abs(ddb) < 0.01, (dP, ddb)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("profile", ["cosine", "triangular"])
+def test_default_variable_rates_against_helical_fem_reference_18GHz(profile):
+    """Cosine and triangular rates at 18 GHz (the worst frequency): 1.2e-5 and 2.3e-5 at the default (WP6's: 1.6e-4
+    and 7.4e-5; the triangular twist's unexplained 2 % in TE1,2 was the truncation)."""
+    d, key, names, c, _ = _helical_reference(f"doane_{profile}", 18e9)
+    g = Twist(90, c["L"], profile, guide=Guide(c["a"], c["b"])).gsm(18e9)
+    dP, ddb = _worst_dP(g, d, key, names)
+    assert dP < 4e-5 and abs(ddb) < 0.01, dP
+
+
+@pytest.mark.slow
+def test_strong_twist_option_reaches_the_tolerance():
+    """tau a = 0.5 (WR-90, 90 deg in 71.8 mm, 30 GHz): 1.9e-4 at the default mode_factor 3, 2e-5 with 6."""
+    d, key, names, c, _ = _helical_reference("strong_tau0p5", 30e9)
+    tw = Twist(90, c["L"], "constant", guide=Guide(c["a"], c["b"]))
+    dP3, _ = _worst_dP(tw.gsm(30e9), d, key, names)
+    dP6, ddb = _worst_dP(tw.replace(mode_factor=6.0).gsm(30e9), d, key, names)
+    assert 1e-4 < dP3 < 3e-4 and dP6 < 4e-5 and abs(ddb) < 0.01
+
+
 # ======================================================================================== convergence, timing
 def test_convergence_study_runs():
+    """Rows per mode factor with and without the tail, and the Richardson extrapolation of the plain series in
+    1/chi_max (WF2); the LEGACY row is T3's table value."""
     tw = Twist(90, L20, "constant", guide=WR187_TALL)
-    res = tw.convergence_study(15e9, cutoff_factors=(1.0, 1.3))
-    assert [r[0] for r in res["modes"]] == [1.0, 1.3] and res["modes"][1][1] > res["modes"][0][1]
-    assert abs(res["modes"][0][3]["spurious"] - T3_TABLE[("constant", 15.0)][0]) < 1e-4
+    res = tw.convergence_study(15e9, mode_factors=(1.0, 3.0, 4.0))
+    rows = res["modes"]
+    assert [(r["mode_factor"], r["tail"]) for r in rows] == [(1.0, True), (3.0, True), (4.0, True), (1.0, False),
+                                                             (3.0, False), (4.0, False)]
+    assert rows[1]["n_modes"] > rows[0]["n_modes"]
+    assert abs(rows[3]["powers"]["spurious"] - T3_TABLE[("constant", 15.0)][0]) < 1e-4
+    ref = 1.31251e-3                                                  # WP7b helical FEM, TE2,1
+    assert abs(res["best"]["TE2,1"] - ref) < 2e-6
+    assert abs(res["extrapolated"]["TE2,1"] - ref) < 2e-5 and res["change"] < 3e-5
+    assert abs(rows[5]["powers"]["TE2,1"] - ref) > 1e-4               # the plain series at 4 f is still far off
 
 
 @pytest.mark.slow
 def test_convergence_study_variable_rate():
     tw = Twist(90, L20, "triangular", guide=WR187_TALL)
-    res = tw.convergence_study(15e9, cutoff_factors=(1.0, 1.5), slice_factors=(1, 2))
+    res = tw.convergence_study(15e9, mode_factors=(1.5, 2.0), tails=(True,), slice_factors=(1, 2))
     p = [r[1]["spurious"] for r in res["slices"]]
     assert abs(p[1] - p[0]) < 1e-6
-    q = [r[3]["spurious"] for r in res["modes"]]
-    assert abs(q[1] / q[0] - 1) < 0.1
+    q = [r["powers"]["spurious"] for r in res["modes"]]
+    assert abs(q[1] / q[0] - 1) < 0.05 and res["change"] < 2e-5
 
 
 @pytest.mark.slow
 def test_timing_doane_twist():
-    """One 20-inch triangular twist at 18 GHz (23 modes): about 0.6 s on a laptop. Strict 2 s only with
-    WRMODES_PERF=1; otherwise a 10x regression guard (CI runners are 2-3x slower)."""
-    limit = 2.0 if os.environ.get("WRMODES_PERF") else 20.0
+    """One 20-inch triangular twist at 18 GHz. WP6's model (23 modes): about 0.6 s on a laptop; WF2's default
+    (internal list to 2 f, 96 modes, tail): about 45 s on the 2-core container. Strict limits (2 s, 60 s) only with
+    WRMODES_PERF=1; otherwise 10x and 4x guards (CI runners are 2-3x slower)."""
+    perf = bool(os.environ.get("WRMODES_PERF"))
     t = time.perf_counter()
+    Twist(90, L20, "triangular", guide=WR187_TALL, **LEGACY).gsm(18e9)
+    assert time.perf_counter() - t < (2.0 if perf else 20.0)
+    t = time.perf_counter()
+    Twist(90, L20, "constant", guide=WR187_TALL).gsm(18e9)
     Twist(90, L20, "triangular", guide=WR187_TALL).gsm(18e9)
-    assert time.perf_counter() - t < limit
+    assert time.perf_counter() - t < (60.0 if perf else 240.0)

@@ -1,0 +1,16 @@
+{
+ "meta": {
+  "created": "2026-11-15",
+  "generator": "benchmarks/validation_v2/compare_wf2.py",
+  "git_commit": "49ebb5e71196564101c361d91452f5666769d48d",
+  "part": "ports",
+  "wrmodes_version": "1.0.0a1"
+ },
+ "results": [
+  {
+   "part": "ports",
+   "unequal": 0,
+   "heights": 200
+  }
+ ]
+}

@@ -30,10 +30,11 @@ for profile in ("constant", "cosine", "triangular"):
               + ", ".join(f"{n} {100 * v:.3f} %" for v, n in top))
 
 # Convergence in the number of modes (evanescent modes of all families) and in the slicing
-study = Twist(90, L, "triangular", guide=guide).convergence_study(15e9, cutoff_factors=(1.0, 1.3))
-print("\nconvergence, triangular twist at 15 GHz:")
-for cf, n, sl, pw in study["modes"]:
-    print(f"  cutoff_factor {cf:4.2f}: {n:3d} modes, {sl:5d} slices, spurious {100 * pw['spurious']:.4f} %")
+study = Twist(90, L, "triangular", guide=guide).convergence_study(15e9, mode_factors=(1.0, 1.5), tails=(True,))
+print("\nconvergence, triangular twist at 15 GHz (internal list, quasi-static tail on):")
+for r in study["modes"]:
+    print(f"  mode_factor {r['mode_factor']:4.2f}: {r['n_modes']:3d} modes, {r['n_slices']:5d} slices, "
+          f"spurious {100 * r['powers']['spurious']:.4f} %")
 for sl, pw in study["slices"]:
     print(f"  {sl:5d} slices: spurious {100 * pw['spurious']:.6f} %")
 

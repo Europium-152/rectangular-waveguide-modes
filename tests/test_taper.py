@@ -313,6 +313,35 @@ def test_strangled_bend_symmetry_and_frames():
     assert abs(abs(Gl.S21[j, j]) - abs(G.S21[G.basis2.index("TE0,1"), G.basis1.index("TE0,1")])) < 1e-12
 
 
+def test_port_bases_built_from_the_given_end_guides():
+    """WF2 item 3 (docs/discrepancies/2026-11-15-wp7b-strangled-bend-port-basis-order.md): both ports of a
+    StrangledBend are the given guide, exactly (not the profile evaluated at z = L, which can be one rounding error
+    off and reorder the exactly degenerate local TE4,0 / TE0,9 of WR-90 in the E frame). The GSM then cascades with
+    itself and its own reversal, and a Taper's port 2 is exactly (a2, b2)."""
+    f = 60e9
+    b1 = cst.c / (2 * f) * (1 - 1e-3) ** -1                # 2.5008 mm: a(L) = 0.010159999999999999 from the profile
+    sb = StrangledBend(90, 0.05, b1, 0.03, guide=WR90)
+    assert sb.guides == (WR90, WR90) and sb.guides[1].h == WR90.h and sb.guides[1].w == WR90.w
+    b_1, b_2 = sb.default_basis(f)
+    assert b_1 == b_2 and b_1.names == b_2.names
+    assert b_1.index("TE4,0") < b_1.index("TE0,9") and b_2.index("TE4,0") < b_2.index("TE0,9")
+    t = Taper(0.05, 1.6e-3, 22.86e-3, "raised_cosine", guide=WR90, plane="E")
+    assert t.guides[1] == Guide(22.86e-3, 1.6e-3) and t.guides[1].h == 1.6e-3
+    assert t.default_basis(30e9)[1] == Guide(22.86e-3, 1.6e-3).basis(30e9, plane="E")
+
+
+@pytest.mark.slow
+def test_strangled_bend_gsm_cascades_with_itself():
+    f = 60e9
+    b1 = cst.c / (2 * f) * (1 - 1e-3) ** -1
+    g = StrangledBend(90, 0.05, b1, 0.03, guide=WR90).gsm(f)
+    assert g.basis2 == g.basis1 and g.basis2.names == g.basis1.names
+    gg = g @ g
+    assert gg.reciprocity_defect() < 1e-10 * np.abs(gg.S).max() and gg.unitarity_defect() < 1e-9
+    r = g.reversed()
+    assert r.basis1 == g.basis1 and np.max(np.abs(r.S11 - g.S11)) < 1e-9     # symmetric: its own reversal
+
+
 def test_taper_in_a_line_changes_guide():
     f = 18e9
     ln = Line(WR90, [Straight(0.01), Taper(0.1, 30e-3, 10.16e-3, "raised_cosine"), Straight(0.02),

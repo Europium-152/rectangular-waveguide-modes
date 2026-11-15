@@ -21,6 +21,10 @@ from _meta import meta, save  # noqa: E402
 
 from wrmodes.components import Guide, Twist  # noqa: E402
 
+WP6 = dict(mode_factor=1.0, tail=False)
+"""WP6's model (port basis completed, plain truncation): this script records WP6's results; WF2 changed the
+Twist defaults (internal list, quasi-static tail; docs/reports/WF2.md)."""
+
 INCH = 0.0254
 A, B, L = 0.872 * INCH, 1.872 * INCH, 20 * INCH
 GUIDE = Guide(A, B)
@@ -40,7 +44,7 @@ def main():
         port = GUIDE.basis(f)
         j = port.index("TE1,0")
         for k, cf in enumerate(CFS):
-            g = Twist(90, L, p, guide=GUIDE, cutoff_factor=cf).gsm(f, port)
+            g = Twist(90, L, p, guide=GUIDE, cutoff_factor=cf, **WP6).gsm(f, port)
             col = np.abs(g.S21[:, j])
             S[ic, k] = [col[port.index(m)] for m in PORTS]
             refl[ic, k] = np.sum(np.abs(g.S11[:, j]) ** 2)

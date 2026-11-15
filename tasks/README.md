@@ -86,6 +86,7 @@ Verified by: <card or role> · Time box: <days> (then status review)
 | WP7b verification, wave 2 | 2 | Verifier | card written |
 | CC2 COMSOL campaign 2 | 2 | Coordinator + Daniel | instructions in this PR |
 | WP8a studies 1–2 (miters vs bends, chained miters) | 3 | Implementer | deferred to wave 3 (Daniel, 11 Nov) |
+| WF2 wave 2 fixes (twist truncation, bend evanescent coupling, strangled-bend port bases) | 2 | Implementer | in progress |
 
 ## Wave 2 (Gate B: 1.0.0b1)
 
