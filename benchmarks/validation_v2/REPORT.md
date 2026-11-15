@@ -12,12 +12,17 @@ with merged wave 1 code as building blocks only: `fem2d.Coplanar2D` on outlines 
 with WP4b's parity reduction), `GSM`/`cascade`, `wrmodes.modes`, `Line`, `SmoothBend`, `fem2d.Miter` and
 `filters.LossyWallFilter` (WP2). The wave 2 call signatures came from their docstrings (`help(...)`).
 
-* References committed and pushed: **8ec5755** ("WP7b references: ..."): all reference scripts and npz data except
+* References committed: **8ec5755** ("WP7b references: ..."): all reference scripts and npz data except
   the wave 1 leftover `evanescent_bend_miter.npz` (not a wave 2 reference; committed later) and the two mode-count
   checks `twist_doane_triangular_cf2.npz` (computed after, see below).
 * Adversarial tests, campaign 2 script and the first discrepancy file, written from cards and docstrings only:
-  **fc0245e**. This is the commit at which forbidden material (wave 2 code, tests, benchmarks, reports, wave 2
-  discrepancy files) was first opened; no forbidden file was opened before it.
+  **fc0245e**, made a few seconds after 8ec5755 (same minute). Order of actions: commit 8ec5755, `git push`, `git
+  ls-remote` (returned 8ec5755 for the branch), commit fc0245e, push, `ls-remote` (fc0245e); only then were the
+  comparisons run and the first forbidden file (`docs/discrepancies/2026-11-12-doane-fig9-twists.md`) opened. No
+  forbidden file (wave 2 code, tests, benchmarks, reports, wave 2 discrepancy files) was opened before 8ec5755 was
+  committed. After a server restart the coordinator found the branch absent on GitHub and pushed the three commits
+  again; the session's own record shows the pushes above, so the order of commits and openings is as stated, but
+  the remote copy of 8ec5755 before the comparisons cannot be confirmed from GitHub.
 * Before fc0245e the wave 2 components were *executed* (adversarial tests, docstrings); one adversarial diagnosis
   (the strangled-bend port bases) compared the WP5 `StrangledBend` with the FEM at a geometry that is not one of the
   reference cases. One pytest traceback before fc0245e printed lines of `src/wrmodes/fem2d/components.py` (WP3/WP3b
@@ -174,7 +179,7 @@ converted from the incident TE1,0 (transmitted and reflected). Times are on the 
 | WP4b: FEM agreement, 90°, H and E plane, d/a = 0.707, 0.8, 0.9, 1.0, WR-90 10–90 GHz + Gate A points (360 cases) | `MiterMM` | FEM on WP7b outlines (mesh error ≤ 6e-5 in S, 1.7e-4 / 6.2e-4 for E d = 0.9 / 1.0) | Δ main ≤ 0.0018 dB; ΔP of the TE1,0 column ≤ 9.9e-5 (H, d = 1.0, 26 GHz, 0.9 % below the TE4,0 cutoff) | pass (card criterion); all-entries metric see miter section |
 | WP3b/WP4b: chained miters with zero spacer, intersecting 45° mirrors, reactive impedance walls | `chained_miter_outline`, `Coplanar2D(wall_impedance)` | adversarial | U-turn refused (ValueError), periscope against the zero-length cascade |ΔS21| < 1e-2, passive and reciprocal for 250+250j, 5−400j, 0.05+0.05j Ω | pass |
 | WP3b (with WP2): Butterweck lossy-wall filter, 75 GHz, 250 Ω, 15 cm, 5 % target | `Coplanar2D(wall_impedance=250)` | WP2 `LossyWallFilter`, M = 160 | TE1,0 / TE2,0 / TE3,0: −0.054 / −0.058 / −0.054 %; worst of 94 attenuated modes TE1,5 −1.07 % | pass |
-| Wave 1: evanescent modes of bends (WP1 open issue) | `Line` [SmoothBend, Miter] | one FEM domain | see section; error 2–4 % of power at zero distance, dominated by the uncoupled evanescent modes | reported |
+| Wave 1: evanescent modes of bends (WP1 open issue) | `Line` [SmoothBend, Miter] | one FEM domain | 2.0–4.2e-2 (R = 2a) and 4–6e-3 (R = 10a) of the power at zero distance, up to 0.05 dB; caused by the uncoupled evanescent modes (FEM-arc cascade at cutoff factor 3: ≤ 1.6e-4) | reported |
 | Wave 1: Marcuvitz §5.24a N12 (WP4 open issue 2) | — | WP4 `Step` | misprint located: the brace of N12 should read −R1 − α²R2 (printed + α²R2) | reported |
 | Wave 1: L1 literature files in the registry | — | — | `butterweck1968_numbers.csv`, `ma1997_table1.csv`, `docs/literature/doane1989.md` added | done |
 | CC2: campaign 2 post-processing | `compare_campaign_2.py` | synthetic exports | 7 tests (parsing, S11–S81, de-embedding, criteria, missing files) | ready; waiting for data |
@@ -364,16 +369,23 @@ Table: `marcuvitz_524a.npz`, below.
 
 ### Evanescent modes of bends (WP1 open issue)
 
-A short circular bend (centre-line radius R = 2a or 10a, length 0–2a) directly followed by an optical 90° miter in
-WR-90, against one FEM domain containing both (FEM mesh change ≤ 3e-5). The decomposition separates the bend model
-(SmoothBend against the FEM arc alone: ≤ 8e-4 in power at R = 2a, the coupled-mode bend with propagating modes is
-accurate even for R = 2a) from the zero-distance cascade: a `Line` [FEM arc, Miter] with propagating modes only is
-off by about 2 % of the power (1.7–2.1e-2), and with the evanescent modes at cutoff factor 3, which the FEM arc
-couples, by ≤ 2e-4. The `Line` [SmoothBend, Miter] stays at 1.8–3.0e-2 even with cutoff factor 3, because
-SmoothBend passes the evanescent modes as uncoupled straight modes. So the WP1 open issue costs about 2–3 % of the
-power (and up to 0.05 dB on TE1,0) whenever a miter or step sits within a fraction of a wavelength of a bend; a
-straight of a few evanescent decay lengths between them, or a bend that couples its evanescent modes, removes it.
-Table below (20 and 40 GHz; 60 GHz was dropped, the fine-mesh runs exceeded the container's 7 GB).
+A short circular bend (centre-line radius R = 2a or 10a, length L = 0–2a) directly followed by an optical 90° miter
+in WR-90 (H plane, 20 and 40 GHz), against one FEM domain containing both (FEM mesh change ≤ 3e-5). Worst power
+difference over the propagating GSM:
+
+* `Line` [SmoothBend, Miter]: R = 2a: 2.0e-2 – 4.2e-2 of the input power, up to +0.05 dB on TE1,0 (20 GHz, L = a);
+  R = 10a: 4.1e-3 – 5.9e-3, up to 0.004 dB. Cutoff factor 3 instead of 1 changes nothing (≤ 2 %): SmoothBend passes
+  the evanescent modes as uncoupled straight modes. At L = 0 (miter alone) the line is exact (1.2e-5 at cutoff
+  factor 3).
+* Decomposition: SmoothBend alone against the FEM arc alone is within 1.4e-3 (R = 2a) and 6e-6 (R = 10a), so the bend
+  model is not the cause. A `Line` [FEM arc, Miter] with propagating modes only is off by 1.5e-2 – 2.4e-2 (R = 2a)
+  and 4e-3 – 5e-3 (R = 10a); with cutoff factor 3, where the FEM arc couples the evanescent modes, it is within
+  1.6e-4 (R = 2a) and 2.5e-5 (R = 10a).
+
+So the WP1 open issue costs 0.4–4 % of the power (and up to 0.05 dB on TE1,0) whenever a miter sits directly at a
+bend, even a gentle one (R = 10a), because the miter's evanescent near field is not coupled by the bend. A straight
+of a few evanescent decay lengths between them, or a bend that couples its evanescent modes, removes it. Not
+computed (out of memory in the 7 GB container): R = 2a and 10a at 40 GHz with L = 2a; 60 GHz dropped.
 
 ### L1 literature files in the registry (L1 open issue 7)
 
@@ -396,6 +408,31 @@ WP7b's predictions for E4 (helical FEM, % of the input, TE1,0 incident): 15 GHz:
 TM1,2 0.0114, TE2,1 0.0034, TE0,1 0.0010; 18 GHz: TE1,2 0.376, TE0,3 0.161, TM1,2 0.049, TE2,1 0.0148,
 TE0,1 0.0003; cosine at 18 GHz: TE0,1 0.922, TE1,2 0.023. Fig. 9 allows 0.049 % (15 GHz) and 0.149 % (18 GHz) in
 total for the triangular twist.
+#### Short bend + miter (WP1 leftover): Line [SmoothBend, Miter] against one FEM domain
+
+Max over the propagating GSM of | |S|² difference | (power); 'line' = Line [SmoothBend, fem2d.Miter] at cutoff_factor 1 / 3; 'FEM cascade' = Line [FEM arc, fem2d.Miter] (evanescent modes coupled by the arc) at cutoff_factor 1 / 3; 'bend' = SmoothBend alone against the FEM arc alone.
+
+| R/a | f (GHz) | L/a | line cf 1 | line cf 3 | Δ TE1,0 line cf 3 (dB) | FEM cascade cf 1 | FEM cascade cf 3 | bend alone | FEM mesh |
+|---|---|---|---|---|---|---|---|---|---|
+| 2 | 20 | 0.00 | 1.2e-04 | 1.2e-05 | -0.0000 | – | – | – | 3e-05 |
+| 2 | 20 | 0.25 | 2.5e-02 | 2.5e-02 | +0.0237 | 2.1e-02 | 1.6e-04 | 3.3e-05 | 4e-05 |
+| 2 | 20 | 0.50 | 3.1e-02 | 3.0e-02 | +0.0391 | 1.8e-02 | 1.1e-04 | 3.9e-04 | 2e-05 |
+| 2 | 20 | 1.00 | 4.2e-02 | 4.2e-02 | +0.0505 | 2.4e-02 | 1.4e-04 | 1.4e-03 | 3e-05 |
+| 2 | 20 | 2.00 | 2.4e-02 | 2.4e-02 | -0.0016 | 1.8e-02 | 1.1e-04 | 1.0e-03 | 3e-05 |
+| 2 | 40 | 0.00 | 8.0e-05 | 1.2e-05 | -0.0000 | – | – | – | 2e-05 |
+| 2 | 40 | 0.25 | 2.0e-02 | 2.0e-02 | -0.0052 | 1.7e-02 | 5.6e-05 | 9.3e-05 | 3e-05 |
+| 2 | 40 | 0.50 | 2.0e-02 | 2.0e-02 | -0.0187 | 1.5e-02 | 4.6e-05 | 3.9e-04 | 2e-05 |
+| 2 | 40 | 1.00 | 1.8e-02 | 1.8e-02 | -0.0010 | 2.0e-02 | 6.2e-05 | 7.6e-04 | 4e-05 |
+| 10 | 20 | 0.00 | 1.2e-04 | 1.2e-05 | -0.0000 | – | – | – | 3e-05 |
+| 10 | 20 | 0.25 | 4.6e-03 | 4.5e-03 | +0.0029 | 4.5e-03 | 2.4e-05 | 5.6e-08 | 4e-05 |
+| 10 | 20 | 0.50 | 5.4e-03 | 5.2e-03 | +0.0037 | 4.9e-03 | 2.4e-05 | 6.9e-07 | 3e-05 |
+| 10 | 20 | 1.00 | 5.9e-03 | 5.8e-03 | +0.0041 | 5.2e-03 | 2.5e-05 | 2.1e-06 | 3e-05 |
+| 10 | 20 | 2.00 | 5.1e-03 | 5.0e-03 | +0.0028 | 5.0e-03 | 2.3e-05 | 6.3e-06 | 4e-05 |
+| 10 | 40 | 0.00 | 8.0e-05 | 1.2e-05 | -0.0000 | – | – | – | 2e-05 |
+| 10 | 40 | 0.25 | 4.1e-03 | 4.0e-03 | -0.0000 | 4.0e-03 | 8.8e-06 | 1.6e-07 | 2e-05 |
+| 10 | 40 | 0.50 | 4.4e-03 | 4.3e-03 | -0.0003 | 4.1e-03 | 9.7e-06 | 8.3e-07 | 2e-05 |
+| 10 | 40 | 1.00 | 4.3e-03 | 4.2e-03 | -0.0003 | 4.4e-03 | 1.0e-05 | 2.1e-06 | 3e-05 |
+
 #### Marcuvitz Sec. 5.24a (symmetric H-plane step) against the WP4 mode-matching Step
 
 Normalized reactance Xλg/(2aZ0) and impedance ratio Z0'λg a/(Z0λg'a'): relative error of Marcuvitz's (2a)/(1a) as printed, with N12 corrected (sign of α²R2), and with the corrected N12 and λg' in the denominator of (2a). N12 'required' = the value the X11 and the X22 equations need (with the printed N11, N22) to reproduce mode matching.
@@ -476,7 +513,7 @@ did not add new comparisons with them. Self-checks of the references against qua
    near the corner resonances; refined points only (density 16–32). A complete density-24 sweep would cost ~1 day
    on 2 cores.
 4. Square guide 2a/λ = 4.5 triangular twist (T3b table) not computed (127 modes, ~3 h).
-5. The evanescent-bend study at 60 GHz was dropped (memory).
+5. The evanescent-bend study at 60 GHz and the L = 2a cases at 40 GHz were not computed (memory).
 6. `wrmodes.filters.LossyWallFilter` raises RootFindingError at M = 320 (family n = 4, orthogonality 1.1e-6); M ≤ 160
    works. Clear error; noted for WP2.
 

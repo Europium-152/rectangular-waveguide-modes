@@ -6,9 +6,11 @@ Card `tasks/WP7b-verification-wave2.md`. Branch `wave-2/WP7b-verification`. Full
 ## Independence
 
 References built from the cards, CONVENTIONS.md, the theory notes, the literature and the PDFs, with merged wave 1
-code as building blocks; wave 2 signatures from docstrings only. References committed and pushed in **8ec5755**
-("WP7b references: ..."); adversarial tests, the campaign 2 script and the first discrepancy file in **fc0245e**,
-also written before any forbidden file was opened. Forbidden material (wave 2 code, tests, benchmarks, reports,
+code as building blocks; wave 2 signatures from docstrings only. References committed in **8ec5755** ("WP7b
+references: ..."); adversarial tests, the campaign 2 script and the first discrepancy file in **fc0245e** (seconds
+later, same minute), also written before any forbidden file was opened. The session pushed each and `git ls-remote`
+returned its hash before the comparisons started; after a server restart the coordinator found the branch absent on
+GitHub and pushed the commits again, so GitHub cannot confirm the earlier push. Forbidden material (wave 2 code, tests, benchmarks, reports,
 wave 2 discrepancy files) was first opened after fc0245e. Later additions to the reference data: the wave 1 leftover
 `evanescent_bend_miter.npz` and the mode-count check `twist_doane_triangular_cf2.npz` (computed with the committed
 scripts, unchanged methods).
@@ -44,7 +46,7 @@ scripts, unchanged methods).
 | WP3b impedance walls (filter) | pass | −0.05 % on TE1,0–TE3,0, worst 1.1 % (TE1,5) of 94 modes; target 5 % |
 | Doane Fig. 9 | — | the full-wave reference agrees with WP6/T3, not with Fig. 9's triangular and constant curves |
 | Marcuvitz §5.24a | located | N12 brace: −R1 − α²R2 (printed + α²R2); with it, (1a) within 0.2 % (a/λ ≤ 1); (2a) within 1.1 % also needs λg′ in its denominator |
-| Short bend + miter | reported | 2–3 % of the power off at zero distance; the evanescent modes, not the bend model, cause it |
+| Short bend + miter | reported | Line [SmoothBend, Miter] at zero distance 2–4.2 % of the power off for R = 2a, 0.4–0.6 % for R = 10a (≤ 0.05 dB on TE1,0); the uncoupled evanescent modes, not the bend model, cause it |
 
 ## Discrepancy reports
 
@@ -71,6 +73,6 @@ scripts, unchanged methods).
    lobe), pending COMSOL E4.
 3. Marcuvitz §5.24a: adopt the corrected N12 (sign of α²R2) and λg′ in (2a) in `docs/literature/` as an annotated
    correction (L1 owns the transcription).
-4. WP1: whether `SmoothBend` should couple its evanescent modes (2–3 % power error for a bend directly at a miter),
+4. WP1: whether `SmoothBend` should couple its evanescent modes (0.4–4 % power error for a bend directly at a miter),
    or `Line` should warn when a bend and a discontinuity are closer than a few decay lengths.
 5. WP5 minor fix of the port-2 basis order (then drop the strict xfail).

@@ -28,7 +28,7 @@ from ref_miter_fem import miter90_outline
 
 W, H = vc.W90, vc.H90
 RADII = (2 * W, 10 * W)
-LENGTHS = [0.0, 0.25 * W, 0.5 * W, W, 1.5 * W, 2 * W]
+LENGTHS = [0.0, 0.25 * W, 0.5 * W, W, 2 * W]
 FREQS = [20e9, 40e9]
 
 
@@ -64,15 +64,34 @@ def _diff(row, tag, A, B, names):
     row[f"{tag}_dTE10_dB"] = float(vc.db(A[n + i0, i0]) - vc.db(B[n + i0, i0]))
 
 
-def run(density=12.0):
+OUT = "evanescent_bend_miter.npz"
+SKIP = {"R2a_f40_L2a", "R10a_f40_L2a"}   # OOM-killed (> 6 GB) in the 7 GB container; not computed
+
+
+def _save(arrays, rows):
+    vc.save_npz(OUT, __file__, arrays, rows=rows, radii=RADII, lengths=LENGTHS, freqs=FREQS,
+                miter="optical mirror, 90 deg, H plane", method="single Coplanar2D domain vs Line[SmoothBend, Miter]")
+
+
+def run(density=10.0):
+    """Saves after every row and resumes from a partial npz (long runs, 7 GB container)."""
+    import os
     from wrmodes.fem2d import arc_bend_outline
     g = Guide(W, H)
     arrays, rows = {}, []
+    if os.path.exists(os.path.join(vc.DATA, OUT)):
+        old = vc.load_npz(OUT)
+        rows = old["meta"]["rows"]
+        arrays = {k: v for k, v in old.items() if k != "meta"}
+    done = {r["key"] for r in rows}
     for R in RADII:
         for f in FREQS:
             basis = g.basis(f, 1.0, "H")
             names = basis.names
             for L in LENGTHS:
+                key = f"R{R / W:g}a_f{f / 1e9:g}_L{L / W:g}a"
+                if key in done or key in SKIP:
+                    continue
                 alpha = L / R
                 out = arc_miter_outline(W, R, alpha)
                 t = vc.Timer()
@@ -80,7 +99,6 @@ def run(density=12.0):
                 t_ref = t()
                 S_fine = Coplanar2D(out, b=H, plane="H", length=L + W,
                                     options=FEMOptions(mesh_density=1.5 * density)).gsm(f, basis, basis)
-                key = f"R{R / W:g}a_f{f / 1e9:g}_L{L / W:g}a"
                 arrays.update(vc.gsm_arrays(key + "_fem", S_fine))
                 Sr = _blk(S_fine, names)
                 row = dict(key=key, R_over_a=R / W, f=f, L_over_a=L / W, fem_seconds=round(t_ref, 1),
@@ -103,11 +121,11 @@ def run(density=12.0):
                     Sa = _blk(wr.Line(g, [arcf]).gsm(f), names)
                     _diff(row, "bend", Sb, Sa, names)
                 rows.append(row)
+                _save(arrays, rows)
                 print(json.dumps({k: (float(f"{v:.3g}") if isinstance(v, float) else v) for k, v in row.items()}), flush=True)
     return arrays, rows
 
 
 if __name__ == "__main__":
     arrays, rows = run()
-    vc.save_npz("evanescent_bend_miter.npz", __file__, arrays, rows=rows, radii=RADII, lengths=LENGTHS, freqs=FREQS,
-                miter="optical mirror, 90 deg, H plane", method="single Coplanar2D domain vs Line[SmoothBend, Miter]")
+    _save(arrays, rows)
