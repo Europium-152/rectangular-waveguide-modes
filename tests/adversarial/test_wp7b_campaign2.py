@@ -38,12 +38,23 @@ def write_export(path, data, table=False):
     pathlib.Path(path).write_text("\n".join(lines) + "\n")
 
 
+def write_table(path, rows, params=()):
+    """Daniel's Global Evaluation table format (campaign 2): optional parameter columns, 'freq (GHz)', then
+    'S11 (1)' ... columns. rows: [(param values..., f_GHz, {'S11': complex, ...}), ...]."""
+    keys = list(rows[0][-1])
+    head = "% " + "".join(f"{c:<48}" for c in (*params, "freq (GHz)", *(f"{k} (1)" for k in keys)))
+    lines = ["% Model:              synthetic.mph", "% Version:            COMSOL 6.2.0.415",
+             "% Date:               Nov 15 2026, 10:00", "% Table:              Table 1 - Global Evaluation 1", head]
+    for r in rows:
+        lines.append("".join(f"{x!s:<50}" for x in r[:-1]) + "".join(f"{_fmt(r[-1][k]):<50}" for k in keys))
+    pathlib.Path(path).write_text("\n".join(lines) + "\n")
+
+
 def stub(case, variant, f):
     """Smooth made-up reference-plane values; unitary enough to look like data."""
     ph = np.exp(-1j * 0.3 * f)
     if case == "E4":
-        p = {"S21": 0.995, "S31": 0.04, "S41": 0.01, "S51": 0.06, "S61": 0.03, "S71": 0.02, "S81": 0.015}
-        return {"S11": 0.01 * ph, **{k: v * ph for k, v in p.items()}}
+        return {"out": {"TE1,0": 0.99, "TE1,2": 0.006, "TE0,3": 0.002}, "in": {"TE1,0": 1e-8}}
     if case == "E2":
         return {"S11": 0.002 * ph, "S21": 0.99 * ph, "S31": 0.05 * ph}
     return {"S11": 0.05 * ph, "S21": 0.98 * ph}
@@ -110,35 +121,72 @@ def test_deembedding_and_gate_a_criterion(tmp_path):
     assert all(x[-1] for x in v)                       # |delta| = 0.015 vs fine, allowed 0.015 + 0.02
 
 
+def _e2_rows(err_power=0.0):
+    """The parameter sweep of campaign 2: mesh_factor 10 and 20, L = 0.1 and 0.2 m; ports 1-2 narrow end (TE10,
+    TE30), 3-4 wide end (TE10, TE30), so wrmodes' S21/S31 are COMSOL's S31/S41."""
+    rows = []
+    for mf in (10, 20):
+        for L, var in ((0.1, "L100"), (0.2, "L200")):
+            r = comsol_from("E2", var, [15.0], err_mode="S31", err_power=err_power)[15.0]
+            rows.append((mf, L, 15.0, {"S11": r["S11"], "S21": 0j, "S31": r["S21"], "S41": r["S31"]}))
+    return rows
+
+
 def test_e2_taper_three_ports_and_te30_power(tmp_path):
-    write_export(tmp_path / "E2_taper_L100.txt", comsol_from("E2", "L100", [15.0]))
+    write_table(tmp_path / "E2_taper_parameter_sweep.txt", _e2_rows(), params=("mesh_factor", "L (m)"))
     _, _, v = cc2.run(["E2"], raw=tmp_path, model=stub)
-    assert len(v) == 2 and all(x[-1] for x in v)
-    write_export(tmp_path / "E2_taper_L100.txt", comsol_from("E2", "L100", [15.0], err_mode="S31", err_power=3e-4))
+    assert len(v) == 4 and all(x[-1] for x in v)
+    write_table(tmp_path / "E2_taper_parameter_sweep.txt", _e2_rows(3e-4), params=("mesh_factor", "L (m)"))
     _, _, v = cc2.run(["E2"], raw=tmp_path, model=stub)
     te30 = [x for x in v if x[2] == "TE30"][0]
     assert not te30[-1] and abs(te30[4] + 3e-4) < 1e-12
 
 
+E4_JAVA = """
+    model.component("comp1").physics("emw").feature("port1").selection().set(18);
+    model.component("comp1").physics("emw").feature("port2").selection().set(18);
+    model.component("comp1").physics("emw").feature("port3").selection().set(8);
+    model.component("comp1").physics("emw").feature("port4").selection().set(8);
+    model.component("comp1").physics("emw").feature("port5").selection().set(8);
+    model.component("comp1").physics("emw").feature("port1").set("PortExcitation", "off");
+    model.component("comp1").physics("emw").feature("port2").set("PortExcitation", "on");
+    model.component("comp1").physics("emw").feature("port2").set("PortModeNumber", "01");
+    model.component("comp1").physics("emw").feature("port3").set("PortModeNumber", "01");
+    model.component("comp1").physics("emw").feature("port4").set("PortModeNumber", "21");
+    model.component("comp1").physics("emw").feature("port5").set("PortModeNumber", "30");
+"""
+
+
+def _e4_export(path, err=0.0):
+    """Ports 1-2 on the input face (2 excited, COMSOL '01' = TE1,0), 3-5 on the output face: COMSOL (m, n) is
+    wrmodes n,m, so port 4 'TE21' is TE1,2 and port 5 'TE30' is TE0,3."""
+    rows = []
+    for f in (15.0, 18.0):
+        p = {"S12": 1e-4, "S22": 1e-4, "S32": 0.99, "S42": 0.006 + err, "S52": 0.002}
+        rows.append((f, {k: complex(np.sqrt(v), 0.0) for k, v in p.items()}))
+    write_table(path, rows)
+
+
 def test_e4_judged_on_power_per_output_mode(tmp_path):
-    """Eight ports (S11 ... S81). A 3e-4 error planted in TE1,2 (port 5) fails only that mode; with a fine run that
-    differs by 2.5e-4 in that power the allowance becomes 3.5e-4 and it passes."""
-    write_export(tmp_path / "E4_twist_triangular.txt",
-                 comsol_from("E4", "triangular", [15.0, 18.0], err_mode="S51", err_power=3e-4))
-    _, _, v = cc2.run(["E4"], raw=tmp_path, model=stub)
-    assert len(v) == 2 * 7
-    bad = [x for x in v if not x[-1]]
-    assert [x[2] for x in bad] == ["TE1,2", "TE1,2"]
-    write_export(tmp_path / "E4_twist_triangular_fine.txt",
-                 comsol_from("E4", "triangular", [15.0, 18.0], err_mode="S51", err_power=0.5e-4))
-    _, _, v = cc2.run(["E4"], raw=tmp_path, model=stub)
+    """A 3e-4 error planted in TE1,2 fails only that mode; a fine run 2.5e-4 away in that power widens the allowance
+    to 3.5e-4 and it passes. The port layout comes from the model's .java."""
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    (tmp_path / "java").mkdir()
+    (tmp_path / "java" / "E4_twist_triangular.java").write_text(E4_JAVA)
+    _e4_export(raw / "E4_twist_triangular.txt", err=3e-4)
+    out, _, v = cc2.run(["E4"], raw=raw, model=stub)
+    assert sorted({x[2] for x in v}) == ["TE0,3", "TE1,0", "TE1,2"]
+    assert [x[2] for x in v if not x[-1]] == ["TE1,2", "TE1,2"]
+    _e4_export(raw / "E4_twist_triangular_fine.txt", err=0.5e-4)
+    _, _, v = cc2.run(["E4"], raw=raw, model=stub)
     assert all(x[-1] for x in v)
 
 
 def test_e3_aluminium_uses_the_pec_mesh_check(tmp_path):
     write_export(tmp_path / "E3_strangled_PEC.txt", comsol_from("E3", "PEC", [18.0, 40.0], err_db=0.01))
     write_export(tmp_path / "E3_strangled_PEC_fine.txt", comsol_from("E3", "PEC", [18.0]))
-    write_export(tmp_path / "E3_strangled_aluminium.txt", comsol_from("E3", "aluminium", [18.0, 40.0], err_db=0.025))
+    write_export(tmp_path / "E3_strangled_aluminum.txt", comsol_from("E3", "aluminium", [18.0, 40.0], err_db=0.025))
     _, _, v = cc2.run(["E3"], raw=tmp_path, model=stub)
     al = {x[3]: x for x in v if x[1] == "aluminium"}
     assert al[18.0][-1] and abs(al[18.0][5] - 0.03) < 1e-9    # 0.01 mesh change + 0.02
@@ -150,4 +198,4 @@ def test_wrmodes_model_runs_for_e2_and_e4():
     m = cc2.wrmodes_model("E2", "L100", 15.0)
     assert set(m) == {"S11", "S21", "S31"} and all(np.isfinite(abs(v)) for v in m.values())
     m = cc2.wrmodes_model("E4", "triangular", 18.0)
-    assert set(m) == {"S11", *cc2.E4_PORTS} and all(np.isfinite(abs(v)) for v in m.values())
+    assert set(m) == {"in", "out"} and abs(sum(m["out"].values()) + sum(m["in"].values()) - 1) < 1e-9
