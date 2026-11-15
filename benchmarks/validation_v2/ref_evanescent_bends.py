@@ -8,7 +8,8 @@ FEM outline of both (arc walls exact, miter as in ref_miter_fem.py), between the
 port-2 plane. The line is `wrmodes.Line(Guide, [SmoothBend(L, kappa = 1/R), fem2d.Miter(90)])` with
 cutoff_factor 1 (propagating modes only between the two) and 3 (evanescent modes passed through the bend as
 uncoupled straight modes, WP1). Quantity: max |S_line - S_FEM| and max | |S_line|^2 - |S_FEM|^2 | over the
-propagating block, and the TE1,0 transmission difference in dB, at 20, 40, 60 GHz.
+propagating block, and the TE1,0 transmission difference in dB, at 20 and 40 GHz (60 GHz was dropped: the
+fine-mesh runs exceeded the 7 GB of the container).
 
 The total error has two parts, separated here: the coupled-mode model of the bend itself (SmoothBend against the
 FEM of the arc alone, `bend_*`), and the cascade at zero distance (the Line [FEM arc, FEM miter] with the same
@@ -28,7 +29,7 @@ from ref_miter_fem import miter90_outline
 W, H = vc.W90, vc.H90
 RADII = (2 * W, 10 * W)
 LENGTHS = [0.0, 0.25 * W, 0.5 * W, W, 1.5 * W, 2 * W]
-FREQS = [20e9, 40e9, 60e9]
+FREQS = [20e9, 40e9]
 
 
 def arc_miter_outline(a, R, alpha, d=1 / np.sqrt(2)):

@@ -227,11 +227,14 @@ def miters(out, res):
     import ref_miter_fem as rm
     g = Guide(vc.W90, vc.H90)
     out.append("\n### WP4b mode-matching miters (and the WP3/WP3b FEM miter) vs the FEM on WP7b outlines, 90°, WR-90\n")
-    out.append("Per plane and chamfer: worst over the frequencies of |Δ TE1,0 transmission| (dB) and of the power "
-               "difference over every propagating entry of the GSM; the frequencies outside the tolerance are listed.\n")
-    out.append("| plane | d/a | ref mesh error (max \\|ΔS\\| fine − main) | MM worst Δ main (dB) @ f | MM worst ΔP @ f | MM fails (f, GHz) | "
-               "FEM Miter worst Δ main | FEM Miter worst ΔP | MM time (s, 90 GHz) |")
-    out.append("|---|---|---|---|---|---|---|---|---|")
+    out.append("Per plane and chamfer: worst over the frequencies of |Δ TE1,0 transmission| (dB), of the power "
+               "difference of every mode converted from TE1,0 (reflected and transmitted: the card's criterion), and of "
+               "the power difference over every propagating entry of the GSM (all inputs; stricter); the frequencies "
+               "outside the tolerance are listed.\n")
+    out.append("| plane | d/a | ref mesh error (max \\|ΔS\\| fine − main) | MM worst Δ main (dB) @ f | MM worst ΔP, TE1,0 column @ f | "
+               "MM fails, TE1,0 column | MM worst ΔP, all entries @ f | MM fails, all entries (f, GHz) | "
+               "FEM Miter worst Δ main | FEM Miter worst ΔP (column / all) | MM time (s, 90 GHz) |")
+    out.append("|---|---|---|---|---|---|---|---|---|---|---|")
     for plane in ("H", "E"):
         for dd in rm.CHAMFERS:
             path = os.path.join(vc.DATA, f"miter_fem_{plane}_d{dd:.4f}.npz")
@@ -241,8 +244,8 @@ def miters(out, res):
             inc = "TE1,0" if plane == "H" else "TE0,1"
             mm = wr.MiterMM(None if abs(dd - 1 / np.sqrt(2)) < 1e-9 else dd, plane=plane, guide=g)
             fm = Miter(90, chamfer=dd, plane=plane, guide=g)
-            worst = dict(mm_db=(0, None), mm_p=(0, None), fm_db=(0, None), fm_p=(0, None))
-            fails, mesh_err, t90 = [], 0.0, None
+            worst = dict(mm_db=(0, None), mm_p=(0, None), fm_db=(0, None), fm_p=(0, None), mm_c=(0, None), fm_c=(0, None))
+            fails, fails_c, mesh_err, t90 = [], [], 0.0, None
             for f in d["meta"]["freqs"]:
                 key = f"{plane}_d{dd:.4f}_f{f:g}_main"
                 ref = stored(d, key)
@@ -257,21 +260,33 @@ def miters(out, res):
                 F = fm.gsm(f * 1e9, basis, basis)
                 R = _blocks(vc.StoredGSM(d, key))
                 i = ref["names1"].index(inc)
+                N = len(ref["names1"])
                 for tag, X in (("mm", G), ("fm", F)):
                     ddb = float(vc.db(X.S21[i, i]) - vc.db(ref["S21"][i, i]))
-                    dp = float(np.max(abs(abs(_blocks(X)) ** 2 - abs(R) ** 2)))
+                    DP = abs(abs(_blocks(X)) ** 2 - abs(R) ** 2)
+                    dp = float(np.max(DP))
+                    col = np.concatenate([DP[:N, i], DP[N:, i]])
+                    col[N + i] = 0.0                                  # the main transmission is judged in dB
+                    dpc = float(np.max(col))
                     if abs(ddb) > abs(worst[f"{tag}_db"][0]):
                         worst[f"{tag}_db"] = (ddb, f)
                     if dp > worst[f"{tag}_p"][0]:
                         worst[f"{tag}_p"] = (dp, f)
+                    if dpc > worst[f"{tag}_c"][0]:
+                        worst[f"{tag}_c"] = (dpc, f)
                     res.append(dict(part="miters", plane=plane, d=dd, f=f, comp=tag, d_main_db=ddb, worst_dP=dp,
+                                    worst_dP_col=dpc, ok_col=bool(abs(ddb) <= DB_TOL and dpc <= P_TOL),
                                     ok=bool(abs(ddb) <= DB_TOL and dp <= P_TOL)))
                     if tag == "mm" and not (abs(ddb) <= DB_TOL and dp <= P_TOL):
                         fails.append(f)
+                    if tag == "mm" and not (abs(ddb) <= DB_TOL and dpc <= P_TOL):
+                        fails_c.append(f)
             fl = ", ".join(f"{x:g}" for x in fails) if fails else "none"
+            flc = ", ".join(f"{x:g}" for x in fails_c) if fails_c else "none"
             out.append(f"| {plane} | {dd:.4f} | {mesh_err:.1e} | {worst['mm_db'][0]:+.4f} @ {worst['mm_db'][1]} | "
+                       f"{worst['mm_c'][0]:.1e} @ {worst['mm_c'][1]} | {flc} | "
                        f"{worst['mm_p'][0]:.1e} @ {worst['mm_p'][1]} | {fl} | {worst['fm_db'][0]:+.4f} @ {worst['fm_db'][1]} | "
-                       f"{worst['fm_p'][0]:.1e} @ {worst['fm_p'][1]} | {t90 if t90 is None else round(t90, 2)} |")
+                       f"{worst['fm_c'][0]:.1e} / {worst['fm_p'][0]:.1e} | {t90 if t90 is None else round(t90, 2)} |")
             print(out[-1], flush=True)
 
 
@@ -286,10 +301,10 @@ def filt(out, res):
     g = Guide(vc.W90, vc.H90)
     basis = g.basis(F, 1.0, "H")
     out.append("\n### WP3b impedance walls vs WP2's exact lossy-wall filter (Butterweck: 75 GHz, 250 Ω, 15 cm)\n")
-    out.append("| mode | WP2 M = 160 (dB) | WP2 M = 80 | FEM density 6 (default) | FEM density 10 | Δ rel. (density 10) | pass (5 %) | Butterweck |")
+    out.append("| mode | WP2 M = 160 (dB) | WP2 M = 80 | FEM density 6 (default) | FEM density 8 | Δ rel. (density 8) | pass (5 %) | Butterweck |")
     out.append("|---|---|---|---|---|---|---|---|")
     fem = {}
-    for dens in (6, 10):
+    for dens in (6, 8):
         c = Coplanar2D(straight_outline(vc.W90, L), b=vc.H90, plane="H", guide=g, wall_impedance=ZW,
                        options=FEMOptions(mesh_density=dens))
         fem[dens] = c.gsm(F, basis, basis)
@@ -300,7 +315,7 @@ def filt(out, res):
         if a_ref < 1e-6:
             continue
         a80 = -vc.db(ref80.S21[i, i])
-        a6, a10 = -vc.db(fem[6].S21[i, i]), -vc.db(fem[10].S21[i, i])
+        a6, a10 = -vc.db(fem[6].S21[i, i]), -vc.db(fem[8].S21[i, i])
         rel = (a10 - a_ref) / a_ref
         ok = abs(rel) <= 0.05
         res.append(dict(part="filter", mode=n, wp2=float(a_ref), fem6=float(a6), fem10=float(a10), rel=float(rel), ok=bool(ok)))

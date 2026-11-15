@@ -313,7 +313,7 @@
       "data_file": "benchmarks/modematch/data/miter_wr90_sweep.npz",
       "tolerance": "0.01 dB on TE10 transmission, 1e-4 of the input power per converted mode (card WP4b)",
       "test": "WP7b",
-      "status": "data ready (WP4b); comparison not run (WP7b's)"
+      "status": "compared by WP7b (FEM on WP7b outlines, entry wp7b-miter-fem-sweep): passes the card criterion at every point"
     },
     {
       "id": "wp4b-step-parity",
@@ -489,7 +489,7 @@
       "data_file": "benchmarks/twist/data/e4_predictions.npz",
       "tolerance": "CONVENTIONS section 8: COMSOL mesh error + 0.02 dB on TE1,0; 1e-4 of input power per converted mode",
       "test": "benchmarks/twist/e4_predictions.py (predictions)",
-      "status": "waiting for data"
+      "status": "waiting for data (Daniel runs COMSOL); post-processing benchmarks/comsol/campaign_2/compare_campaign_2.py ready (tested on synthetic exports); WP7b helical-FEM values shown alongside"
     },
     {
       "id": "wp5-uniform-limit",
@@ -587,7 +587,7 @@
       "reference_type": "COMSOL",
       "data_file": "benchmarks/taper/data/e2_predictions.npz (predictions)",
       "tolerance": "COMSOL mesh-check error + 0.02 dB (CONVENTIONS.md section 8)",
-      "status": "predictions ready; waiting for data (Daniel runs COMSOL)",
+      "status": "predictions ready; waiting for data (Daniel runs COMSOL); post-processing compare_campaign_2.py ready",
       "test": "WP7b benchmarks/comsol/campaign_2/compare_campaign_2.py"
     },
     {
@@ -598,8 +598,129 @@
       "reference_type": "COMSOL",
       "data_file": "benchmarks/taper/data/e3_predictions.npz (predictions)",
       "tolerance": "COMSOL mesh-check error + 0.02 dB; 1e-4 of the input power per converted mode",
-      "status": "predictions ready; waiting for data (Daniel runs COMSOL)",
+      "status": "predictions ready; waiting for data (Daniel runs COMSOL); post-processing compare_campaign_2.py ready",
       "test": "WP7b; tests/test_taper.py::test_e3_predictions_regression (slow, regression)"
+    },
+    {
+      "id": "l1-butterweck1968-numbers",
+      "card": "L1 (D5); used by WP2, WP3b, WP5",
+      "component": "mode filters (lossy wall, resistive sheet, coupled-mode), tapers, strangled E-plane bend",
+      "reference_type": "literature",
+      "reference": "Butterweck, IEEE MTT-16 (1968) 274-281 (items B1-B11); Butterweck & de Ronde, Philips Tech. Rev. 29 (1968) 86-101 (items P1-P9): quoted numbers with sentence and page",
+      "data_file": "benchmarks/literature/butterweck1968_numbers.csv",
+      "tolerance": "as quoted (no stated uncertainty); the cards set the targets (WP2: 10 %, WP3b: 5 % of WP2)",
+      "test": "tests/test_literature_data.py (format); WP2: tests/test_loss.py filters; entries wp3b-butterweck-fem, wp5-butterweck-bottle, wp5-butterweck-fig15, wp7b-filter-impedance-walls",
+      "status": "data ready (L1); items B8, B9, P3 (lossy-wall filter) used by WP2, WP3b and WP7b; P5, P6, P8, P9 by WP5"
+    },
+    {
+      "id": "l1-ma1997-table1-csv",
+      "card": "L1 (D3); WP3, WP3b, WP4b",
+      "component": "H-plane mitered bend, Ma et al. staircase geometry",
+      "reference_type": "literature",
+      "reference": "Ma, Yamane & Yamashita (1997) Table 1, transcribed",
+      "data_file": "benchmarks/literature/ma1997_table1.csv",
+      "tolerance": "qualitative (Daniel, 11 Nov 2026): see entry wp3-ma1997-table1",
+      "test": "tests/test_literature_data.py (format)",
+      "status": "data ready (L1); qualitative"
+    },
+    {
+      "id": "l1-doane1989-transcription",
+      "card": "L1 (D7); used by T3, T3b, WP6",
+      "component": "Twist (eqs. 17-18, design rules)",
+      "reference_type": "literature",
+      "reference": "Doane & Anderson, Microwave J. 32(3) (1989) 153-160, eqs. and text transcribed",
+      "data_file": "docs/literature/doane1989.md",
+      "tolerance": "formulas (exact transcription)",
+      "test": "docs/theory/T3-twist-coupling.md section 6 (checks); entry wp6-doane-fig9 for the figure",
+      "status": "data ready (L1)"
+    },
+    {
+      "id": "wp7b-taper-fem",
+      "card": "WP7b item 1 (verifies WP5)",
+      "component": "Taper (H-plane linear 22.86 -> 45 mm, 15 GHz, L = 0.1, 0.2 m; E-plane raised cosine WR-90 -> 1.6 mm, 50 mm, 18-90 GHz) and StrangledBend (E3 geometry, 18-90 GHz)",
+      "reference_type": "independent method",
+      "reference": "2D modal-port FEM (fem2d.Coplanar2D, wave 1) on WP7b polygon outlines with circular-arc walls (benchmarks/validation_v2/ref_taper_fem.py)",
+      "data_file": "benchmarks/validation_v2/data/taper_fem_<case>.npz",
+      "tolerance": "0.01 dB on the main transmission; 1e-4 of the input power per converted mode (CONVENTIONS 8)",
+      "test": "benchmarks/validation_v2/compare_v2.py tapers; tests/adversarial/test_wp7b_references.py",
+      "status": "passes: WP5 within 2.3e-5 of the input power per converted mode and 2.2e-4 dB on TE1,0 (worst: 90 GHz); FEM reference errors <= 3e-5 in S (benchmarks/validation_v2/REPORT.md)"
+    },
+    {
+      "id": "wp7b-taper-staircase",
+      "card": "WP7b item 1 (verifies WP5)",
+      "component": "tapers of a and b, 3.10 x 1.55 -> 22.86 x 10.16 mm, 140 mm, 75 GHz: linear; bottle a(z) (lambda 3.5) with linear b(z)",
+      "reference_type": "independent method",
+      "reference": "staircase of WP4 mode-matching Steps (parity class), Richardson in 1/n (n = 400, 800), cutoff factors 2-4 (ref_taper_staircase.py)",
+      "data_file": "benchmarks/validation_v2/data/taper_staircase_<profile>.npz",
+      "tolerance": "0.01 dB on TE1,0; 1e-4 of the input power per converted mode",
+      "test": "benchmarks/validation_v2/compare_v2.py staircase",
+      "status": "passes: linear dP 8e-6, bottle dP 2.2e-5, dTE1,0 <= 4e-5 dB; staircase error 1.8e-5 / 4.6e-5"
+    },
+    {
+      "id": "wp7b-twist-helical-fem",
+      "card": "WP7b item 2 (verifies WP6)",
+      "component": "Twist: Doane & Anderson's 20-inch 90 deg twists in WR187 tall (constant, cosine, triangular; 15, 16.5, 18 GHz), 30 mm square guide (2a/lambda = 2.5, L = 5 and 20 lambda), strong twists in WR-90 (tau a = 0.1 at 15, 30 GHz; tau a = 0.5 at 30 GHz)",
+      "reference_type": "independent method",
+      "reference": "2D FEM eigenmodes in helical coordinates (Nedelec/Lagrange order 3), mode matching at the end planes, cascade of constant-rate sections for variable rates with Richardson in 1/n^2 (helical_fem.py, ref_twist.py); no T3/T3b coupled-mode matrix",
+      "data_file": "benchmarks/validation_v2/data/twist_<case>.npz",
+      "tolerance": "0.01 dB on TE1,0; 1e-4 of the input power per spurious mode",
+      "test": "benchmarks/validation_v2/compare_v2.py twists; tests/adversarial/test_wp7b_references.py",
+      "status": "triangular passes (<= 7.4e-5); cosine passes at 15, 16.5 GHz, 1.6e-4 at 18 GHz; constant (4e-4), square 5 lambda (4.6e-3), strong twists (2.4e-4, 2.6e-2) NOT met at WP6's default: docs/discrepancies/2026-11-15-wp7b-twist-truncation.md"
+    },
+    {
+      "id": "wp7b-miter-fem-sweep",
+      "card": "WP7b item 3 (verifies WP4b; FEM side WP3/WP3b)",
+      "component": "MiterMM and fem2d.Miter, 90 deg, H and E plane, d/a = 0.707, 0.8, 0.9, 1.0, WR-90, 10-90 GHz every 2 GHz plus 26.3, 52.5, 53, 53.5 GHz",
+      "reference_type": "independent method",
+      "reference": "2D FEM (fem2d.Coplanar2D) on WP7b miter outlines from CONVENTIONS 6, symmetric mesh, density 10 (mesh check 16) (ref_miter_fem.py)",
+      "data_file": "benchmarks/validation_v2/data/miter_fem_<plane>_d<d>.npz",
+      "tolerance": "0.01 dB on TE1,0 transmission; 1e-4 of the input power in every propagating entry (card WP4b)",
+      "test": "benchmarks/validation_v2/compare_v2.py miters; tests/adversarial/test_wp7b_references.py",
+      "status": "passes the card criterion at all 360 points (dTE1,0 <= 0.0018 dB, converted modes <= 9.9e-5); all-entries differences up to 7e-4 at chamfered E-plane points limited by the FEM reference's own accuracy (REPORT.md)"
+    },
+    {
+      "id": "wp7b-filter-impedance-walls",
+      "card": "WP7b item 4 (verifies WP3b with WP2)",
+      "component": "Coplanar2D(straight_outline, wall_impedance=250 ohm), Butterweck lossy-wall filter, 75 GHz, 15 cm",
+      "reference_type": "independent method",
+      "reference": "WP2 LossyWallFilter (exact LS^u modes), M = 160 (ref_filter.py)",
+      "data_file": "benchmarks/validation_v2/data/filter_lossywall_wp2.npz",
+      "tolerance": "5 % of the attenuation (dB) of every attenuated propagating mode (plan; card WP3b)",
+      "test": "benchmarks/validation_v2/compare_v2.py filter",
+      "status": "passes: -0.05 % on TE1,0-TE3,0, worst -1.07 % (TE1,5) over 94 attenuated modes (target 5 %)"
+    },
+    {
+      "id": "wp7b-evanescent-bend-miter",
+      "card": "WP7b item 5 (WP1 open issue)",
+      "component": "Line [SmoothBend (R = 2a, 10a; L = 0-2a), fem2d.Miter(90)] in WR-90, 20/40/60 GHz",
+      "reference_type": "independent method",
+      "reference": "one Coplanar2D domain containing arc and miter (ref_evanescent_bends.py); decomposition into bend-model and zero-distance cascade errors",
+      "data_file": "benchmarks/validation_v2/data/evanescent_bend_miter.npz",
+      "tolerance": "reported (no target)",
+      "test": "benchmarks/validation_v2/summarize_refs.py",
+      "status": "reported: Line [SmoothBend, Miter] at zero distance 2-3 % of the power off (evanescent modes of the bend uncoupled); FEM-arc cascade with cutoff factor 3 within 2e-4"
+    },
+    {
+      "id": "wp7b-marcuvitz-524a",
+      "card": "WP7b item 5 (WP4 open issue 2, L1 open issue 1)",
+      "component": "Marcuvitz Sec. 5.24a symmetric H-plane step, eqs. (1a)-(3a)",
+      "reference_type": "independent method",
+      "reference": "WP4 mode-matching Step converted to Marcuvitz's equivalent circuit; required N12 from the X11 and X22 equations (marcuvitz_n12.py)",
+      "data_file": "benchmarks/validation_v2/data/marcuvitz_524a.npz",
+      "tolerance": "Marcuvitz's stated 1 % (5 % at a/lambda = 1.5)",
+      "test": "benchmarks/validation_v2/summarize_refs.py",
+      "status": "misprint located: N12 brace -R1 - alpha^2 R2 (printed + alpha^2 R2); (1a) then within 0.2 % for a/lambda <= 1; (2a) within 1.1 % with lambda_g' in its denominator as well"
+    },
+    {
+      "id": "wp7b-campaign2-postprocess",
+      "card": "WP7b item 6 (CC2)",
+      "component": "COMSOL campaign 2 post-processing, cases E1-E5",
+      "reference_type": "COMSOL",
+      "reference": "benchmarks/comsol/CAMPAIGN_2.md",
+      "data_file": "benchmarks/comsol/campaign_2/raw/ (Daniel's exports, not yet run)",
+      "tolerance": "COMSOL mesh-check change + 0.02 dB; E4: + 1e-4 of the input power per output mode",
+      "test": "tests/adversarial/test_wp7b_campaign2.py (synthetic exports)",
+      "status": "script ready and tested; waiting for data"
     }
   ]
 }

@@ -77,7 +77,8 @@ def twists(out):
                "the extrapolation). Unitarity: max |S^H S - I| of the propagating block; 'col' the same for the TE1,0 column.\n")
     out.append("| case | f (GHz) | setting | modes | spurious (%) | TE1,0 (dB) | unitarity / col | sec / ext | time (s) |")
     out.append("|---|---|---|---|---|---|---|---|---|")
-    for name in ("doane_constant", "doane_constant_3mm", "doane_cosine", "doane_triangular", "square_const_5lam",
+    for name in ("doane_constant", "doane_constant_3mm", "doane_cosine", "doane_triangular", "doane_triangular_cf2",
+                 "square_const_5lam",
                  "square_const_20lam", "strong_tau0p1", "strong_tau0p5"):
         p = os.path.join(vc.DATA, f"twist_{name}.npz")
         if not os.path.exists(p):

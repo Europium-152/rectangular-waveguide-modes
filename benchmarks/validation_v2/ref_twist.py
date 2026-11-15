@@ -46,6 +46,11 @@ def cases():
     for prof in ("constant", "cosine", "triangular"):
         c[f"doane_{prof}"] = dict(a=A187, b=B187, theta=THETA, L=L_DOANE, profile=prof, freqs=[15e9, 16.5e9, 18e9])
     c["doane_constant_3mm"] = dict(c["doane_constant"], settings=[("main", 3.0e-3, 1.6)])
+    for prof in ("cosine", "triangular"):     # mode-count check of the variable rates (many matching planes)
+        c[f"doane_{prof}_cf2"] = dict(c[f"doane_{prof}"], freqs=[18e9], settings=[("main", 3.0e-3, 2.0)],
+                                      sections=(64, 128))
+        c[f"doane_{prof}_cf2p5"] = dict(c[f"doane_{prof}"], freqs=[18e9], settings=[("main", 3.0e-3, 2.5)],
+                                        sections=(64, 128))
     a = 30e-3
     f25, f45 = 2.5 * hf.C0 / (2 * a), 4.5 * hf.C0 / (2 * a)
     c["square_const_5lam"] = dict(a=a, b=a, theta=THETA, L=5 * hf.C0 / f25, profile="constant", freqs=[f25])
@@ -154,8 +159,8 @@ if __name__ == "__main__":
     a = p.parse_args()
     cs = cases()
     for name in a.cases:
-        arrays, rows = run_case(name, cs[name])
-        c = {k: v for k, v in cs[name].items() if k != "settings"}
+        arrays, rows = run_case(name, cs[name], **({"sections": cs[name]["sections"]} if "sections" in cs[name] else {}))
+        c = {k: v for k, v in cs[name].items() if k not in ("settings", "sections")}
         vc.save_npz(f"twist_{name}.npz", __file__, arrays, case=name, geometry=c, rows=rows,
                     method="helical-coordinate FEM eigenmodes (Nedelec/Lagrange order 3) + mode matching; "
                            "variable rate: cascade of constant-rate sections, Richardson in 1/n^2",
