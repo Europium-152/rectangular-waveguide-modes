@@ -1,0 +1,33 @@
+{
+ "meta": {
+  "created": "2026-11-15",
+  "generator": "benchmarks/validation_v2/compare_v2.py",
+  "git_commit": "fc0245e394004c2737d7d3d1817bd8ab6b3d5408",
+  "part": "staircase",
+  "wrmodes_version": "1.0.0a1"
+ },
+ "results": [
+  {
+   "part": "staircase",
+   "profile": "linear",
+   "ref_main_db": -0.04618896666794027,
+   "ref_err": 1.8139038047105746e-05,
+   "d_main_db": 3.892979606862773e-05,
+   "worst_dP": 7.987964245309565e-06,
+   "worst": "2:TE3,0",
+   "ok": true,
+   "wp5_p30": 0.008834211515595118
+  },
+  {
+   "part": "staircase",
+   "profile": "bottle_a",
+   "ref_main_db": -0.00631017613646462,
+   "ref_err": 4.571696035482464e-05,
+   "d_main_db": 4.959265861777598e-06,
+   "worst_dP": 2.169764838677772e-05,
+   "worst": "1:TE1,0",
+   "ok": true,
+   "wp5_p30": 8.640522971711859e-05
+  }
+ ]
+}

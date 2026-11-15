@@ -1,0 +1,98 @@
+{
+ "meta": {
+  "created": "2026-11-15",
+  "generator": "benchmarks/validation_v2/compare_v2.py",
+  "git_commit": "fc0245e394004c2737d7d3d1817bd8ab6b3d5408",
+  "part": "literature",
+  "wrmodes_version": "1.0.0a1"
+ },
+ "results": [
+  {
+   "part": "literature",
+   "source": "kotik1965_fig3",
+   "n": 26,
+   "n_ok": 19.0
+  },
+  {
+   "part": "literature",
+   "source": "doane1989_fig9",
+   "profile": "constant",
+   "f": 15.0,
+   "ref": 1.4326384862707986,
+   "fig9": 1.3034,
+   "u": 0.0297
+  },
+  {
+   "part": "literature",
+   "source": "doane1989_fig9",
+   "profile": "constant",
+   "f": 16.5,
+   "ref": 0.6905656379314729,
+   "fig9": 0.0509,
+   "u": 0.0111
+  },
+  {
+   "part": "literature",
+   "source": "doane1989_fig9",
+   "profile": "constant",
+   "f": 18.0,
+   "ref": 2.1457450653249,
+   "fig9": 1.6847,
+   "u": 0.046
+  },
+  {
+   "part": "literature",
+   "source": "doane1989_fig9",
+   "profile": "cosine",
+   "f": 15.0,
+   "ref": 0.34907035169167155,
+   "fig9": 0.3509,
+   "u": 0.01
+  },
+  {
+   "part": "literature",
+   "source": "doane1989_fig9",
+   "profile": "cosine",
+   "f": 16.5,
+   "ref": 0.8714180606015587,
+   "fig9": 0.8854,
+   "u": 0.0102
+  },
+  {
+   "part": "literature",
+   "source": "doane1989_fig9",
+   "profile": "cosine",
+   "f": 18.0,
+   "ref": 0.9598841798372337,
+   "fig9": 1.0481,
+   "u": 0.0119
+  },
+  {
+   "part": "literature",
+   "source": "doane1989_fig9",
+   "profile": "triangular",
+   "f": 15.0,
+   "ref": 0.11434681107449496,
+   "fig9": 0.0489,
+   "u": 0.01
+  },
+  {
+   "part": "literature",
+   "source": "doane1989_fig9",
+   "profile": "triangular",
+   "f": 16.5,
+   "ref": 0.2561283300154926,
+   "fig9": 0.0992,
+   "u": 0.0114
+  },
+  {
+   "part": "literature",
+   "source": "doane1989_fig9",
+   "profile": "triangular",
+   "f": 18.0,
+   "ref": 0.6022531584363278,
+   "fig9": 0.1492,
+   "u": 0.014
+  }
+ ]
+}
