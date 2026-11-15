@@ -86,6 +86,15 @@ N_{12} = 2\left(\frac{a}{\lambda}\right)^2 \Big\{ \alpha'^2 &- \frac{4E(\alpha)}
 &+ \frac{24\alpha}{(1-\alpha^2)^2}\left(\frac{1-\alpha}{1+\alpha}\right)^{\frac12\left(\alpha + \frac{7}{\alpha}\right)}\left[Q' - \frac12\left(\frac23\,\frac{a'}{\lambda}\right)^2\right].
 \end{aligned}$$
 
+> **Correction (WP7b, 15 Nov 2026; WP4 open issue 2, L1 open issue 1).** The printed $N_{12}$ is a misprint: the
+> brace should read $\ldots - R_1 - \alpha^2 R_2\}$ (printed $- R_1 + \alpha^2 R_2$), the cross term that the
+> structure of $N_{11}$ and $N_{22}$ implies. Solving the $X_{11}$ and the $X_{22}$ equations separately for
+> $N_{12}$, with the mode-matching `Step` as the reference, gives two values that agree to 0–3 % and are 5–25 times
+> below the printed one. With the correction, (1a) is within 0.2 % for $a/\lambda \le 1$; (2a) also needs
+> $\lambda_g'$ (not $\lambda_g$) in its denominator, $1 + (2a'/\lambda_g')^2 X_0 X_{22}$, to reach about 1 %.
+> The transcription above keeps the book's text; see `benchmarks/validation_v2/marcuvitz_n12.py` and
+> `benchmarks/validation_v2/REPORT.md`.
+
 $$\alpha = \frac{a'}{a} = 1 - \beta, \qquad \alpha' = \sqrt{1 - \alpha^2}.$$
 
 $$Q = 1 - \sqrt{1 - \left(\frac{2a}{3\lambda}\right)^2}. \qquad Q' = 1 - \sqrt{1 - \left(\frac23\,\frac{a'}{\lambda}\right)^2}.$$
