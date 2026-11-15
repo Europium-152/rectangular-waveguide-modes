@@ -600,7 +600,7 @@ class Twist(Component):
     reflected) against the reference is 9e-6 (Doane constant, 15 / 16.5 / 18 GHz), 1.2e-5 (cosine), 2.3e-5
     (triangular), 6e-5 (30 mm square guide, 2a/lambda = 2.5, 90 deg over 5 lambda, tau a = 0.39) and 3e-6 (20
     lambda), 1e-6 (WR-90, tau a = 0.1, 15 and 30 GHz); for tau a = 0.5 (WR-90, 30 GHz) 1.9e-4 at the default,
-    8e-5 with mode_factor 4 and 2.3e-5 with 6. `convergence_study` shows the convergence in mode_factor, with and
+    8e-5 with mode_factor 4 and 2.0e-5 with 6. `convergence_study` shows the convergence in mode_factor, with and
     without the tail, and the Richardson extrapolation of the plain series in 1/chi_max. A mode just above or below
     cutoff couples strongly (the power-wave coupling grows like |beta|^(-1/2)); results within about 1 % of a
     cutoff depend on the truncation (docs/reports/WP6.md).

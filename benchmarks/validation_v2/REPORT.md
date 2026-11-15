@@ -517,6 +517,81 @@ did not add new comparisons with them. Self-checks of the references against qua
 6. `wrmodes.filters.LossyWallFilter` raises RootFindingError at M = 320 (family n = 4, orthogonality 1.1e-6); M ≤ 160
    works. Clear error; noted for WP2.
 
+## After WF2 (wave 2 fixes, `tasks/WF2-wave2-fixes.md`)
+
+The three findings above were fixed by WF2 (`docs/reports/WF2.md`); the references of this folder are unchanged.
+`compare_wf2.py` re-runs the components against them (commit 49ebb5e, data in `data/compare_wf2_*.json`; times on
+the 2-core container, one BLAS thread, nothing else running). Rows of the verification table that change:
+
+| Card row | Before WF2 | After WF2 | Verdict |
+| --- | --- | --- | --- |
+| WP6: Doane constant, 15 / 16.5 / 18 GHz | ΔP 4.1e-4 / 4.2e-5 / 4.0e-4 | 5.1e-6 / 1.1e-6 / 9.0e-6 | pass |
+| WP6: Doane cosine | 2.9e-5 / 4.4e-5 / 1.6e-4 | 2.4e-6 / 1.3e-6 / 1.2e-5 | pass |
+| WP6: Doane triangular | 7.7e-6 / 2.9e-5 / 7.4e-5 | 5.7e-6 / 1.4e-5 / 2.3e-5 (TE1,2 at 18 GHz 0.3739 vs 0.3761 %: the unexplained 2 % was the truncation) | pass |
+| WP6: square guide, L = 5λ / 20λ | 4.6e-3 (−0.14 dB) / 1.7e-4 | 6.1e-5 (−0.0024 dB) / 2.6e-6 | pass |
+| WP6: τa = 0.1, 15 / 30 GHz | 6.6e-5 / 2.4e-4 | 3.1e-7 / 9.6e-7 | pass |
+| WP6: τa = 0.5, 30 GHz | 2.6e-2 | 1.9e-4 at the default; 8.0e-5 with mode_factor 4, 2.0e-5 with 6 | pass with the option (documented) |
+| Wave 1: bend directly at a miter, cutoff_factor 3 | 2.0–4.2e-2 (R = 2a), 4–6e-3 (R = 10a) | ≤ 1.7e-4 (R = 2a, target 2e-4), ≤ 2.5e-5 (R = 10a, target 3e-5) | pass |
+| WP5 adversarial: StrangledBend port-2 basis | 25 of 200 heights differ | 0 of 200 | pass |
+
+Reciprocity and unitarity of every GSM above ≤ 2.3e-13. Doane's three twists at 15, 16.5 and 18 GHz take 169 s at the
+new defaults (constant 1.5 s, cosine 84 s, triangular 84 s; WP6's default: 0.6–1 s per variable-rate GSM). The strict xfails of
+`test_wp7b_references.py` (Doane constant) and `test_wp7b_adversarial.py` (port bases) pass and their markers are
+removed; both discrepancy files have a Resolution section.
+
+
+#### After WF2: StrangledBend port bases
+
+WR-90 at 60 GHz, 200 flat heights 1.5-2.6 mm: basis2 != basis1 for 0 (WP7b: 25).
+
+#### After WF2: twists at the new defaults vs the helical-coordinate FEM (incident TE1,0)
+
+Settings: `Twist` defaults (internal list to mode_factor 3 f for constant, 2 f for variable rates, quasi-static tail). 'WP6' = WP6's model (mode_factor 1, tail off), the default before WF2.
+
+| case | f (GHz) | setting | modes | WF2 worst ΔP (mode) | Δ main (dB) | pass | WP6 worst ΔP | time (s) |
+|---|---|---|---|---|---|---|---|---|
+| doane_constant | 15 | default (mf 3) | 150 | 5.1e-06 (2:TE0,1) | -0.00002 | yes | 4.1e-04 | 0.3 |
+| doane_constant | 16.5 | default (mf 3) | 182 | 1.1e-06 (2:TE0,1) | +0.00000 | yes | 4.2e-05 | 0.5 |
+| doane_constant | 18 | default (mf 3) | 210 | 9.0e-06 (2:TE0,1) | +0.00005 | yes | 4.0e-04 | 0.7 |
+| doane_cosine | 15 | default (mf 2) | 69 | 2.4e-06 (2:TE0,1) | +0.00001 | yes | 2.9e-05 | 16.5 |
+| doane_cosine | 16.5 | default (mf 2) | 78 | 1.3e-06 (2:TE0,1) | -0.00001 | yes | 4.4e-05 | 22.9 |
+| doane_cosine | 18 | default (mf 2) | 96 | 1.2e-05 (2:TE0,1) | -0.00004 | yes | 1.6e-04 | 44.2 |
+| doane_triangular | 15 | default (mf 2) | 69 | 5.7e-06 (2:TE1,2) | +0.00004 | yes | 7.7e-06 | 16.5 |
+| doane_triangular | 16.5 | default (mf 2) | 78 | 1.4e-05 (2:TE1,2) | +0.00009 | yes | 2.9e-05 | 24.4 |
+| doane_triangular | 18 | default (mf 2) | 96 | 2.3e-05 (2:TE1,2) | +0.00015 | yes | 7.4e-05 | 42.7 |
+| square_const_5lam | 12.4914 | default (mf 3) | 88 | 6.1e-05 (2:TE0,1) | -0.00243 | yes | 4.6e-03 | 0.1 |
+| square_const_20lam | 12.4914 | default (mf 3) | 88 | 2.6e-06 (2:TE0,1) | -0.00012 | yes | 1.7e-04 | 0.1 |
+| strong_tau0p1 | 15 | default (mf 3) | 33 | 3.1e-07 (1:TE0,1) | -0.00000 | yes | 6.6e-05 | 0.0 |
+| strong_tau0p1 | 30 | default (mf 3) | 129 | 9.6e-07 (2:TE0,1) | +0.00000 | yes | 2.4e-04 | 0.2 |
+| strong_tau0p5 | 30 | default (mf 3) | 129 | 1.9e-04 (2:TE0,1) | +0.00100 | NO | 2.6e-02 | 0.2 |
+| strong_tau0p5 | 30 | mode_factor 4 (mf 4) | 236 | 8.0e-05 (2:TE0,1) | +0.00041 | yes | 2.6e-02 | 0.8 |
+| strong_tau0p5 | 30 | mode_factor 6 (mf 6) | 525 | 2.0e-05 (2:TE0,1) | +0.00009 | yes | 2.6e-02 | 6.3 |
+
+Run time at the defaults, Doane's three twists at 15, 16.5, 18 GHz (9 GSMs, one BLAS thread): 169 s (constant 1.5 s, cosine 84 s, triangular 84 s).
+
+#### After WF2: short bend + miter, Line [SmoothBend, fem2d.Miter] vs one FEM domain
+
+Max over the propagating GSM of | |S|² difference |. SmoothBend couples the evanescent modes of its basis (VariableGuide route, internal cutoff factor twice the port basis's); 'WP7b line' = before WF2, 'FEM cascade' = Line [FEM arc, fem2d.Miter] (WP7b).
+
+| R/a | f (GHz) | L/a | line cf 1 | line cf 3 | Δ TE1,0 cf 3 (dB) | target | pass | WP7b line cf 3 | FEM cascade cf 3 | time cf 3 (s) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2 | 20 | 0.25 | 2.5e-02 | 1.7e-04 | +0.00016 | 2e-04 | yes | 2.5e-02 | 1.6e-04 | 1.4 |
+| 2 | 20 | 0.5 | 3.1e-02 | 1.2e-04 | +0.00017 | 2e-04 | yes | 3.0e-02 | 1.1e-04 | 1.3 |
+| 2 | 20 | 1 | 4.2e-02 | 1.6e-04 | -0.00006 | 2e-04 | yes | 4.2e-02 | 1.4e-04 | 1.7 |
+| 2 | 20 | 2 | 2.4e-02 | 1.1e-04 | -0.00026 | 2e-04 | yes | 2.4e-02 | 1.1e-04 | 1.5 |
+| 2 | 40 | 0.25 | 2.0e-02 | 5.7e-05 | -0.00003 | 2e-04 | yes | 2.0e-02 | 5.6e-05 | 13.4 |
+| 2 | 40 | 0.5 | 2.0e-02 | 4.8e-05 | -0.00009 | 2e-04 | yes | 2.0e-02 | 4.6e-05 | 13.2 |
+| 2 | 40 | 1 | 1.8e-02 | 6.3e-05 | -0.00093 | 2e-04 | yes | 1.8e-02 | 6.2e-05 | 13.1 |
+| 10 | 20 | 0.25 | 4.6e-03 | 2.4e-05 | +0.00001 | 3e-05 | yes | 4.5e-03 | 2.4e-05 | 1.4 |
+| 10 | 20 | 0.5 | 5.4e-03 | 2.4e-05 | +0.00001 | 3e-05 | yes | 5.2e-03 | 2.4e-05 | 1.4 |
+| 10 | 20 | 1 | 5.9e-03 | 2.5e-05 | +0.00001 | 3e-05 | yes | 5.8e-03 | 2.5e-05 | 1.3 |
+| 10 | 20 | 2 | 5.1e-03 | 2.3e-05 | -0.00000 | 3e-05 | yes | 5.0e-03 | 2.3e-05 | 1.5 |
+| 10 | 40 | 0.25 | 4.1e-03 | 8.8e-06 | -0.00000 | 3e-05 | yes | 4.0e-03 | 8.8e-06 | 13.4 |
+| 10 | 40 | 0.5 | 4.4e-03 | 9.7e-06 | -0.00000 | 3e-05 | yes | 4.3e-03 | 9.7e-06 | 13.8 |
+| 10 | 40 | 1 | 4.3e-03 | 1.0e-05 | -0.00000 | 3e-05 | yes | 4.2e-03 | 1.0e-05 | 13.5 |
+
+Line warning (EvanescentJunctionWarning): issued at cutoff_factor 1 and not at 3 in every case.
+
 ## Timings (2-core container, other jobs running)
 
 Taper FEM references 1–150 s per run (strangled bend at 90 GHz, 4.7 M dof: 150 s); staircase 2–84 s per run (n =

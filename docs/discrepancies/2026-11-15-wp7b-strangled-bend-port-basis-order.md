@@ -35,3 +35,14 @@ this near-cutoff point). Inside a `Line` the component works, because the line i
 Build both port bases from the end guides as given (`guide` at both ends of a symmetric strangled bend, and the
 exact `a2`, `b2` of a `Taper`), not from the profile evaluated at z = L, or snap the end values of a(z), b(z) to the
 given end dimensions. Then remove the strict xfail marker of the test.
+
+## Resolution (WF2, 15 Nov 2026)
+
+Fixed as suggested (card `tasks/WF2-wave2-fixes.md`, item 3): `VariableGuide` builds its port guides from
+`_end_sides()`, which `StrangledBend` overrides with the given guide at both ports (local a = h, b = w, exactly) and
+`Taper` with (a1, b1) and the given (a2, b2); the geometry functions are unchanged (a(L) can still be one rounding
+error off inside the solver, where it is harmless). `StrangledBend.guides` is now `(guide, guide)` and the line after
+it continues in exactly the input guide. WR-90 at 60 GHz: 0 of the 200 flat heights give basis2 != basis1 (25
+before); `g @ g` and `g.reversed()` work (tests in `tests/test_taper.py`). The strict xfail
+`test_strangled_bend_port_bases_are_equal` passes and its marker is removed. No GSM entry changes beyond the
+reordering of exactly degenerate modes.

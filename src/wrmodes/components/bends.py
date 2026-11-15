@@ -133,7 +133,7 @@ class SmoothBend(Component):
     unchanged (bitwise) from wrmodes 1.0a. Measured against one FEM domain containing a short circular bend
     (R = 2a and 10a, L = a/4 ... 2a) directly followed by the optical 90 deg miter in WR-90 at 20 and 40 GHz
     (`benchmarks/validation_v2/compare_wf2.py`): a `Line` [SmoothBend, fem2d.Miter] at cutoff_factor 3 is within
-    1.7e-4 of the input power (R = 2a) and 2.9e-5 (R = 10a), against 2-4e-2 and 4-6e-3 when the bend passed the
+    1.7e-4 of the input power (R = 2a) and 2.5e-5 (R = 10a), against 2-4e-2 and 4-6e-3 when the bend passed the
     evanescent modes as uncoupled straight modes (WP7b). The remaining difference is the truncation of the junction
     (cutoff_factor 4: 7e-5 at R = 2a). Cost: the internal list grows like mode_factor^2 per family and the slicing
     with the evanescent decay rates; a 40 cm sech bend in WR-90 at 40 GHz with cutoff_factor 3 takes about 2 min
