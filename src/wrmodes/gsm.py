@@ -11,12 +11,20 @@ S11 has the shape (N1, N1), S22 (N2, N2), S21 (N2, N1) and S12 (N1, N2), where N
 of the two port bases. With the amplitude normalization of CONVENTIONS.md, every reciprocal component has a
 symmetric S (S^T = S), lossless components have a unitary S restricted to the propagating modes, and a cascade
 is the Redheffer star product, which stays well conditioned with evanescent modes.
+
+Reference planes inside a discontinuity (WF3). A component whose CONVENTIONS.md section 6 reference plane lies a
+depth delta > 0 inside its discontinuity (the optical mirror below 90 degrees) defines its GSM there by continuing
+the uniform arm analytically, so its evanescent entries carry exp(|beta| delta) per port. Such a component attaches
+`BuriedPlanes` to its GSM (`GSM.buried`): the depths and the GSM at the uniform-arm planes, from which
+`wrmodes.Line` cascades without the growing factors (`shift_planes`, `wrmodes.line`).
 """
+import dataclasses
+
 import numpy as np
 
 from .modes import ModeBasis, reversal_signs
 
-__all__ = ["GSM", "cascade", "straight", "from_transfer_matrix", "block_diag"]
+__all__ = ["GSM", "BuriedPlanes", "cascade", "straight", "shift_planes", "from_transfer_matrix", "block_diag"]
 
 
 class GSM:
@@ -32,7 +40,15 @@ class GSM:
         Frequency (Hz).
     name : str, optional
         Label used in reprs and error messages.
+
+    Attributes
+    ----------
+    buried : BuriedPlanes or None
+        Set by components whose reference planes lie inside their discontinuity (see `BuriedPlanes`); None (class
+        default) otherwise. Operations on GSMs (star products, `reversed`, ...) do not carry it over.
     """
+
+    buried = None
 
     def __init__(self, S11, S12, S21, S22, basis1, basis2=None, f=None, name=""):
         basis2 = basis1 if basis2 is None else basis2
@@ -178,6 +194,51 @@ def _outer_solve(L, M, R):
                                     "scattering matrix at this frequency")
     inv = (Vh[~null].conj().T / sv[~null]) @ U[:, ~null].conj().T
     return L @ inv @ R
+
+
+@dataclasses.dataclass(frozen=True)
+class BuriedPlanes:
+    """Reference planes inside a discontinuity: the depth of each plane and the GSM at the uniform-arm planes.
+
+    A component whose reference plane at port p lies a distance ``depth[p]`` (m, >= 0) inside its discontinuity
+    (measured along the arm, from the last cross-section where the arm is still uniform; CONVENTIONS.md section 6,
+    "Evanescent entries at reference planes inside a discontinuity") returns its GSM ``g`` at the reference planes
+    as documented, with ``g.buried = BuriedPlanes(depth, gsm_uniform)``. ``gsm_uniform`` is the GSM of the same
+    component, in the same port bases, at the planes ``depth[p]`` further out along each arm, where the arm is
+    uniform. In exact arithmetic
+
+        g = shift_planes(gsm_uniform, depth[0], depth[1]),
+
+    i.e. g is gsm_uniform followed and preceded by lossless straights of negative length -depth; the evanescent
+    entries of g carry the factors exp(|beta| depth), those of gsm_uniform do not. `wrmodes.Line` uses
+    gsm_uniform and takes the depth from the uniform guide next to the component (module docstring of
+    `wrmodes.line`). A port with depth 0 is not buried; components without buried planes leave ``g.buried`` None.
+    """
+    depth: tuple
+    gsm: "GSM"
+
+    def __post_init__(self):
+        d = tuple(float(x) for x in self.depth)
+        if len(d) != 2 or any(not (x >= 0 and np.isfinite(x)) for x in d):
+            raise ValueError("BuriedPlanes.depth must be two finite depths >= 0 (m)")
+        object.__setattr__(self, "depth", d)
+
+
+def shift_planes(g, d1=0.0, d2=0.0, name=None):
+    """The GSM `g` with its port planes moved a distance d1 (port 1) and d2 (port 2) into the component, along
+    lossless uniform arms of the port guides: S_ij -> exp(i beta_i d_i) S_ij exp(i beta_j d_j).
+
+    Negative distances move the planes outwards: shift_planes(g, -L, 0) = straight(basis1, f, L) @ g. For d > 0 the
+    evanescent entries grow as exp(|beta| d) (the analytic continuation of CONVENTIONS.md section 6). d1 and d2 are
+    numbers (m) or arrays with one distance per mode of the port basis.
+    """
+    if g.f is None:
+        raise ValueError("shift_planes needs a GSM with a frequency")
+    p1 = np.exp(1j * g.basis1.beta(g.f) * np.broadcast_to(np.asarray(d1, dtype=float), (len(g.basis1),)))
+    p2 = np.exp(1j * g.basis2.beta(g.f) * np.broadcast_to(np.asarray(d2, dtype=float), (len(g.basis2),)))
+    return GSM(p1[:, None] * g.S11 * p1[None, :], p1[:, None] * g.S12 * p2[None, :],
+               p2[:, None] * g.S21 * p1[None, :], p2[:, None] * g.S22 * p2[None, :],
+               g.basis1, g.basis2, g.f, g.name if name is None else name)
 
 
 def cascade(*gsms):

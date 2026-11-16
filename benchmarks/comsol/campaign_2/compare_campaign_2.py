@@ -22,7 +22,8 @@ exists, the 0.02 dB alone). E4 is judged on the power of every output mode (frac
 
 wrmodes values come from the merged components (that is the comparison, not a reference): E1 `fem2d.Miter` and
 `MiterMM` (E plane), E2 `Taper`, E3 `StrangledBend`, E4 `Twist`, E5 the single-domain chained outline
-(`fem2d.chained_miter_outline`) and the `Line` cascade [Miter(45), Straight(s), Miter(45)]. For E4 the WP7b
+(`fem2d.chained_miter_outline`) and the `Line` cascade [Miter(45), Straight(s), Miter(45)] at cutoff factors 1.5 and 3
+(WF3). For E4 the WP7b
 helical-FEM reference (benchmarks/validation_v2/data/twist_doane_<profile>.npz) is shown as well when present.
 E1 and E5 need the 'fem' extra (scikit-fem, gmsh).
 
@@ -169,10 +170,11 @@ def wrmodes_model(case, variant, f_ghz):
         s = (2 if variant.startswith("s2a") else 3) * W
         from wrmodes.fem2d import Coplanar2D, Miter, chained_miter_outline
         guide = Guide(W, H)
-        if variant.endswith("cascade"):
-            # propagating modes only: with evanescent modes the 45 deg optical miter's entries at its reference
-            # planes (22.9 mm inside the mirror) make the cascade ill-conditioned (Gate B finding, see REPORT)
-            g = wr.Line(guide, [Miter(45, plane="H"), wr.Straight(s), Miter(45, plane="H")]).gsm(f, cutoff_factor=1.0)
+        if "_cascade" in variant:
+            # with evanescent modes (variant '..._cascade_cf<x>'): the miters' reference planes lie 22.86 mm inside
+            # the mirrors; Line takes that depth from the straight (WF3; before WF3 this cascade was ill-conditioned)
+            cf = float(variant.split("_cf")[1])
+            g = wr.Line(guide, [Miter(45, plane="H"), wr.Straight(s), Miter(45, plane="H")]).gsm(f, cutoff_factor=cf)
         else:
             out_, mirror, length = chained_miter_outline([45, 45], [s], a=W)
             g = Coplanar2D(out_, b=H, plane="H", guide=guide, mirror=mirror, length=length).gsm(f)
@@ -385,8 +387,8 @@ def e4(raw, out, model=wrmodes_model, log=None):
 def e5(raw, out, model=wrmodes_model, log=None):
     log = [] if log is None else log
     table(out, "E5: two optical 45° H-plane miters, ports 37.86 mm from the reference planes",
-          ["spacer", "f (GHz)", "COMSOL \\|S21\\| (dB)", "COMSOL fine", "single domain", "Δ", "cascade (cf 1)", "Δ",
-           "allowed", "pass", "\\|S11\\| COMSOL / domain / cascade"])
+          ["spacer", "f (GHz)", "COMSOL \\|S21\\| (dB)", "COMSOL fine", "single domain", "Δ", "cascade (cf 1.5)", "Δ",
+           "cascade (cf 3)", "Δ", "allowed", "pass", "\\|S11\\| COMSOL / domain / cascade cf 3"])
     verdicts = []
     d_port = 37.86e-3
     for variant in ("s2a", "s3a"):
@@ -399,7 +401,8 @@ def e5(raw, out, model=wrmodes_model, log=None):
             ref = cf[f] if cf and f in cf else c[f]
             coarse = c[f] if cf and f in cf else None
             res = {}
-            for tag in ("domain", "cascade"):
+            tags = ("domain", "cascade_cf1.5", "cascade_cf3")
+            for tag in tags:
                 try:
                     m = model("E5", f"{variant}_{tag}", f)
                     res[tag] = {k: deembed(v, b, d_port, b, d_port) for k, v in m.items()}
@@ -410,7 +413,7 @@ def e5(raw, out, model=wrmodes_model, log=None):
                     res[tag] = None
                     log.append(f"[n/a] E5 {variant} {tag} {f:g} GHz: {str(e)[:60]}...")
             cells, ok, allowed = [], True, DB_TOL
-            for tag in ("domain", "cascade"):
+            for tag in tags:
                 if res[tag] is None:
                     cells += ["–", "–"]
                     continue
@@ -419,7 +422,7 @@ def e5(raw, out, model=wrmodes_model, log=None):
                 verdicts.append(("E5", variant, tag, f, d, allowed, p))
                 cells += [f"{db(res[tag]['S21']):.4f}", f"{d:+.4f}"]
             fine = f"{db(cf[f]['S21']):.4f}" if cf and f in cf else "–"
-            s11 = " / ".join(f"{abs(x['S11']):.4f}" if x else "–" for x in (ref, res["domain"], res["cascade"]))
+            s11 = " / ".join(f"{abs(x['S11']):.4f}" if x else "–" for x in (ref, res["domain"], res["cascade_cf3"]))
             out.append(f"| {variant} | {f:g} | {db(c[f]['S21']):.4f} | {fine} | " + " | ".join(cells)
                        + f" | {allowed:.4f} | {'yes' if ok else 'NO'} | {s11} |")
     return verdicts

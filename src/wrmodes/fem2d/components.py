@@ -12,7 +12,7 @@ import scipy.constants as cst
 
 from ..components import Component, Guide
 from ..components.guide import _check_plane
-from ..gsm import GSM
+from ..gsm import GSM, BuriedPlanes
 from ..modes import Mode, ModeBasis, propagation_constant
 from .geometry import Outline, PortPlane, build_mesh
 from .normalization import ls_amplitude_factors
@@ -119,7 +119,9 @@ class Coplanar2D(Component):
       exp(|beta| L); with `port_distance=None` the arms are shortened so that this amplifies the discretization
       error by at most `evanescent_gain` (and more port modes are used, see FEMOptions). A reference plane inside
       the discontinuity (`PortPlane.deembed` > 0) adds exp(|beta| deembed), which cannot be avoided: it is part
-      of the definition of the GSM at such a plane (docs/reports/WP3.md).
+      of the definition of the GSM at such a plane (docs/reports/WP3.md). The GSM then also carries the GSM at the
+      outline's port planes in `buried` (`wrmodes.gsm.BuriedPlanes`, depth = deembed), with which `wrmodes.Line`
+      cascades through a neighbouring straight without that factor (WF3).
     * Wall loss (`wall_impedance`). The Leontovich condition E_tan = Z_s H_tan x n on the in-plane walls is
       imposed exactly (docs/theory/WP3-normalization.md, section 6): a Robin condition on psi = E_v for family
       n = 0 (TE_m0, LSM only), and for n >= 1 a condition that couples the LSM and LSE problems through the
@@ -210,7 +212,10 @@ class Coplanar2D(Component):
     def gsm(self, f, basis1=None, basis2=None):
         """GSM at f (Hz) in the TE/TM basis of CONVENTIONS.md, at the reference planes of the outline.
 
-        The returned GSM carries the solver diagnostics in `fem_info`.
+        The returned GSM carries the solver diagnostics in `fem_info`. When a port plane of the outline lies inside
+        the discontinuity (`PortPlane.deembed` > 0), the GSM also carries `buried` (`wrmodes.gsm.BuriedPlanes`):
+        the de-embedding distances and the GSM at the port planes of the outline, where the arms are uniform, which
+        `wrmodes.Line` cascades without the factors exp(|beta| deembed) (WF3).
         """
         if self.guide is not None and self.wall_impedance is None:
             self.guide.require_lossless(self.name)
@@ -220,9 +225,13 @@ class Coplanar2D(Component):
             basis2 = d2 if basis2 is None else basis2
         self._check_basis(basis1, 0)
         self._check_basis(basis2, 1)
-        S, info = self._solve(f, basis1, basis2)
+        S, info, S_u = self._solve(f, basis1, basis2)
         g = GSM.from_matrix(S, basis1, basis2, f, self.name)
         g.fem_info = info
+        if S_u is not None:
+            gu = GSM.from_matrix(S_u, basis1, basis2, f, self.name)
+            gu.fem_info = info
+            g.buried = BuriedPlanes(tuple(p.deembed for p in self.outline.ports), gu)
         return g
 
     # -------------------------------------------------------------------------------------- internals
@@ -289,6 +298,9 @@ class Coplanar2D(Component):
         S_ls = np.zeros((N1 + N2, N1 + N2), dtype=complex)
         Q = np.zeros((N1 + N2, N1 + N2), dtype=complex)
         families = sorted(set(basis1.families()) | set(basis2.families()))
+        # reference planes inside the discontinuity (deembed > 0): the GSM at the outline's port planes as well
+        buried = any(p.deembed > 0 for p in self.outline.ports)
+        S_u = np.zeros_like(S_ls) if buried else None
         Lp = self._port_distance(f, bases)
         Zs = self.surface_impedance(f)
         if Zs is not None and not Lp > 0:
@@ -305,7 +317,7 @@ class Coplanar2D(Component):
                 rot = [ls_amplitude_factors(sb, f) for sb in subs]
             except ValueError:
                 # k_t = 0 (f = n c / 2b): the LS rotation does not exist (CONVENTIONS.md section 7)
-                self._uncoupled(f, n, subs, idx, off, S_ls, Q, info)
+                self._uncoupled(f, n, subs, idx, off, S_ls, Q, info, S_u)
                 continue
             for p in range(2):
                 gi = [off[p] + i for i in idx[p]]
@@ -360,7 +372,7 @@ class Coplanar2D(Component):
                 # 2D amplitudes -> LS amplitudes, then from the modal ports to the reference planes.
                 # alpha_in = s_in f a_in, alpha_out = s_out f a_out: LSM s_in = s_out = 1; LSE (H_v reverses with
                 # the direction of travel) s_in = +1 / -1 at port 1 / 2 and s_out = -s_in (WP3-normalization.md 3).
-                gidx, fac, beta, s_in, s_out, dist = [], [], [], [], [], []
+                gidx, fac, beta, s_in, s_out, dist, dist_u = [], [], [], [], [], [], []
                 for pol in order:
                     rows, _, port_betas, excite = setups[pol]
                     for p in range(2):
@@ -373,14 +385,19 @@ class Coplanar2D(Component):
                             s_in.append(1.0 if pol == "LSM" else sp_)
                             s_out.append(1.0 if pol == "LSM" else -sp_)
                             dist.append(dk)
+                            dist_u.append(Lp)
                 fac, beta, s_in, s_out, dist = map(np.asarray, (fac, beta, s_in, s_out, dist))
                 T = S2 * (s_out[:, None] * s_in[None, :]) * fac[None, :] / fac[:, None]
                 ph = np.exp(1j * beta * dist)
                 S_ls[np.ix_(gidx, gidx)] = ph[:, None] * T * ph[None, :]
-        return Q.T @ S_ls @ Q, info
+                if buried:
+                    ph_u = np.exp(1j * beta * np.asarray(dist_u))
+                    S_u[np.ix_(gidx, gidx)] = ph_u[:, None] * T * ph_u[None, :]
+        return Q.T @ S_ls @ Q, info, (None if S_u is None else Q.T @ S_u @ Q)
 
-    def _uncoupled(self, f, n, subs, idx, off, S_ls, Q, info):
-        """Family exactly at k_t = 0: uncoupled straight modes over the centre-line length (documented)."""
+    def _uncoupled(self, f, n, subs, idx, off, S_ls, Q, info, S_u=None):
+        """Family exactly at k_t = 0: uncoupled straight modes over the centre-line length (documented); in S_u (the
+        GSM at the outline's port planes) over that length plus the two de-embedding distances."""
         if self.length is None:
             raise ValueError(f"{self.name}: family n = {n} is at k_t = 0 at {f / 1e9:.9g} GHz, where the LS rotation "
                              "does not exist; give the centre-line length (length=...) to treat it as uncoupled")
@@ -391,6 +408,10 @@ class Coplanar2D(Component):
         i2 = [off[1] + i for i in idx[1]]
         S_ls[i2, i1] = P
         S_ls[i1, i2] = P
+        if S_u is not None:
+            P_u = np.exp(-1j * subs[0].beta(f) * (self.length + sum(p.deembed for p in self.outline.ports)))
+            S_u[i2, i1] = P_u
+            S_u[i1, i2] = P_u
         for gi in (i1, i2):
             Q[gi, gi] = 1.0
         info["uncoupled_families"].append(n)
@@ -432,7 +453,14 @@ class Miter(Coplanar2D):
     `arm_length` = (a/2) tan(|theta|/2) from the intersection of the arm axes; centre-line length 2 arm_length.
     When the mirror cuts the outer wall before a reference plane (d < cos(theta/2), e.g. the optical mirror of
     angles below 90 degrees), the field is solved from the last uniform cross-section of the arm and shifted
-    analytically to the reference plane.
+    analytically to the reference plane, which then lies delta = (cos(theta/2) - d) a / sin(theta/2) inside the
+    mirror (delta = a for the optical 45 degree miter): the evanescent entries of the GSM carry exp(|beta| delta)
+    per port (CONVENTIONS.md section 6). The GSM then carries `buried` (`wrmodes.gsm.BuriedPlanes`): delta per port
+    and the GSM at the last uniform cross-sections. In a `wrmodes.Line`, a straight of length s >= delta next to
+    such a port absorbs the depth (the evanescent modes decay as exp(-|beta| (s - delta)) and no growing factor
+    enters the cascade; module docstring of `wrmodes.line`). Two such miters joined by one straight need
+    s >= 2 delta (their mirrors touch at s = 2 delta); with a shorter straight the mirrors overlap, the cascade
+    is not the physical geometry (use `chained_miter_outline`), and `Line` warns (`BuriedPlaneWarning`).
     """
 
     def __init__(self, angle_deg, chamfer=None, plane="H", guide=None, name="", options=None, wall_impedance=None,
@@ -512,11 +540,18 @@ class Miter(Coplanar2D):
         g = super().gsm(f, basis1, basis2)
         if self.angle_deg < 0:          # mirror image u -> -u of the bend turning towards -u
             D1, D2 = mode_parity(g.basis1), mode_parity(g.basis2)
-            info = g.fem_info
-            g = GSM(D1[:, None] * g.S11 * D1[None, :], D1[:, None] * g.S12 * D2[None, :],
-                    D2[:, None] * g.S21 * D1[None, :], D2[:, None] * g.S22 * D2[None, :],
-                    g.basis1, g.basis2, f, self.name)
-            g.fem_info = info
+
+            def mirrored(x):
+                y = GSM(D1[:, None] * x.S11 * D1[None, :], D1[:, None] * x.S12 * D2[None, :],
+                        D2[:, None] * x.S21 * D1[None, :], D2[:, None] * x.S22 * D2[None, :],
+                        x.basis1, x.basis2, f, self.name)
+                y.fem_info = x.fem_info
+                return y
+
+            buried = g.buried
+            g = mirrored(g)
+            if buried is not None:
+                g.buried = BuriedPlanes(buried.depth, mirrored(buried.gsm))
         return g
 
 
