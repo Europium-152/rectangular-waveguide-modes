@@ -165,8 +165,13 @@ $\tfrac12\iint(E^+_p\times H^+_q)\cdot\hat z\,ds = a_p a_q\,\delta_{pq}$.
   $d < \cos(\theta/2)$), the GSM is defined by continuing the uniform arm analytically to that plane. Propagating
   entries are unaffected; evanescent entries carry a factor $e^{|\beta|\delta}$ per port ($\delta$ the depth of
   the plane inside the discontinuity) and are only as accurate, relatively, as the solver times that factor.
-  Cascades with such components keep enough straight length, or enough evanescent modes, for the product to be
-  well conditioned (WP3 report, open issue 1).
+  Such a component also returns its GSM at the uniform-arm planes and the depths (`GSM.buried`, a
+  `wrmodes.gsm.BuriedPlanes`; $g$ = `shift_planes(g_u, δ1, δ2)`). `Line` takes each depth from the uniform guide
+  next to the port (straights and frame changes, in which evanescent modes are uncoupled), so that no factor
+  $e^{|\beta|\delta}$ enters a star product: the straight must be at least as long as the depths it serves
+  ($s \ge \delta_2 + \delta_1'$ between two such components, i.e. the discontinuities must not overlap). Where they
+  overlap, `Line` keeps the GSM at the reference plane and warns (`BuriedPlaneWarning`); a line whose own port lies
+  inside a discontinuity returns its GSM at that plane, like the component (WF3).
 * **Components with a varying cross-section** (tapers, strangled bends) measure their length along the centre
   line, and their curvature and offsets refer to it (T2 §10). With centre offsets $u_0(z), v_0(z)$ the length is
   measured along the reference line $u = v = 0$ of the component, not along the moving centre (WP5).
@@ -182,6 +187,8 @@ $\tfrac12\iint(E^+_p\times H^+_q)\cdot\hat z\,ds = a_p a_q\,\delta_{pq}$.
   * lossless components: unitarity over the propagating modes, $\max|S_p^HS_p - I| \le 10^{-10}$;
   * lossy components: passivity, largest singular value of $S_p \le 1$;
   * the geometric symmetries of the component (e.g. $S_{11} = S_{22}$ for a symmetric miter).
+* `Line.gsm` checks every cascade: largest singular value of the propagating block $\le 1 + 10^{-8}$, otherwise a
+  `NonPassiveCascadeWarning` naming the element or junction (the test suite treats it as an error; WF3).
 * Coupled-mode solvers produce a transfer matrix $y(L) = \Phi\,y(0)$, $y = [A^+; A^-]$, and convert it with
   `from_transfer_matrix`. Transfer matrices are only used with propagating modes; with evanescent modes, build
   the GSM directly.
@@ -239,7 +246,10 @@ Components couple the evanescent modes they are given (WF2: `SmoothBend` does so
 its bases carry evanescent modes). `Line` issues one `EvanescentJunctionWarning` per line when two components other
 than `Straight` and `FrameChange` are joined "directly", i.e. with less than three decay lengths of the
 least-attenuated evanescent mode between them, while the bases there carry no evanescent modes; the cure is a
-larger `cutoff_factor`.
+larger `cutoff_factor`. Components whose reference planes lie inside their discontinuities are joined directly
+when the uniform guide left between them, $s - \delta_2 - \delta_1'$, is shorter than three decay lengths (`Line`'s
+warning counts this length). Two optical 45° miters whose mirrors touch ($s = 2a$) need evanescent modes
+(`cutoff_factor` ≥ 1.5–2) for 1e-4 (WF3).
 
 A component counts as validated when an agent that did not write it reproduces its results with a different
 method, within these targets (see `tasks/README.md`).
@@ -266,6 +276,7 @@ method, within these targets (see `tasks/README.md`).
   on its own default basis, or on the union of both, and returns the requested sub-block. Dropping evanescent port
   modes assumes the neighbouring components are far enough away for those modes to decay; a component documents
   the distance it needs.
+* A component whose reference plane lies inside its discontinuity attaches `BuriedPlanes` to its GSM (§6).
 * New dependencies beyond numpy and scipy are optional extras (`wrmodes[fem]`). The core must import without them.
 * Public functions have docstrings that state units, conventions used and the reference (paper, equation) they
   implement.

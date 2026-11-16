@@ -122,10 +122,11 @@ def test_propagating_path_is_bitwise_unchanged():
     # Bitwise on the machine that froze them (checked by WF2 against a separate origin/main checkout). Across
     # platforms BLAS/LAPACK round differently in the last bits, and long Magnus products and star products carry
     # that to ~1e-13 absolute in every entry (PR #29/#30 CI: different Line cases on macOS, Windows, Python 3.9).
-    # Entry-wise relative tolerances fail on tiny entries, so the scale is the matrix's (|S| <= 1): 1e-11 absolute,
+    # Entry-wise relative tolerances fail on tiny entries, so the scale is the matrix's (|S| <= 1): 1e-9 absolute,
     # still far below any change of the model (the evanescent coupling of WF2 moves entries by 1e-6 or more).
     for k in ref:
-        assert np.array_equal(new[k], ref[k]) or np.max(np.abs(new[k] - ref[k])) <= 1e-11, k
+        # 1e-9: scipy's expm differs by up to 5e-11 between versions (1.13 on Python 3.9 vs 1.18)
+        assert np.array_equal(new[k], ref[k]) or np.max(np.abs(new[k] - ref[k])) <= 1e-9, k
 
 
 @pytest.mark.parametrize("plane", ["H", "E"])
