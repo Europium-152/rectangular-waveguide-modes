@@ -627,3 +627,132 @@ def test_fem_miter_and_mode_matching_miter_are_interchangeable(plane):
         assert a.basis1 == b.basis1 and a.basis2 == b.basis2
         assert np.max(np.abs(a.S - b.S)) < 2e-3
     assert np.isclose(Miter(90, guide=WR90).arm_length, MiterMM(guide=WR90).arm_length)
+
+
+# ----------------------------------------------------------------------------------------- WF3: buried planes
+from wrmodes.gsm import shift_planes                                    # noqa: E402
+from wrmodes.fem2d.components import mode_parity                        # noqa: E402
+from wrmodes.line import NonPassiveCascadeWarning, BuriedPlaneWarning, _largest_singular_value   # noqa: E402
+
+
+def _rel_close(a, b, tol):
+    return np.all(np.abs(a - b) <= tol * np.maximum(np.maximum(np.abs(a), np.abs(b)), 1e-300))
+
+
+def test_buried_miter_carries_its_gsm_at_the_uniform_planes():
+    """WF3: the 45 degree optical miter's reference planes lie delta = a inside the mirror; its GSM carries
+    `buried` with depth (a, a) and the GSM at the last uniform cross-sections, g = shift_planes(g_u, a, a); the
+    evanescent entries of g_u are O(1), those of g up to exp(2 |beta| a). Miters with their planes on uniform
+    cross-sections carry none; the mirror image (-45) carries the mirror image."""
+    f = 30e9
+    b = WR90.basis(f, 2.0, plane="H")
+    g = Miter(45, guide=WR90).gsm(f, b, b)
+    assert g.buried.depth == pytest.approx((W, W), rel=1e-12)
+    gu = g.buried.gsm
+    assert gu.basis1 == b and gu.basis2 == b
+    assert _rel_close(g.S, shift_planes(gu, W, W).S, 1e-12)
+    assert np.max(np.abs(gu.S)) < 3 and np.max(np.abs(g.S)) > 1e6
+    p = np.concatenate(gu.propagating())
+    assert rel_reciprocity(gu) < 1e-10 and np.max(np.abs(np.abs(gu.S) - np.abs(g.S))[np.ix_(p, p)]) < 1e-12
+    for m in (Miter(90, guide=WR90), Miter(45, chamfer=0.95, guide=WR90)):
+        assert m.gsm(f, b, b).buried is None
+    gm = Miter(-45, guide=WR90).gsm(f, b, b)
+    D = mode_parity(b)
+    assert np.allclose(gm.buried.gsm.S, (np.concatenate([D, D])[:, None] * gu.S * np.concatenate([D, D])[None, :]),
+                       rtol=0, atol=1e-13)
+
+
+def _e5_powers(s, f, cf, **kw):
+    """TE1,0 column |S|^2 (transmitted and reflected, propagating modes) of the cascade and of the single domain."""
+    o, mirror, L = chained_miter_outline([45, 45], [s], a=W)
+    gd = Coplanar2D(o, H, guide=WR90, mirror=mirror, length=L).gsm(f)
+    gc = Line(WR90, [Miter(45), Straight(s), Miter(45)]).gsm(f, cutoff_factor=cf, **kw)
+    p1, _ = gc.propagating()
+    i0 = gd.basis1.index(Mode("TE", 1, 0))
+    j0 = gc.basis1.index(Mode("TE", 1, 0))
+    col_c = np.concatenate([gc.S11[p1, j0], gc.S21[p1, j0]])
+    col_d = np.concatenate([gd.S11[:, i0], gd.S21[:, i0]])
+    assert [m for m, q in zip(gc.basis1.modes, p1) if q] == list(gd.basis1.modes)
+    return np.abs(col_c) ** 2, np.abs(col_d) ** 2, gc
+
+
+@pytest.mark.parametrize("s_over_a, cf", [(2.0, 2.0), (3.0, 1.5)])
+def test_45_degree_optical_miters_cascade_like_the_single_domain(s_over_a, cf):
+    """WF3 (discrepancy 2026-11-15): Line [Miter(45), Straight(s), Miter(45)] with evanescent modes equals the single
+    FEM domain (chained_miter_outline, COMSOL case E5) within 1e-4 of the input power in every output mode of the
+    TE1,0 column (before WF3: LinAlgError at s = 2a, cf 2); passive, no warning."""
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", BuriedPlaneWarning)
+        Pc, Pd, gc = _e5_powers(s_over_a * W, 30e9, cf)
+    assert np.max(np.abs(Pc - Pd)) < 1e-4
+    assert _largest_singular_value(gc, 30e9) <= 1 + 1e-12
+    assert gc.buried.depth == pytest.approx((W, W), rel=1e-12)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("s_over_a", [2.0, 3.0])
+def test_45_degree_optical_miters_cascade_at_cutoff_factor_3(s_over_a):
+    """WF3: the discrepancy's worst case (s = 2a, 30 GHz, cf 3: +26.36 dB before WF3) and s = 3a; the measured
+    differences to the single domain at the default mesh are 8e-6 and 2.4e-4 (benchmarks/fem2d/buried_planes.py:
+    at 3a the domain's own mesh error, see docs/reports/WF3.md)."""
+    Pc, Pd, gc = _e5_powers(s_over_a * W, 30e9, 3.0)
+    assert np.max(np.abs(Pc - Pd)) < (1e-4 if s_over_a == 2.0 else 3e-4)
+    assert _largest_singular_value(gc, 30e9) <= 1 + 1e-12
+
+
+def test_passivity_check_fires_on_the_cascade_before_wf3():
+    """WF3 acceptance: the discrepancy's case (s = 2a, 30 GHz, cf 3) without the absorption of the depth
+    (buried_planes='keep', the cascade before WF3) gives +26 dB and a NonPassiveCascadeWarning that names the
+    junction of the two miters."""
+    gl = Line(WR90, [Miter(45), Straight(2 * W), Miter(45)])
+    with pytest.warns(NonPassiveCascadeWarning, match=r"junction of element 0 .* and element 2"):
+        g = gl.gsm(30e9, cutoff_factor=3.0, buried_planes="keep")
+    i = g.basis1.index(Mode("TE", 1, 0))
+    assert 20 * np.log10(abs(g.S21[i, i])) > 20
+
+
+def test_buried_planes_across_planes_and_with_lossy_miters():
+    """WF3: an H-plane and an E-plane 45 degree optical miter (a frame change in the run between them), and lossy
+    miters in a lossy line: passive, reciprocal, no warning; at cf 1 equal to the cascade at the reference planes."""
+    import warnings
+    f = 30e9
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", BuriedPlaneWarning)
+        ln = Line(WR90, [Miter(45), Straight(1.5 * W), Miter(45, plane="E")])
+        g = ln.gsm(f, cutoff_factor=1.5)
+        assert rel_reciprocity(g) < 1e-9 and _largest_singular_value(g, f) <= 1 + 1e-12
+        a, k = ln.gsm(f), ln.gsm(f, buried_planes="keep")
+        assert np.max(np.abs(a.S - k.S)) < 1e-12
+        lossy = Guide(W, H, ALU)
+        ll = Line(lossy, [Miter(45, wall_impedance="guide"), Straight(2.5 * W),
+                          Miter(-45, wall_impedance="guide")])
+        g = ll.gsm(f, cutoff_factor=1.5)
+        assert rel_reciprocity(g) < 1e-9 and 0 < g.passivity_margin()
+        a, k = ll.gsm(f), ll.gsm(f, buried_planes="keep")
+        assert np.max(np.abs(a.S - k.S)) < 1e-12
+
+
+def test_fem_lines_without_buried_planes_are_bitwise_unchanged():
+    """WF3: FEM lines without buried planes (90 degree miters, a partially cut 45 degree miter, mixed with MiterMM)
+    give the GSMs frozen before WF3 (tests/data/make_lines_unburied.py --fem): bitwise here, 1e-11 absolute with
+    other BLAS; the comparison needs the gmsh version that froze them (the mesh)."""
+    import json
+    import os
+    import gmsh
+    here = os.path.join(os.path.dirname(__file__), "data")
+    sys.path.insert(0, here)
+    try:
+        import make_lines_unburied as mk
+    finally:
+        sys.path.pop(0)
+    with np.load(os.path.join(here, "lines_unburied_fem.npz")) as z:
+        ref = {k: z[k] for k in z.files}
+    meta = json.loads(str(ref.pop("meta")))
+    assert meta["git_commit"].startswith("d795a12")
+    if meta["gmsh"] != gmsh.__version__:
+        pytest.skip(f"frozen with gmsh {meta['gmsh']}, here {gmsh.__version__} (meshes may differ)")
+    new = mk.compute(fem=True)
+    assert sorted(new) == sorted(ref)
+    for k in ref:
+        assert np.array_equal(new[k], ref[k]) or np.max(np.abs(new[k] - ref[k])) <= 1e-11, k
