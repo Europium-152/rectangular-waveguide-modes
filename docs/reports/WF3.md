@@ -151,7 +151,8 @@ at cf 1 it was 0.0564 and 0.0280 at s = 2a. `RESULTS.md` regenerated: 126 compar
 ### Lines without buried planes: bitwise unchanged
 
 * `lines_unburied.npz` (9 GSMs: `MiterMM` U-turn at cf 1, 2; E- then H-plane `MiterMM` with frame changes at
-  cf 1, 1.5; two `Step` pairs, one E-plane with an offset; lossy straights with frame changes at cf 1, 1.5) and `lines_unburied_fem.npz`
+  cf 1, 1.5; two `Step` pairs, one E-plane with an offset; lossy straights with frame changes at cf 1, 1.5, compared with the
+  freezing scipy version only) and `lines_unburied_fem.npz`
   (4: FEM 90° U-turn at cf 1, 1.5; 45° miters with chamfer 0.95, whose mirror stays outside the arms; FEM E-plane
   miter with `MiterMM`), generated at d795a12 from a separate checkout: **`np.array_equal` for all 13** with the
   WF3 code; the tests accept 1e-11 absolute across platforms (as `test_components`), and the FEM test skips with a
@@ -203,8 +204,10 @@ assertion depends on the machine's speed (the cost test compares two times on th
 5. **CI on Python 3.9** (numpy 2.0.2, scipy 1.13.1): WF2's frozen `test_components.py::
    test_propagating_path_is_bitwise_unchanged` fails there on `main` already (const_H_60cm_al_30_line, 5.1e-11 >
    1e-11; main's run of cce2b6f), i.e. the "1e-11 across platforms" pattern does not hold for long lossy bends with
-   that scipy. My first frozen set had a lossy bend line that failed the same way (1.9e-11); it is replaced by lossy
-   straights with frame changes (the lossy bend is WF2's file). The WF2 test needs a looser bound or a
+   that scipy. My frozen lossy lines differ the same way there (a lossy bend line by 1.9e-11, lossy straights by
+   1.1e-11: the matrix exponential of the lossy straight in scipy 1.13 vs 1.18), so `lines_unburied.npz` holds lossy
+   straights only and compares them only with the scipy version that froze them (1.18.1, in its meta); every other
+   entry follows the 1e-11 pattern everywhere. The WF2 test needs a looser bound or a
    per-platform note (not changed here: not WF3's test).
 6. `GSM.reversed()` and star products drop `buried`; a user cascading line GSMs by hand gets the reference-plane
    GSMs and should cascade `g.buried.gsm` with shortened straights (documented in `BuriedPlanes`).

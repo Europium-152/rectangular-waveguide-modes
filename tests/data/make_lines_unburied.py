@@ -10,7 +10,8 @@ checkout of that commit:
 `tests/test_line.py::test_lines_without_buried_planes_are_bitwise_unchanged` (cases without the FEM) and
 `tests/test_fem2d.py::test_fem_lines_without_buried_planes_are_bitwise_unchanged` (`--fem`: FEM miters, stored in
 lines_unburied_fem.npz) recompute them. Cases: 90 degree mode-matching miters (H, E and both, with frame changes),
-steps, lossy straights with frame changes, at cutoff factors 1 to 2 (lossy bends are WF2's
+steps, lossy straights with frame changes (compared only with the scipy version that froze them: the lossy
+straight's matrix exponential differs by ~1e-11 with scipy 1.13), at cutoff factors 1 to 2 (lossy bends are WF2's
 smoothbend_propagating.npz); FEM 90 degree plain and 45 degree partially cut miters (mirror
 outside the arms, no buried plane), alone, chained and mixed with MiterMM.
 """
@@ -75,6 +76,8 @@ if __name__ == "__main__":
                 cases=[(n, [repr(c) for c in cs], [list(p) for p in pts]) for n, _, cs, pts in
                        (fem_cases() if fem else cases())],
                 note="lines without buried reference planes before WF3 (bitwise reference)")
+    import scipy
+    meta["scipy"], meta["numpy"] = scipy.__version__, np.__version__
     if fem:
         import gmsh
         import skfem
