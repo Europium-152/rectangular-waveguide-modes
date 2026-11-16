@@ -181,7 +181,11 @@ passivity warning naming the junction and the element; frozen bitwise lines; cos
 passivity check on the pre-WF3 cascade; H/E line with a frame change in the run and lossy miters in a lossy line;
 FEM frozen lines.
 
-Runs: SUITE_RESULTS
+Runs (2-core container, scikit-fem and gmsh installed): `python -m pytest -q -m "not slow"`: 732 passed, 3 skipped,
+1 xfailed (WP3's strict xfail) in 21 min, with `NonPassiveCascadeWarning` an error; the FEM job's files
+(`tests/test_fem2d.py tests/adversarial/test_wp3_adversarial.py tests/adversarial/test_wp7b_fem_adversarial.py`, slow
+tests included): 84 passed, 1 skipped, 1 xfailed in 4 min; `tests/test_bend_evanescent_fem.py`: 3 passed. No timing
+assertion depends on the machine's speed (the cost test compares two times on the same machine).
 
 ## Open issues
 
