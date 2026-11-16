@@ -54,7 +54,7 @@ def stub(case, variant, f):
     """Smooth made-up reference-plane values; unitary enough to look like data."""
     ph = np.exp(-1j * 0.3 * f)
     if case == "E4":
-        return {"out": {"TE1,0": 0.99, "TE1,2": 0.006, "TE0,3": 0.002}, "in": {"TE1,0": 1e-8}}
+        return {"out": {"TE1,0": 0.9918, "TE1,2": 0.006, "TE0,3": 0.002}, "in": {"TE1,0": 1e-8}}
     if case == "E2":
         return {"S11": 0.002 * ph, "S21": 0.99 * ph, "S31": 0.05 * ph}
     return {"S11": 0.05 * ph, "S21": 0.98 * ph}
@@ -162,14 +162,15 @@ def _e4_export(path, err=0.0):
     wrmodes n,m, so port 4 'TE21' is TE1,2 and port 5 'TE30' is TE0,3."""
     rows = []
     for f in (15.0, 18.0):
-        p = {"S12": 1e-4, "S22": 1e-4, "S32": 0.99, "S42": 0.006 + err, "S52": 0.002}
+        # the planted error moves power between TE1,2 and TE0,3, so the power balance stays exact
+        p = {"S12": 1e-4, "S22": 1e-4, "S32": 0.9918, "S42": 0.006 + err, "S52": 0.002 - err}
         rows.append((f, {k: complex(np.sqrt(v), 0.0) for k, v in p.items()}))
     write_table(path, rows)
 
 
 def test_e4_judged_on_power_per_output_mode(tmp_path):
-    """A 3e-4 error planted in TE1,2 fails only that mode; a fine run 2.5e-4 away in that power widens the allowance
-    to 3.5e-4 and it passes. The port layout comes from the model's .java."""
+    """3e-4 of power planted from TE0,3 into TE1,2 fails those two modes only; a fine run 2.5e-4 away widens the
+    allowance to 3.5e-4 and they pass. The port layout comes from the model's .java."""
     raw = tmp_path / "raw"
     raw.mkdir()
     (tmp_path / "java").mkdir()
@@ -177,7 +178,7 @@ def test_e4_judged_on_power_per_output_mode(tmp_path):
     _e4_export(raw / "E4_twist_triangular.txt", err=3e-4)
     out, _, v = cc2.run(["E4"], raw=raw, model=stub)
     assert sorted({x[2] for x in v}) == ["TE0,3", "TE1,0", "TE1,2"]
-    assert [x[2] for x in v if not x[-1]] == ["TE1,2", "TE1,2"]
+    assert sorted(x[2] for x in v if not x[-1]) == ["TE0,3", "TE0,3", "TE1,2", "TE1,2"]
     _e4_export(raw / "E4_twist_triangular_fine.txt", err=0.5e-4)
     _, _, v = cc2.run(["E4"], raw=raw, model=stub)
     assert all(x[-1] for x in v)

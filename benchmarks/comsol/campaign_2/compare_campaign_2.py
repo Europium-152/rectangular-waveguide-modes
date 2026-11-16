@@ -352,17 +352,23 @@ def e4(raw, out, model=wrmodes_model, log=None):
             sums = {"in": 0.0, "out": 0.0}
             for k, (face, typ, mc, nc, _) in sorted(ports.items()):
                 key = _sname(k, exc)
+                if key in ref:
+                    sums["in" if face == in_face else "out"] += abs(ref[key]) ** 2
+            # the model is lossless: COMSOL's own power-balance error |sum - 1| bounds its error from below, and is
+            # added to the allowance (it matters for the main mode of runs without a mesh check)
+            balance = abs(sums["in"] + sums["out"] - 1.0)
+            for k, (face, typ, mc, nc, _) in sorted(ports.items()):
+                key = _sname(k, exc)
                 if key not in ref:
                     continue
                 side = "in" if face == in_face else "out"
-                sums[side] += abs(ref[key]) ** 2
                 name = f"{typ}{nc},{mc}"
                 pw = m["out" if side == "out" else "in"].get(name)
                 if pw is None or side == "in":
                     continue
                 pc = abs(ref[key]) ** 2
-                mesh = abs(abs(coarse[key]) ** 2 - pc) if coarse else 0.0
-                if max(pc, pw) < 1e-6 and mesh < 1e-6:
+                mesh = (abs(abs(coarse[key]) ** 2 - pc) if coarse else 0.0) + balance
+                if max(pc, pw) < 1e-6 and mesh < 1e-6 + balance:
                     continue                                    # neither side puts power there
                 ok = abs(pw - pc) <= mesh + P_TOL
                 verdicts.append(("E4", profile, name, f, pw - pc, mesh + P_TOL, ok))

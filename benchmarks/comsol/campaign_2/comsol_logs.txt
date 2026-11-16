@@ -15,19 +15,16 @@ E3_strangled_aluminum:
 [Nov 11, 2026, 7:50 AM] Solution time (Study 1): 69 s. (1 minute, 9 seconds)
 
 E4_twist_triangle:
-[Nov 11, 2026, 9:56 AM] Saved file: C:\Users\daniel_h\Desktop\wrmodes_advanced_testing\campaign_2\E4_twist_triangular.mph (12 MB)
-[Nov 11, 2026, 9:56 AM] Number of degrees of freedom solved for: 2574480.
-[Nov 11, 2026, 9:59 AM] Solution time (Study 1): 172 s. (2 minutes, 52 seconds)
+[Nov 16, 2026, 3:12 AM] Number of degrees of freedom solved for: 1751434.
+[Nov 16, 2026, 3:14 AM] Solution time (Study 1): 116 s. (1 minute, 56 seconds)
 
 E4_twist_triangular_fine:
-[Nov 11, 2026, 10:08 AM] Saved file: C:\Users\daniel_h\Desktop\wrmodes_advanced_testing\campaign_2\E4_twist_triangular.mph (272 MB)
-[Nov 11, 2026, 10:10 AM] Number of degrees of freedom solved for: 21070912.
-[Nov 11, 2026, 10:46 AM] Solution time (Study 1): 2310 s. (38 minutes, 30 seconds)
+[Nov 16, 2026, 3:18 AM] Number of degrees of freedom solved for: 14356944.
+[Nov 16, 2026, 3:31 AM] Solution time (Study 1): 878 s. (14 minutes, 38 seconds)
 
 E4_twist_cosine:
-[Nov 12, 2026, 3:50 AM] Saved file: C:\Users\daniel_h\Desktop\wrmodes_advanced_testing\campaign_2\E4_twist_cosine.mph (272 MB)
-[Nov 12, 2026, 3:50 AM] Number of degrees of freedom solved for: 2572834.
-[Nov 12, 2026, 3:53 AM] Solution time (Study 1): 180 s. (3 minutes, 0 seconds)
+[Nov 16, 2026, 3:07 AM] Number of degrees of freedom solved for: 1748648.
+[Nov 16, 2026, 3:09 AM] Solution time (Study 1): 131 s. (2 minutes, 11 seconds)
 
 E1_miter_E_plain:
 [Nov 12, 2026, 2:44 AM] Number of degrees of freedom solved for: 400982.

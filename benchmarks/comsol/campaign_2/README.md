@@ -9,8 +9,6 @@ Run by Daniel in COMSOL 6.2.0.415 from the GUI, following `../CAMPAIGN_2.md` (11
 * `compare_campaign_2.py` and `RESULTS.md`: the comparison with wrmodes (WP7b's script, adapted by the coordinator to
   the actual export formats).
 
-Status (15 Nov 2026): E1, E2, E5 pass. **E3 and E4 must be rerun**: in E3 the launched wave never enters the guide
-(|S11| and |S21| about 1e-4, halving with the mesh: no port orientation set, unlike the other models); in E4 the
-input face reports 100 % reflection and the main output mode 17–168 % (only one of the two PML blocks is in the PML
-feature, and the port orientation on the input face is suspect). See the Gate B section of
-`benchmarks/validation_v2/REPORT.md` when complete.
+Status (16 Nov 2026): all five cases pass (122 comparisons); E3 and E4 were rerun on 16 Nov after the first pass
+showed a port-orientation problem (E3) and a missing PML block and port orientation (E4); the first-pass E3/E4 files
+were replaced. Gate B summary: the "Gate B" section of `benchmarks/validation_v2/REPORT.md`.

@@ -5,7 +5,7 @@
 import com.comsol.model.*;
 import com.comsol.model.util.*;
 
-/** Model exported on Nov 12 2026, 02:13 by COMSOL 6.2.0.415. */
+/** Model exported on Nov 16 2026, 03:33 by COMSOL 6.2.0.415. */
 public class E4_twist_triangular_fine {
 
   public static Model run() {
@@ -81,11 +81,11 @@ public class E4_twist_triangular_fine {
          .set("ps1", "ps2", "ps3", "ps4", "wp1", "wp2");
     model.component("comp1").geom("geom1").create("ext1", "Extrude");
     model.component("comp1").geom("geom1").feature("ext1").set("extrudefrom", "faces");
-    model.component("comp1").geom("geom1").feature("ext1").setIndex("distance", "0.15", 0);
+    model.component("comp1").geom("geom1").feature("ext1").setIndex("distance", "0.015", 0);
     model.component("comp1").geom("geom1").feature("ext1").selection("inputface").set("csol1(1)", 2);
     model.component("comp1").geom("geom1").create("ext2", "Extrude");
     model.component("comp1").geom("geom1").feature("ext2").set("extrudefrom", "faces");
-    model.component("comp1").geom("geom1").feature("ext2").setIndex("distance", "0.15", 0);
+    model.component("comp1").geom("geom1").feature("ext2").setIndex("distance", "0.015", 0);
     model.component("comp1").geom("geom1").feature("ext2").selection("inputface").set("ext1(1)", 9);
     model.component("comp1").geom("geom1").create("ext3", "Extrude");
     model.component("comp1").geom("geom1").feature("ext3").set("extrudefrom", "faces");
@@ -102,7 +102,7 @@ public class E4_twist_triangular_fine {
     model.component("comp1").material().create("mat1", "Common");
 
     model.component("comp1").coordSystem().create("pml1", "PML");
-    model.component("comp1").coordSystem("pml1").selection().set(4);
+    model.component("comp1").coordSystem("pml1").selection().set(3, 4);
 
     model.component("comp1").physics().create("emw", "ElectromagneticWaves", "geom1");
     model.component("comp1").physics("emw").create("port1", "Port", 2);

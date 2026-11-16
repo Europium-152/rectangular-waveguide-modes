@@ -5,7 +5,7 @@
 import com.comsol.model.*;
 import com.comsol.model.util.*;
 
-/** Model exported on Nov 11 2026, 07:46 by COMSOL 6.2.0.415. */
+/** Model exported on Nov 16 2026, 03:18 by COMSOL 6.2.0.415. */
 public class E3_strangled_PEC_fine {
 
   public static Model run() {
@@ -80,7 +80,7 @@ public class E3_strangled_PEC_fine {
     model.component("comp1").geom("geom1").feature("wp1").geom().feature("uni2").selection("input")
          .set("csol1", "r1", "r2");
     model.component("comp1").geom("geom1").create("ext1", "Extrude");
-    model.component("comp1").geom("geom1").feature("ext1").setIndex("distance", "22.82[mm]", 0);
+    model.component("comp1").geom("geom1").feature("ext1").setIndex("distance", "22.86[mm]", 0);
     model.component("comp1").geom("geom1").feature("ext1").selection("input").set("wp1");
     model.component("comp1").geom("geom1").create("ext2", "Extrude");
     model.component("comp1").geom("geom1").feature("ext2").set("extrudefrom", "faces");
@@ -108,6 +108,7 @@ public class E3_strangled_PEC_fine {
 
     model.result().table("tbl3").comments("Global Evaluation 1");
 
+    model.component("comp1").view("view1").set("renderwireframe", true);
     model.component("comp1").view("view2").axis().set("xmin", -0.035956136882305145);
     model.component("comp1").view("view2").axis().set("xmax", 0.14587613940238953);
     model.component("comp1").view("view2").axis().set("ymin", -0.0710039958357811);
@@ -128,9 +129,11 @@ public class E3_strangled_PEC_fine {
 
     model.component("comp1").physics("emw").feature("port1").set("PortSlit", true);
     model.component("comp1").physics("emw").feature("port1").set("SlitType", "DomainBacked");
+    model.component("comp1").physics("emw").feature("port1").set("PortOrientation", "ReversePort");
     model.component("comp1").physics("emw").feature("port1").set("PortType", "Rectangular");
     model.component("comp1").physics("emw").feature("port2").set("PortSlit", true);
     model.component("comp1").physics("emw").feature("port2").set("SlitType", "DomainBacked");
+    model.component("comp1").physics("emw").feature("port2").set("PortOrientation", "ReversePort");
     model.component("comp1").physics("emw").feature("port2").set("PortType", "Rectangular");
 
     model.component("comp1").mesh("mesh1").feature("size").set("custom", "on");
