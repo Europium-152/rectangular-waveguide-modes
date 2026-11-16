@@ -3,10 +3,11 @@ from .mode_coupling import solve_mode_coupling
 from .transfer_matrix import (solve_transfer_matrix, transmission_matrix, straight_section,
                               select_coupled_modes, coupled_mode_matrices, TransferMatrixResult)
 from .modes import Mode, ModeBasis, ls_rotation
-from .gsm import GSM, cascade, straight, from_transfer_matrix, block_diag
+from .gsm import GSM, BuriedPlanes, cascade, straight, shift_planes, from_transfer_matrix, block_diag
 
 __version__ = "1.0.0a1"
-from .line import Line, SweepResult, Guide, Straight, SmoothBend, FrameChange, SechCurvature, ConstantCurvature
+from .line import (Line, SweepResult, Guide, Straight, SmoothBend, FrameChange, SechCurvature, ConstantCurvature,
+                   NonPassiveCascadeWarning, BuriedPlaneWarning)
 from .components import Twist, VariableGuide, Taper, StrangledBend
 from .modematch import Step, MiterMM
 from .filters import LossyWallFilter, ResistiveSheetFilter

@@ -37,3 +37,5 @@ Issues = "https://github.com/Europium-152/rectangular-waveguide-modes/issues"
 waveguide-modes = "wrmodes.main:script"
 [tool.pytest.ini_options]
 markers = ["slow: long-running checks (convergence, timing); deselect with -m 'not slow'"]
+# WF3: a non-passive cascade is an error everywhere in the suite unless a test expects it (pytest.warns)
+filterwarnings = ["error::wrmodes.line.NonPassiveCascadeWarning"]

@@ -439,3 +439,241 @@ def test_warns_once_for_non_uniform_components_joined_directly_without_evanescen
         Line(WR90, [Straight(0.1), bend, Straight(0.1)]).gsm(f)    # one non-uniform component only
     with pytest.warns(EvanescentJunctionWarning, match=mode.name):
         Line(WR90, [bend, Straight(0.99 * d), FrameChange("H", "E"), FrameChange("E", "H"), step]).gsm(f)
+
+
+# ------------------------------------------------------------------------------------------ WF3: buried planes
+from wrmodes.components import Component
+from wrmodes.gsm import GSM, BuriedPlanes, shift_planes, straight as _straight
+from wrmodes.line import BuriedPlaneWarning, NonPassiveCascadeWarning, PASSIVITY_TOL, _largest_singular_value
+
+
+class _Buried(Component):
+    """Test component: `inner` with its reference planes moved `depth` (m) into it, as a component whose planes lie
+    inside its discontinuity (GSM = shift_planes(inner GSM, d1, d2), `buried` = the inner GSM)."""
+
+    def __init__(self, inner, depth, plane="H", name="buried"):
+        self.inner, self.depth, self.plane, self.name = inner, tuple(depth), plane, name
+        self.guide = getattr(inner, "guide", None)
+
+    def with_guide(self, guide):
+        return _Buried(self.inner.with_guide(guide), self.depth, self.plane, self.name)
+
+    def default_basis(self, f, cutoff_factor=None):
+        return self.inner.default_basis(f, cutoff_factor)
+
+    def gsm(self, f, basis1=None, basis2=None):
+        u = self.inner.gsm(f, basis1, basis2)
+        g = shift_planes(u, *self.depth)
+        g.buried = BuriedPlanes(self.depth, u)
+        return g
+
+
+class _Noisy(Component):
+    """Test component: `inner` with eps (1 + i) added to every evanescent-evanescent reflection (a GSM whose
+    propagating block is passive but whose evanescent entries are not physical, as a badly converged solver)."""
+    plane = "H"
+
+    def __init__(self, inner, eps, name="noisy"):
+        self.inner, self.eps, self.name = inner, eps, name
+        self.guide = getattr(inner, "guide", None)
+
+    def with_guide(self, guide):
+        return type(self)(self.inner.with_guide(guide), self.eps, self.name)
+
+    def default_basis(self, f, cutoff_factor=None):
+        return self.inner.default_basis(f, cutoff_factor)
+
+    def gsm(self, f, basis1=None, basis2=None):
+        g = self.inner.gsm(f, basis1, basis2)
+        ev = ~g.basis1.propagating_mask(f)
+        E = np.outer(ev, ev) * self.eps * (1 + 1j)
+        return GSM(g.S11 + E, g.S12, g.S21, g.S22 + E, g.basis1, g.basis2, f, self.name)
+
+
+def _close_relative(a, b, tol):
+    """Entry-wise |a - b| <= tol max(|a|, |b|, 1e-300): for GSMs whose evanescent entries span many decades."""
+    return np.all(np.abs(a - b) <= tol * np.maximum(np.maximum(np.abs(a), np.abs(b)), 1e-300))
+
+
+def test_shift_planes_is_a_straight_of_negative_length():
+    f = 30e9
+    b = WR90.basis(f, 2.0)
+    g = SmoothBend(0.05, ConstantCurvature(1 / 0.1)).with_guide(WR90).gsm(f, b)
+    L = 0.013
+    assert np.allclose(shift_planes(g, -L, 0).S, (_straight(b, f, L) @ g).S, rtol=0, atol=1e-15)
+    assert np.allclose(shift_planes(g, 0, -L).S, (g @ _straight(b, f, L)).S, rtol=0, atol=1e-15)
+    back = shift_planes(shift_planes(g, L, 2 * L), -L, -2 * L)
+    assert _close_relative(back.S, g.S, 1e-13)
+    d = np.arange(len(b)) * 1e-3                                      # one distance per mode
+    s = shift_planes(g, d, 0)
+    assert np.allclose(s.S11, np.exp(1j * b.beta(f) * d)[:, None] * g.S11 * np.exp(1j * b.beta(f) * d)[None, :])
+    with pytest.raises(ValueError):
+        BuriedPlanes((-1e-3, 0.0), g)
+
+
+@pytest.mark.parametrize("cf", [1.0, 2.0, 3.0])
+def test_buried_planes_are_absorbed_by_the_straight(cf):
+    """WF3: [X, Straight(s), X] with X's planes a depth d inside equals [X_u, Straight(s - 2d), X_u] (X_u at the
+    uniform planes) to rounding, the line's own ports lying d inside as well (`buried` of the result). With
+    buried_planes='keep' (before WF3) the cascade fails at cf >= 2 (factors exp(|beta| d) ~ 1e13)."""
+    f, W = 30e9, WR90.w
+    d = W
+    mm = wr.MiterMM()
+    X = _Buried(mm, (d, d))
+    ref = Line(WR90, [mm, Straight(0.5 * W), mm]).gsm(f, cutoff_factor=cf)
+    with pytest.warns(wr.line.EvanescentJunctionWarning) if cf == 1 else _nowarn(BuriedPlaneWarning):
+        g = Line(WR90, [X, Straight(2 * d + 0.5 * W), X]).gsm(f, cutoff_factor=cf)
+    assert g.buried is not None and g.buried.depth == (d, d)
+    assert np.max(np.abs(g.buried.gsm.S - ref.S)) < 1e-13
+    assert _close_relative(g.S, shift_planes(ref, d, d).S, 1e-12)
+    if cf >= 2:
+        with pytest.raises(np.linalg.LinAlgError):
+            Line(WR90, [X, Straight(2 * d + 0.5 * W), X]).gsm(f, cutoff_factor=cf, buried_planes="keep")
+
+
+class _nowarn:
+    """Context manager: fail on the given warning category."""
+
+    def __init__(self, cat):
+        self.cat = cat
+
+    def __enter__(self):
+        import warnings
+        self._c = warnings.catch_warnings()
+        self._c.__enter__()
+        warnings.simplefilter("error", self.cat)
+
+    def __exit__(self, *exc):
+        return self._c.__exit__(*exc)
+
+
+def test_buried_planes_through_frame_changes_and_several_straights():
+    """WF3: the depth is taken from the straights nearest to the component, across frame changes (an E-plane miter
+    after an H-plane one) and across several straights; equal to the cascade at the uniform planes."""
+    f, W = 12e9, WR90.w
+    cf = 2.0
+    d1, d2 = 0.6 * WR90.h, 0.4 * W
+    XE = _Buried(wr.MiterMM(plane="E"), (0.0, d1), plane="E")
+    XH = _Buried(wr.MiterMM(), (d2, 0.0))
+    s = (0.2 * W, 0.3 * W, 0.1 * W + d1 + d2)
+    g = Line(WR90, [XE, Straight(s[0]), Straight(s[1]), FrameChange("E", "H"), Straight(s[2]), XH]).gsm(
+        f, cutoff_factor=cf)
+    ref = Line(WR90, [wr.MiterMM(plane="E"), Straight(sum(s) - d1 - d2), wr.MiterMM()]).gsm(f, cutoff_factor=cf)
+    assert g.buried is None
+    assert np.max(np.abs(g.S - ref.S)) < 1e-12
+
+
+def test_buried_planes_with_a_lossy_straight_keep_the_loss_of_the_whole_straight():
+    """WF3: the depth moves only the evanescent modes into a lossy straight (where they are uncoupled), so the
+    result is the cascade at the reference planes with the loss of the whole length s: equal to buried_planes='keep'
+    where that is well conditioned, passive and reciprocal."""
+    f = 18e9
+    lossy = Guide(WR90.w, WR90.h, 3.5e7)
+    bend = SmoothBend(0.05, ConstantCurvature(1 / 0.15))
+    d = 2e-3
+    X = _Buried(bend, (d, d))
+    ln = Line(lossy, [X, Straight(0.03), X])
+    g = ln.gsm(f, cutoff_factor=1.5)
+    k = ln.gsm(f, cutoff_factor=1.5, buried_planes="keep")
+    assert np.max(np.abs(g.S - k.S)) < 1e-10 * np.max(np.abs(k.S))
+    assert g.reciprocity_defect() < 1e-10 * np.max(np.abs(g.S))
+    assert 0 < g.passivity_margin() < 1e-2
+
+
+def test_overlapping_buried_planes_warn_and_keep_the_reference_plane():
+    """WF3: s < d2 + d1' (the discontinuities overlap): the first port takes its depth, the second keeps its GSM
+    at the reference plane, and the line warns once (BuriedPlaneWarning) when the basis has evanescent modes;
+    with propagating modes only it does not warn (the shift is a phase)."""
+    f, W = 30e9, WR90.w
+    d = 0.3 * W
+    X = _Buried(wr.MiterMM(), (d, d))
+    ln = Line(WR90, [X, Straight(1.5 * d), X])
+    with pytest.warns(BuriedPlaneWarning, match="overlap"):
+        g = ln.gsm(f, cutoff_factor=2.0)
+    with _nowarn(BuriedPlaneWarning):
+        ln.gsm(f, cutoff_factor=2.0)                                     # once per line
+        Line(WR90, [X, Straight(1.5 * d), X]).gsm(f)                     # cf 1
+    k = Line(WR90, [X, Straight(1.5 * d), X]).gsm(f, cutoff_factor=2.0, buried_planes="keep")
+    p = np.concatenate(g.propagating())
+    assert np.max(np.abs(g.S - k.S)[np.ix_(p, p)]) < 1e-10
+
+
+def test_partial_depth_at_the_line_port_is_deferred_to_it():
+    """WF3: a buried component at the start of a line, after a straight shorter than its depth: the line's port
+    lies inside the discontinuity, and the line's GSM is the straight followed by the component, as defined."""
+    f, W = 30e9, WR90.w
+    d = 0.5 * W
+    mm = wr.MiterMM()
+    X = _Buried(mm, (d, 0.0))
+    g = Line(WR90, [Straight(0.2 * d), X]).gsm(f, cutoff_factor=2.0)
+    ref = (_straight(g.basis1, f, 0.2 * d) @ X.with_guide(WR90).gsm(f, g.basis1, g.basis2))
+    assert g.buried.depth == pytest.approx((0.8 * d, 0.0), rel=1e-12)
+    assert _close_relative(g.S, ref.S, 1e-12)
+    assert np.max(np.abs(g.buried.gsm.S - mm.with_guide(WR90).gsm(f, g.basis1, g.basis2).S)) < 1e-13
+
+
+def test_near_field_warning_uses_the_uniform_guide_left():
+    """WF3: two components whose planes lie d inside, with a straight of 2 d + a bit, are joined directly."""
+    f, W = 30e9, WR90.w
+    d = W
+    X = _Buried(wr.MiterMM(), (d, d))
+    with pytest.warns(wr.line.EvanescentJunctionWarning, match="joined directly"):
+        Line(WR90, [X, Straight(2 * d + 1e-3), X]).gsm(f)
+
+
+def test_passivity_check_names_the_junction_or_the_element():
+    """WF3: Line.gsm warns when the propagating block of the cascade has a singular value above 1 + 1e-8, naming
+    the junction where the partial cascade stops being passive, or the element that is not passive itself."""
+    f, W = 30e9, WR90.w
+    N = _Noisy(wr.MiterMM(), 1e-6)
+    with pytest.warns(NonPassiveCascadeWarning, match=r"junction of element 0 \(noisy\) and element 2 \(noisy\)"):
+        g = Line(WR90, [N, Straight(0.5 * W), N]).gsm(f, cutoff_factor=2.0)
+    assert _largest_singular_value(g, f) > 1 + PASSIVITY_TOL
+
+    class _Gain(_Noisy):
+        def gsm(self, f, basis1=None, basis2=None):
+            g = self.inner.gsm(f, basis1, basis2)
+            return GSM(g.S11, 1.001 * g.S12, 1.001 * g.S21, g.S22, g.basis1, g.basis2, f, self.name)
+
+    with pytest.warns(NonPassiveCascadeWarning, match=r"element 1 \(gain\) itself"):
+        Line(WR90, [Straight(0.01), _Gain(wr.MiterMM(), 0.0, name="gain"), Straight(0.01)]).gsm(f)
+    with _nowarn(NonPassiveCascadeWarning):                              # the same lines without the defects
+        Line(WR90, [wr.MiterMM(), Straight(0.5 * W), wr.MiterMM()]).gsm(f, cutoff_factor=2.0)
+        Line(WR90, [Straight(0.01), wr.MiterMM(), Straight(0.01)]).gsm(f)
+
+
+def test_lines_without_buried_planes_are_bitwise_unchanged():
+    """WF3: lines without buried planes give the GSMs frozen before WF3 (tests/data/make_lines_unburied.py; bitwise
+    on the machine that froze them, 1e-11 absolute across platforms as test_components)."""
+    import json
+    import os
+    here = os.path.join(os.path.dirname(__file__), "data")
+    sys.path.insert(0, here)
+    try:
+        import make_lines_unburied as mk
+    finally:
+        sys.path.pop(0)
+    with np.load(os.path.join(here, "lines_unburied.npz")) as z:
+        ref = {k: z[k] for k in z.files}
+    assert json.loads(str(ref.pop("meta")))["git_commit"].startswith("d795a12")
+    new = mk.compute()
+    assert sorted(new) == sorted(ref)
+    for k in ref:
+        assert np.array_equal(new[k], ref[k]) or np.max(np.abs(new[k] - ref[k])) <= 1e-11, k
+
+
+def test_passivity_check_cost_is_small():
+    """WF3: the passivity check (one SVD of the propagating block) costs little next to the cascade."""
+    import time
+    f = 56e9
+    ln = Line(WR90, [SmoothBend(0.05, ConstantCurvature(1 / 0.2)), Straight(0.05),
+                     SmoothBend(0.05, ConstantCurvature(1 / 0.2), plane="E"), Straight(0.05)])
+    g = ln.gsm(f, cutoff_factor=1.5)
+    t0 = time.perf_counter()
+    for _ in range(5):
+        _largest_singular_value(g, f)
+    t_check = (time.perf_counter() - t0) / 5
+    t0 = time.perf_counter()
+    ln.gsm(f, cutoff_factor=1.5)
+    t_line = time.perf_counter() - t0
+    assert t_check < 0.2 * t_line, (t_check, t_line)
