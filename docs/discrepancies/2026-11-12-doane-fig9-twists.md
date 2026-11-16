@@ -68,3 +68,12 @@ below the 0.02 dB COMSOL criterion of CONVENTIONS section 8.
 1. Accept the WP6 acceptance rows "Fig. 9 constant and cosine" as *not met, explained above*, pending E4.
 2. After E4: if COMSOL agrees with wrmodes (per-mode powers within 1e-4 of the input), close this report with
    "Fig. 9 is a reduced-mode calculation"; if COMSOL agrees with Fig. 9, reopen T3/T3b.
+
+## Resolution (Gate B, COMSOL campaign 2, 16 Nov 2026)
+
+COMSOL case E4 (20-inch 90° triangular and cosine twists in tall WR187, ports for every propagating mode, mesh check
+for the triangular twist) agrees with WP6 and WP7b per mode: triangular at 18 GHz TE1,2 0.3764 %, TE0,3 0.161 %,
+TM1,2 0.049 % (COMSOL fine) against 0.374 / 0.160 / 0.048 % (wrmodes); total spurious 0.11 % at 15 GHz and 0.60 % at
+18 GHz. Doane & Anderson's Fig. 9 triangular curve (0.05 / 0.15 %) is therefore not a full-wave result; the constant
+and cosine curves follow a reduced (TE1,0 + TE0,1) model, as WP6 found. Fig. 9 stays a qualitative reference.
+

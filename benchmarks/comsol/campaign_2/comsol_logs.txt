@@ -1,0 +1,62 @@
+E3_strangled_PEC:
+[Nov 11, 2026, 7:28 AM] Saved file: C:\Users\daniel_h\Desktop\wrmodes_advanced_testing\campaign_2\E3_strangled_PEC.mph (145 MB)
+[Nov 11, 2026, 7:29 AM] Number of degrees of freedom solved for: 2055738.
+[Nov 11, 2026, 7:29 AM] Solution time (Study 1): 59 s.
+
+E3_strangled_PEC_fine:
+[Nov 11, 2026, 7:40 AM] Saved file: C:\Users\daniel_h\Desktop\wrmodes_advanced_testing\campaign_2\E3_strangled_PEC_fine.mph (185 MB)
+[Nov 11, 2026, 7:41 AM] Complete mesh consists of 551583 domain elements, 61596 boundary elements, and 1842 edge elements.
+[Nov 11, 2026, 7:42 AM] Number of degrees of freedom solved for: 3647588.
+[Nov 11, 2026, 7:43 AM] Solution time (Study 1): 105 s. (1 minute, 45 seconds)
+
+E3_strangled_aluminum:
+[Nov 11, 2026, 7:47 AM] Saved file: C:\Users\daniel_h\Desktop\wrmodes_advanced_testing\campaign_2\E3_strangled_aluminum.mph (290 MB)
+[Nov 11, 2026, 7:49 AM] Number of degrees of freedom solved for: 2055738.
+[Nov 11, 2026, 7:50 AM] Solution time (Study 1): 69 s. (1 minute, 9 seconds)
+
+E4_twist_triangle:
+[Nov 16, 2026, 3:12 AM] Number of degrees of freedom solved for: 1751434.
+[Nov 16, 2026, 3:14 AM] Solution time (Study 1): 116 s. (1 minute, 56 seconds)
+
+E4_twist_triangular_fine:
+[Nov 16, 2026, 3:18 AM] Number of degrees of freedom solved for: 14356944.
+[Nov 16, 2026, 3:31 AM] Solution time (Study 1): 878 s. (14 minutes, 38 seconds)
+
+E4_twist_cosine:
+[Nov 16, 2026, 3:07 AM] Number of degrees of freedom solved for: 1748648.
+[Nov 16, 2026, 3:09 AM] Solution time (Study 1): 131 s. (2 minutes, 11 seconds)
+
+E1_miter_E_plain:
+[Nov 12, 2026, 2:44 AM] Number of degrees of freedom solved for: 400982.
+[Nov 12, 2026, 2:45 AM] Solution time (Study 1): 81 s. (1 minute, 21 seconds)
+
+E1_miter_E_d087:
+[Nov 12, 2026, 2:50 AM] Number of degrees of freedom solved for: 410560.
+[Nov 12, 2026, 2:51 AM] Solution time (Study 1): 87 s. (1 minute, 27 seconds)
+
+E1_miter_E_d087_fine:
+[Nov 12, 2026, 2:54 AM] Saved file: C:\Users\daniel_h\Desktop\wrmodes_advanced_testing\campaign_2\E1_miter_E_d087_fine.mph (111 MB)
+[Nov 12, 2026, 2:54 AM] Number of degrees of freedom solved for: 3374362.
+[Nov 12, 2026, 3:04 AM] Solution time (Study 1): 599 s. (9 minutes, 59 seconds)
+
+E1_miter_E_plain_fine:
+[Nov 12, 2026, 3:11 AM] Saved file: C:\Users\daniel_h\Desktop\wrmodes_advanced_testing\campaign_2\E1_miter_E_plain_fine.mph (108 MB)
+[Nov 12, 2026, 3:12 AM] Number of degrees of freedom solved for: 3280686.
+[Nov 12, 2026, 3:21 AM] Solution time (Study 1): 570 s. (9 minutes, 30 seconds)
+
+E2_taper_parameter_sweep:
+[Nov 12, 2026, 4:28 AM] Number of degrees of freedom solved for: 27294.
+[Nov 12, 2026, 4:28 AM] Number of degrees of freedom solved for: 42460.
+[Nov 12, 2026, 4:28 AM] Number of degrees of freedom solved for: 104163.
+[Nov 12, 2026, 4:28 AM] Number of degrees of freedom solved for: 163797.
+[Nov 12, 2026, 4:28 AM] Solution time (Study 1): 9 s.
+
+E5_two45_s2a_mesh_sweep:
+[Nov 12, 2026, 4:49 AM] Number of degrees of freedom solved for: 212553.
+[Nov 12, 2026, 4:50 AM] Number of degrees of freedom solved for: 837382.
+[Nov 12, 2026, 4:50 AM] Solution time (Study 1): 18 s.
+
+E5_two45_s3a_mesh_sweep:
+[Nov 12, 2026, 4:56 AM] Number of degrees of freedom solved for: 244818.
+[Nov 12, 2026, 4:56 AM] Number of degrees of freedom solved for: 968850.
+[Nov 12, 2026, 4:56 AM] Solution time (Study 1): 21 s.

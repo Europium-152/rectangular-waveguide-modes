@@ -137,7 +137,7 @@
       "data_file": "benchmarks/comsol/data/WP7_C1.npz",
       "tolerance": "0.02 dB on TE10 transmission (CONVENTIONS.md 8); complex column and converted powers reported",
       "test": "benchmarks/validation_v1/compare_comsol.py",
-      "status": "waiting for data (Daniel runs COMSOL)"
+      "status": "superseded: the GUI campaign 1 (benchmarks/comsol/campaign_1/, Gate A, 11 Nov 2026) replaced the WP7 Java models"
     },
     {
       "id": "wp2-comsol-c2",
@@ -148,7 +148,7 @@
       "data_file": "benchmarks/comsol/data/WP7_C2.npz",
       "tolerance": "0.02 dB on TE10 transmission",
       "test": "benchmarks/validation_v1/compare_comsol.py",
-      "status": "waiting for data (Daniel runs COMSOL)"
+      "status": "superseded: the GUI campaign 1 (benchmarks/comsol/campaign_1/, Gate A, 11 Nov 2026) replaced the WP7 Java models"
     },
     {
       "id": "wp4-comsol-c3",
@@ -159,7 +159,7 @@
       "data_file": "benchmarks/comsol/data/WP7_C3.npz",
       "tolerance": "0.02 dB on TE10 transmission",
       "test": "benchmarks/validation_v1/compare_comsol.py",
-      "status": "waiting for data (Daniel runs COMSOL)"
+      "status": "superseded: the GUI campaign 1 (benchmarks/comsol/campaign_1/, Gate A, 11 Nov 2026) replaced the WP7 Java models"
     },
     {
       "id": "wp4-marcuvitz-eplane-step",
@@ -743,6 +743,61 @@
       "tolerance": "exact equality of the bases",
       "test": "tests/adversarial/test_wp7b_adversarial.py::test_strangled_bend_port_bases_are_equal; tests/test_taper.py::test_port_bases_built_from_the_given_end_guides",
       "status": "met after WF2 (0 of 200 differ; 25 before): docs/discrepancies/2026-11-15-wp7b-strangled-bend-port-basis-order.md (Resolution)"
+    },
+    {
+      "id": "gateb-comsol-e1",
+      "component": "WP3b fem2d.Miter and WP4b MiterMM, WR-90 E-plane 90 deg miters, plain and d/h = 0.87, 8-12.4, 24, 36 GHz",
+      "card": "Gate B, COMSOL campaign 2 (benchmarks/comsol/CAMPAIGN_2.md)",
+      "reference_type": "COMSOL",
+      "reference": "benchmarks/comsol/campaign_2/java/ (GUI models by Daniel), raw/ exports",
+      "data_file": "benchmarks/comsol/campaign_2/raw/",
+      "tolerance": "COMSOL mesh-check change + 0.02 dB (main transmission); mesh-check change + COMSOL power-balance error + 1e-4 per converted mode (E4)",
+      "test": "benchmarks/comsol/campaign_2/compare_campaign_2.py",
+      "status": "pass: 28 points, FEM and MM within 0.0001-0.0078 dB of the fine mesh (0.019 dB at 24 GHz, d/h = 0.87, allowed 0.047) (16 Nov 2026)"
+    },
+    {
+      "id": "gateb-comsol-e2",
+      "component": "WP5 Taper, linear H-plane 22.86 -> 45 mm, L = 0.1 and 0.2 m, 15 GHz (TE30 through cutoff)",
+      "card": "Gate B, COMSOL campaign 2 (benchmarks/comsol/CAMPAIGN_2.md)",
+      "reference_type": "COMSOL",
+      "reference": "benchmarks/comsol/campaign_2/java/ (GUI models by Daniel), raw/ exports",
+      "data_file": "benchmarks/comsol/campaign_2/raw/",
+      "tolerance": "COMSOL mesh-check change + 0.02 dB (main transmission); mesh-check change + COMSOL power-balance error + 1e-4 per converted mode (E4)",
+      "test": "benchmarks/comsol/campaign_2/compare_campaign_2.py",
+      "status": "pass: TE10 within 0.0000 dB, TE30 power within 1.2e-6 (16 Nov 2026)"
+    },
+    {
+      "id": "gateb-comsol-e3",
+      "component": "WP5 StrangledBend, WR-90 -> 1.6 mm raised-cosine 50 mm tapers, 90 deg E-plane arc R = 50 mm, PEC and aluminium 3.774e7 S/m, 18 and 40 GHz",
+      "card": "Gate B, COMSOL campaign 2 (benchmarks/comsol/CAMPAIGN_2.md)",
+      "reference_type": "COMSOL",
+      "reference": "benchmarks/comsol/campaign_2/java/ (GUI models by Daniel), raw/ exports",
+      "data_file": "benchmarks/comsol/campaign_2/raw/",
+      "tolerance": "COMSOL mesh-check change + 0.02 dB (main transmission); mesh-check change + COMSOL power-balance error + 1e-4 per converted mode (E4)",
+      "test": "benchmarks/comsol/campaign_2/compare_campaign_2.py",
+      "status": "pass: within 0.0007 dB (PEC) and 0.0033 dB (aluminium) (16 Nov 2026)"
+    },
+    {
+      "id": "gateb-comsol-e4",
+      "component": "WP6/WF2 Twist, Doane & Anderson 20-inch 90 deg twists in tall WR187, triangular (15-18 GHz, mesh check) and cosine, every propagating mode ported",
+      "card": "Gate B, COMSOL campaign 2 (benchmarks/comsol/CAMPAIGN_2.md)",
+      "reference_type": "COMSOL",
+      "reference": "benchmarks/comsol/campaign_2/java/ (GUI models by Daniel), raw/ exports",
+      "data_file": "benchmarks/comsol/campaign_2/raw/",
+      "tolerance": "COMSOL mesh-check change + 0.02 dB (main transmission); mesh-check change + COMSOL power-balance error + 1e-4 per converted mode (E4)",
+      "test": "benchmarks/comsol/campaign_2/compare_campaign_2.py",
+      "status": "pass: every spurious mode within 2.3e-5 of the input power (triangular, 18 GHz: TE1,2 0.3764 % COMSOL fine vs 0.3741 % wrmodes vs 0.3761 % WP7b); main mode within COMSOL's power-balance error (16 Nov 2026)"
+    },
+    {
+      "id": "gateb-comsol-e5",
+      "component": "WP3b chained_miter_outline and Line cascade, two 45 deg optical H-plane miters, s = 2a and 3a, 30 and 56 GHz",
+      "card": "Gate B, COMSOL campaign 2 (benchmarks/comsol/CAMPAIGN_2.md)",
+      "reference_type": "COMSOL",
+      "reference": "benchmarks/comsol/campaign_2/java/ (GUI models by Daniel), raw/ exports",
+      "data_file": "benchmarks/comsol/campaign_2/raw/",
+      "tolerance": "COMSOL mesh-check change + 0.02 dB (main transmission); mesh-check change + COMSOL power-balance error + 1e-4 per converted mode (E4)",
+      "test": "benchmarks/comsol/campaign_2/compare_campaign_2.py",
+      "status": "pass: single domain within 0.0008 dB; cascade at cf 1 within 0.012 dB; cascades with evanescent modes fail (docs/discrepancies/2026-11-15-gateb-45deg-miter-cascade-evanescent.md) (16 Nov 2026)"
     }
   ]
 }

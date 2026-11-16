@@ -592,6 +592,32 @@ Max over the propagating GSM of | |S|² difference |. SmoothBend couples the eva
 
 Line warning (EvanescentJunctionWarning): issued at cutoff_factor 1 and not at 3 in every case.
 
+## Gate B: COMSOL campaign 2 (11–16 Nov 2026)
+
+Daniel ran `benchmarks/comsol/CAMPAIGN_2.md` in COMSOL 6.2 from the GUI. E3 and E4 were rerun after the first pass
+(E3: port orientation; E4: second PML block, port orientation, 15 mm legs). Data, models and logs are in
+`benchmarks/comsol/campaign_2/`; the full tables are in `campaign_2/RESULTS.md`
+(`python benchmarks/comsol/campaign_2/compare_campaign_2.py --out ...`). 122 comparisons, all within the criterion.
+
+| Case | Result |
+| --- | --- |
+| E1 E-plane 90° miters, plain and d/h = 0.87, 8–12.4 + 24, 36 GHz | FEM and MiterMM within 0.0001–0.0078 dB of the fine mesh (0.019 dB at 24 GHz, d/h = 0.87, allowed 0.047) |
+| E2 linear taper 22.86 → 45 mm, TE30 through cutoff, 15 GHz | TE10 within 0.0000 dB; TE30 power within 1.2e-6 (−25.96 / −31.81 dB at L = 0.1 / 0.2 m) |
+| E3 strangled E-plane bend, PEC and aluminium, 18 and 40 GHz | within 0.0007 dB (PEC) and 0.0033 dB (aluminium: −0.085 / −0.120 dB COMSOL vs −0.083 / −0.117 dB) |
+| E4 20-inch 90° twists in tall WR187, every propagating mode ported, 15–18 GHz | every spurious mode within 2.3e-5 of the input power; triangular at 18 GHz TE1,2 0.3764 % (COMSOL fine) vs 0.3741 % (wrmodes) vs 0.3761 % (WP7b helical FEM), TE0,3 0.161 %, TM1,2 0.049 %. The main mode agrees within COMSOL's own power-balance error (0.04 % triangular with mesh check, 0.17–0.19 % cosine without) |
+| E5 two 45° optical miters, s = 2a and 3a, 30 and 56 GHz | single domain within 0.0008 dB; `Line` cascade at propagating modes only within 0.012 dB |
+
+Findings:
+
+* **Doane & Anderson Fig. 9 (triangular) is wrong**, as T3, WP6 and WP7b predicted: COMSOL gives 0.11 / 0.60 % of
+  spurious power at 15 / 18 GHz against the figure's 0.05 / 0.15 %. The cosine twist matches the figure except at
+  its upper end, as found by WP6.
+* **Cascades of 45° optical miters with evanescent modes are silently ill-conditioned**
+  (`docs/discrepancies/2026-11-15-gateb-45deg-miter-cascade-evanescent.md`): up to +26 dB at `cutoff_factor = 3`.
+  Open; a fix card is needed before Gate B closes.
+* E4's criterion adds COMSOL's power-balance error |Σ|S|² − 1| (the model is lossless) to the mesh-check allowance;
+  without it the cosine main mode, which had no mesh check, would fail by 0.17 % with COMSOL's own sum at 1.0017.
+
 ## Timings (2-core container, other jobs running)
 
 Taper FEM references 1–150 s per run (strangled bend at 90 GHz, 4.7 M dof: 150 s); staircase 2–84 s per run (n =
