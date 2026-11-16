@@ -10,7 +10,8 @@ checkout of that commit:
 `tests/test_line.py::test_lines_without_buried_planes_are_bitwise_unchanged` (cases without the FEM) and
 `tests/test_fem2d.py::test_fem_lines_without_buried_planes_are_bitwise_unchanged` (`--fem`: FEM miters, stored in
 lines_unburied_fem.npz) recompute them. Cases: 90 degree mode-matching miters (H, E and both, with frame changes),
-steps, a lossy line, at cutoff factors 1 to 2; FEM 90 degree plain and 45 degree partially cut miters (mirror
+steps, lossy straights with frame changes, at cutoff factors 1 to 2 (lossy bends are WF2's
+smoothbend_propagating.npz); FEM 90 degree plain and 45 degree partially cut miters (mirror
 outside the arms, no buried plane), alone, chained and mixed with MiterMM.
 """
 import datetime
@@ -22,7 +23,7 @@ import sys
 import numpy as np
 
 import wrmodes as wr
-from wrmodes.components import Guide, SmoothBend, ConstantCurvature
+from wrmodes.components import Guide
 from wrmodes.modematch import Step
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -38,8 +39,9 @@ def cases():
         ("steps", g, [Step(W, H, 1.2 * W, H), wr.Straight(0.01), Step(1.2 * W, H, W, H)], ((20e9, 1.0), (20e9, 2.0))),
         ("step_offset_E", g, [Step(H, W, 0.8 * H, W, du=0.05 * H, plane="E"), wr.Straight(0.02),
                               Step(0.8 * H, W, H, W, du=0.05 * H, plane="E")], ((15e9, 1.5),)),
-        ("lossy_bend", Guide(W, H, 3.5e7), [wr.Straight(0.2), SmoothBend(0.3, ConstantCurvature(1 / 0.6)),
-                                            wr.Straight(0.1)], ((18e9, 1.0),)),
+        ("lossy_straights", Guide(W, H, 3.5e7), [wr.Straight(0.2), wr.FrameChange("H", "E"), wr.Straight(0.1),
+                                                 wr.FrameChange("E", "H"), wr.Straight(0.05)],
+         ((18e9, 1.0), (18e9, 1.5))),
     ]
 
 

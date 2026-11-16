@@ -13,7 +13,7 @@ Branch `wave-2/WF3-buried-planes`, from the card commit d795a12 (main cce2b6f + 
 | `Line.gsm`: absorption of the depths by the neighbouring uniform run, `BuriedPlaneWarning`, deferral to the line's ports (`buried` on the line's GSM), near-field warning on the uniform guide left, passivity check (`NonPassiveCascadeWarning`, `PASSIVITY_TOL`), `buried_planes='keep'` | `src/wrmodes/line.py` (module docstring: the protocol) |
 | The suite treats `NonPassiveCascadeWarning` as an error | `pyproject.toml` (`filterwarnings`) |
 | Tests | `tests/test_line.py` (WF3 section, 11 tests, no FEM), `tests/test_fem2d.py` (WF3 section, 6 tests + 1 slow) |
-| Frozen bitwise data (generated at d795a12 from a separate checkout) | `tests/data/make_lines_unburied.py`, `lines_unburied.npz` (8 lines), `lines_unburied_fem.npz` (4 FEM lines) |
+| Frozen bitwise data (generated at d795a12 from a separate checkout) | `tests/data/make_lines_unburied.py`, `lines_unburied.npz` (9 GSMs), `lines_unburied_fem.npz` (4 FEM GSMs) |
 | Benchmark | `benchmarks/fem2d/buried_planes.py` → `benchmarks/fem2d/data/buried_planes_d{6,12,16}_*.npz` |
 | E5 at cf 1.5 and 3; RESULTS regenerated | `benchmarks/comsol/campaign_2/compare_campaign_2.py`, `RESULTS.md` |
 | Records | discrepancy Resolution, `benchmarks/validation_v2/REPORT.md` (Gate B), `benchmarks/registry.json` |
@@ -150,10 +150,10 @@ at cf 1 it was 0.0564 and 0.0280 at s = 2a. `RESULTS.md` regenerated: 126 compar
 
 ### Lines without buried planes: bitwise unchanged
 
-* `lines_unburied.npz` (8 GSMs: `MiterMM` U-turn at cf 1, 2; E- then H-plane `MiterMM` with frame changes at
-  cf 1, 1.5; two `Step` pairs, one E-plane with an offset; a lossy line with a bend) and `lines_unburied_fem.npz`
+* `lines_unburied.npz` (9 GSMs: `MiterMM` U-turn at cf 1, 2; E- then H-plane `MiterMM` with frame changes at
+  cf 1, 1.5; two `Step` pairs, one E-plane with an offset; lossy straights with frame changes at cf 1, 1.5) and `lines_unburied_fem.npz`
   (4: FEM 90° U-turn at cf 1, 1.5; 45° miters with chamfer 0.95, whose mirror stays outside the arms; FEM E-plane
-  miter with `MiterMM`), generated at d795a12 from a separate checkout: **`np.array_equal` for all 12** with the
+  miter with `MiterMM`), generated at d795a12 from a separate checkout: **`np.array_equal` for all 13** with the
   WF3 code; the tests accept 1e-11 absolute across platforms (as `test_components`), and the FEM test skips with a
   different gmsh version (meshes).
 * `tests/data/smoothbend_propagating.npz` (WF2's 20 cases): still bitwise (the existing test).
@@ -200,7 +200,13 @@ assertion depends on the machine's speed (the cost test compares two times on th
 4. The FEM's own evanescent entries at the uniform planes are as accurate as before (the evanescent gain of the
    arm, `evanescent_gain`); zero-length junctions of FEM components (s = 2δ) still need the WP3b open issue 3 mesh
    care (here 6/λ suffices for 1e-4).
-5. `GSM.reversed()` and star products drop `buried`; a user cascading line GSMs by hand gets the reference-plane
+5. **CI on Python 3.9** (numpy 2.0.2, scipy 1.13.1): WF2's frozen `test_components.py::
+   test_propagating_path_is_bitwise_unchanged` fails there on `main` already (const_H_60cm_al_30_line, 5.1e-11 >
+   1e-11; main's run of cce2b6f), i.e. the "1e-11 across platforms" pattern does not hold for long lossy bends with
+   that scipy. My first frozen set had a lossy bend line that failed the same way (1.9e-11); it is replaced by lossy
+   straights with frame changes (the lossy bend is WF2's file). The WF2 test needs a looser bound or a
+   per-platform note (not changed here: not WF3's test).
+6. `GSM.reversed()` and star products drop `buried`; a user cascading line GSMs by hand gets the reference-plane
    GSMs and should cascade `g.buried.gsm` with shortened straights (documented in `BuriedPlanes`).
 
 ## Decisions for the coordinator / Daniel
