@@ -1,7 +1,7 @@
 # P0 — Article outline, claims and figure list
 
-Role: Writer · Wave: 3 · Branch: `wave-3/P0-paper-outline` · Depends on: wave 2 (merged, 1.0.0b1) and Daniel's
-answers on journal, manuscript location and authors (tasks/README.md, "Wave 3 decisions") · Reviewed by: Reviewer +
+Role: Writer · Wave: 3 · Branch: `P0-outline` (manuscript repository) · Depends on: wave 2 (merged, 1.0.0b1) and access to the
+private manuscript repository `Europium-152/wrmodes_paper` (tasks/README.md, "Wave 3 decisions") · Reviewed by: Reviewer +
 Daniel · Time box: 3 days (then status review)
 
 ## Goal
@@ -26,9 +26,12 @@ WF2, WF3, L1, L2, T2b and T3b; the theory notes `docs/theory/T0`–`T3b`. The JI
 
 ## Specification
 
-1. **Target journal.** Use Daniel's choice. Read its author guide: length limit, article types (full paper or
+1. **Target journal: IEEE Transactions on Microwave Theory and Techniques**, IEEEtran in journal mode (template from
+   Daniel's `IEEE-Transactions-LaTeX2e-templates-and-instructions` folder; the coordinator puts it in the manuscript
+   repository). The readers are microwave engineers: the article is a methods paper with validation, not a software
+   announcement. Read the current TMTT author information and IEEE's author policies: length limit, article types (full paper or
    software paper), template, figure rules, data and code availability, and its policy on AI-assisted writing and
-   code. Summarize them in `paper/JOURNAL.md` with links and the date read.
+   code. Summarize them in `JOURNAL.md` with links and the date read.
 2. **Candidate contributions.** Evaluate each one against the evidence and the literature (web search for prior
    work; say what is new and what is not). Keep the ones that hold; propose a title and an abstract of at most 200
    words.
@@ -52,30 +55,31 @@ WF2, WF3, L1, L2, T2b and T3b; the theory notes `docs/theory/T0`–`T3b`. The JI
    two 45° miters with a spacer (COMSOL E5); one demonstration line of several components that shows trapped-mode
    resonances and the effect of wall loss, built from generic dimensions (not the SPARC line).
 4. **Outline.** Sections with a one-paragraph content note and a page or word budget each. The JINST paper is
-   cited, not repeated: give a list of what is summarized from it (at most a paragraph) and what is new.
-5. **Claims table** (`paper/CLAIMS.md`): one row per claim the article will make, with its evidence (registry
+   submitted, not yet published: cite it as submitted, and do not repeat it: give a list of what is summarized from it (at most a paragraph) and what is new.
+5. **Claims table** (`CLAIMS.md`): one row per claim the article will make, with its evidence (registry
    id, report section, data file, test) and its status: ready, needs a new computation (say which), or needs a new
    COMSOL run (avoid unless a claim cannot stand without one; Daniel runs it).
-6. **Figure and table list** (`paper/FIGURES.md`): for each item, its content, data source (stored reference data
+6. **Figure and table list** (`FIGURES.md`): for each item, its content, data source (stored reference data
    such as COMSOL exports, literature CSV and WP7b references may be read; every wrmodes curve is recomputed from
-   the release), estimated run time, and the script name `paper/figures/<NN>_<slug>.py` that P1 will write.
-7. **What the release must provide** (`paper/NEEDS.md`): API, documentation or performance items without which a
-   figure or claim cannot be made (e.g. a uniform `convergence_study` output, a timing harness), for WF4 and R1.
-8. **References** (`paper/references.bib` seed): every reference the outline needs, with DOIs checked by a web
+   the release), estimated run time, and the script name `paper/figures/<NN>_<slug>.py` that P1 will write in the public repository.
+7. **What the release must provide** (`NEEDS.md`): API, documentation or performance items without which a
+   figure or claim cannot be made (e.g. a uniform `convergence_study` output, a timing harness), for WF4 and R1. The coordinator copies these items into the WF4 and R1 cards,
+   which live in the public repository.
+8. **References** (`references.bib` seed): every reference the outline needs, with DOIs checked by a web
    lookup (title, authors, year and pages must match). No reference from memory alone.
 
 ## Acceptance
 
-* Daniel approves `paper/OUTLINE.md`, `paper/CLAIMS.md` and `paper/FIGURES.md` (comments in the PR).
+* Daniel approves `OUTLINE.md`, `CLAIMS.md` and `FIGURES.md` (comments in the PR).
 * Every claim has evidence that exists in the repository or a named computation that will produce it.
 * No SPARC design-study result in any file; the reviewer checks this.
 * Every bibliography entry resolved by a lookup, with the lookup date.
 
 ## Deliverables
 
-`paper/JOURNAL.md`, `paper/OUTLINE.md`, `paper/CLAIMS.md`, `paper/FIGURES.md`, `paper/NEEDS.md`,
-`paper/references.bib`, `docs/reports/P0.md`. Where `paper/` lives depends on Daniel's decision on the manuscript
-location (README, "Wave 3 decisions"); the figure scripts go in the public repository either way.
+In the private manuscript repository `Europium-152/wrmodes_paper`, branch `P0-outline`, PR to its `main`:
+`JOURNAL.md`, `OUTLINE.md`, `CLAIMS.md`, `FIGURES.md`, `NEEDS.md`, `references.bib`, `reports/P0.md`. Nothing about the
+article's content goes into the public repository at this stage.
 
 ## Out of scope
 

@@ -10,9 +10,9 @@ can regenerate it, and so that no number is typed by hand.
 
 ## Read first
 
-`paper/FIGURES.md` and `paper/CLAIMS.md` (P0, approved); `CONVENTIONS.md` §9 (data files); `benchmarks/README.md`
+`FIGURES.md` and `CLAIMS.md` (P0, approved; manuscript repository); `CONVENTIONS.md` §9 (data files); `benchmarks/README.md`
 and `benchmarks/paper_figures.py` (the JINST paper's figure scripts, as a pattern); the journal's figure rules in
-`paper/JOURNAL.md`.
+`JOURNAL.md` (manuscript repository).
 
 ## Specification
 
@@ -30,14 +30,15 @@ and `benchmarks/paper_figures.py` (the JINST paper's figure scripts, as a patter
 
 ## Acceptance
 
-* Every item of `paper/FIGURES.md` exists, or is dropped with Daniel's agreement.
+* Every item of `FIGURES.md` exists, or is dropped with Daniel's agreement.
 * From a clean environment with `wrmodes==1.0.0`, the runner reproduces every npz to 1e-10 (or the stated
   tolerance of a non-deterministic item) and every macro exactly.
 * Every number in `numbers.tex` is traced, in its JSON, to a script and a registry id or data file.
 
 ## Deliverables
 
-`paper/figures/`, `paper/numbers/`, `paper/tools/`, `paper/generated/` (generated, committed), `docs/reports/P1.md`.
+In the public repository: `paper/figures/`, `paper/numbers/`, `paper/tools/`, `paper/generated/` (generated, committed), `docs/reports/P1.md`. In the manuscript
+repository: the submodule pinned at the release tag, and a build that reads the figures and `paper/generated/` from it.
 
 ## Out of scope
 

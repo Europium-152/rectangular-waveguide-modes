@@ -1,18 +1,19 @@
 # WF4 — Open items before the 1.0.0 release
 
-Role: Implementer · Wave: 3 · Branch: `wave-3/WF4-release-fixes` · Depends on: P0 (merged; `paper/NEEDS.md`) ·
+Role: Implementer · Wave: 3 · Branch: `wave-3/WF4-release-fixes` · Depends on: P0 (merged; its needs list,
+copied into item 6 by the coordinator) ·
 Checked against: the stored references of WP7b and WF2 (`benchmarks/validation_v2/`) and the frozen tests · Time
 box: 5 days (then status review)
 
 ## Goal
 
-Close the open items of the wave 2 reports that a 1.0.0 user or the article would hit, and add what `paper/NEEDS.md`
+Close the open items of the wave 2 reports that a 1.0.0 user or the article would hit, and add what P0's needs list
 asks of the library. No change to any validated result beyond the bounds stated here.
 
 ## Read first
 
 `CONVENTIONS.md`; `docs/reports/WF2.md` and `WF3.md` (Open issues); `docs/reports/WP7b.md` (Open issues);
-`paper/NEEDS.md` (P0); `components/twist.py`, `filters.py`, `gsm.py`, `line.py`; `benchmarks/registry.json`.
+`components/twist.py`, `filters.py`, `gsm.py`, `line.py`; `benchmarks/registry.json`.
 
 ## Items
 
@@ -36,7 +37,7 @@ asks of the library. No change to any validated result beyond the bounds stated 
 5. **Timing harness** (`benchmarks/timings.py`): wall time of one GSM per component at stated sizes and
    frequencies, plus a demonstration line, with the machine description (CPU, cores, BLAS, NumPy and SciPy
    versions) in the output. Daniel runs it on his laptop for the article's run-time table.
-6. **Items in `paper/NEEDS.md`** that concern the library (e.g. one return format for the `convergence_study`
+6. **Items from P0's needs list** (copied here by the coordinator before launch) that concern the library (e.g. one return format for the `convergence_study`
    functions of Taper, Twist, MiterMM, Step and fem2d). Items that concern documentation go to R1.
 
 ## Acceptance

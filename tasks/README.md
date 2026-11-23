@@ -131,7 +131,7 @@ Order, in series as wave 2 (one agent at a time; each step ends with a PR that D
 
 1. **P0** outline, claims table, figure list and the release's needs. Daniel approves before anything else is
    written; it sets the scope of WF4, R1 and P1.
-2. **WF4** open items of the wave 2 reports and the library items of `paper/NEEDS.md`.
+2. **WF4** open items of the wave 2 reports and the library items of P0's needs list.
 3. **R1** documentation, examples, packaging; 1.0.0rc1, then 1.0.0. Daniel enables Zenodo, tags `v1.0.0`, makes the
    GitHub release and uploads to PyPI. **Gate C** is this release: every wave 1–2 row met (Gates A and B), the
    guide reviewed from a clean install, clean-install CI on three OSes. No COMSOL campaign 3 is planned; P0 asks for
@@ -143,7 +143,7 @@ Order, in series as wave 2 (one agent at a time; each step ends with a PR that D
 
 A bug found while writing goes to a fix card and a 1.0.x release, and P1 reruns the figures against it.
 
-**Rules for the article.** Every number comes from P1's generated macros; every claim is in `paper/CLAIMS.md`
+**Rules for the article.** Every number comes from P1's generated macros; every claim is in `CLAIMS.md` (manuscript repository)
 with its evidence; statements about other authors' results use wording Daniel approved; nothing from the JINST
 paper is reused (it is cited); no SPARC design-study result appears.
 
@@ -151,9 +151,9 @@ paper is reused (it is cited); no SPARC design-study result appears.
 
 | Question | Needed by | Decision |
 | --- | --- | --- |
-| Target journal (template, length, article type) | P0 | open |
-| Status of the JINST smooth-bend paper (submitted, accepted, published; how to cite it) | P0 | open |
-| Where the manuscript lives: `paper/` in this public repository, or a private repository with only the figure scripts here | P0 | open; default if unanswered: figure scripts here, manuscript in a private repository |
+| Target journal (template, length, article type) | P0 | IEEE Transactions on Microwave Theory and Techniques (23 Nov). Template: IEEEtran, journal mode, from Daniel's `IEEE-Transactions-LaTeX2e-templates-and-instructions` folder |
+| Status of the JINST smooth-bend paper | P0, P4 | submitted (23 Nov). Cite it as submitted until it appears; this article is published only after the JINST paper is |
+| Where the manuscript lives | P0 | private repository `Europium-152/wrmodes_paper` (Daniel, 23 Nov): outline, claims, figure list, journal notes, manuscript, review and submission files. The figure scripts and their generated numbers stay in this public repository under `paper/`, and the manuscript repository pins them as a git submodule at the release tag |
 | Author list and internal reviewers before submission | P2 | open |
 | Docs hosting (GitHub Pages or Read the Docs) | R1 | open; the build is checked in CI either way |
 | Wording of the AI-assistance statements (README, article) | R1, P4 | open; drafts for approval |

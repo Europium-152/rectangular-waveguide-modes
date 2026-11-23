@@ -1,6 +1,6 @@
 # P3 — Independent referee review
 
-Role: Reviewer (fresh context; never saw P0–P2 being written) · Wave: 3 · Branch: `wave-3/P3-referee` · Depends on:
+Role: Reviewer (fresh context; never saw P0–P2 being written) · Wave: 3 · Branch: `P3-referee` (manuscript repository) · Depends on:
 P2 (all checkpoints merged) · Time box: 3 days
 
 ## Goal
@@ -9,7 +9,7 @@ Read the manuscript as the journal's referee would, before a real one does, and 
 
 ## Read first
 
-Only the built PDF of the manuscript and the journal's author guide (`paper/JOURNAL.md`) at first. Write the first
+Only the built PDF of the manuscript and the journal's author guide (`JOURNAL.md`) at first. Write the first
 part of the report (below) before opening anything else. Then the repository at the tag `v1.0.0`.
 
 ## Specification
@@ -35,7 +35,7 @@ blocker stated.
 
 ## Deliverables
 
-`paper/review/P3-referee-report.md`, `docs/reports/P3.md`.
+`review/P3-referee-report.md`, `reports/P3.md` (manuscript repository).
 
 ## Out of scope
 

@@ -12,7 +12,7 @@ article's figures are made from this release (P1), so it has to be the version r
 ## Read first
 
 `README.md`; `CONVENTIONS.md`; `pyproject.toml`; `examples/`; `.github/workflows/tests.yml`; the module and class
-docstrings of `wrmodes`; `paper/NEEDS.md` (documentation items); `benchmarks/registry.json`.
+docstrings of `wrmodes`; the documentation items of P0's needs list (copied into this card by the coordinator); `benchmarks/registry.json`.
 
 ## Specification
 
