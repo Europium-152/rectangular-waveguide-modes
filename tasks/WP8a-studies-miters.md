@@ -1,5 +1,8 @@
 # WP8a — Design studies 1–2: H-plane miters vs smooth bends; chained miters (optional in wave 2)
 
+**Status (16 Nov 2026): handed off.** The SPARC bend studies leave this swarm (tasks/README.md, wave 3); this card is
+kept as the starting point for whoever runs them.
+
 Role: Implementer (study) · Wave: 2 (starts only if Daniel agrees; otherwise wave 3) · Branch:
 `wave-2/WP8a-studies-miters` · Depends on: wave 1 (merged; Gate A passed); WP3b for miter wall loss ·
 Reviewed by: Reviewer + Daniel · Time box: 6 days (then status review)

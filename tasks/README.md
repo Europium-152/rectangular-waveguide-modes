@@ -85,10 +85,18 @@ Verified by: <card or role> · Time box: <days> (then status review)
 | WP6 twists | 2 | Implementer | card written |
 | WP7b verification, wave 2 | 2 | Verifier | card written |
 | CC2 COMSOL campaign 2 | 2 | Coordinator + Daniel | instructions in this PR |
-| WP8a studies 1–2 (miters vs bends, chained miters) | 3 | Implementer | deferred to wave 3 (Daniel, 11 Nov) |
+| WP8a studies 1–2 (miters vs bends, chained miters) | — | Implementer | handed off with the SPARC studies (Daniel, 16 Nov) |
 | WF2 wave 2 fixes (twist truncation, bend evanescent coupling, strangled-bend port bases) | 2 | Implementer | merged (#29) |
 | Gate B: COMSOL campaign 2 | 2 | Coordinator + Daniel | passed with WF3 (#30, #31), 1.0.0b1 |
-| WF3 cascades through buried reference planes; passivity check | 2 | Implementer | this PR (#31) |
+| WF3 cascades through buried reference planes; passivity check | 2 | Implementer | merged (#31); v1.0.0b1 tagged |
+| Wave 3 cards | 3 | Coordinator | this PR |
+| P0 article outline, claims, figure list | 3 | Writer | card written; waits for Daniel's decisions |
+| WF4 open items before 1.0.0 | 3 | Implementer | card written |
+| R1 release 1.0.0 (Gate C) | 3 | Implementer | card written |
+| P1 figures, tables, numbers from the release | 3 | Implementer | card written |
+| P2 article draft (three checkpoints) | 3 | Writer | card written |
+| P3 independent referee review | 3 | Reviewer | card written |
+| P4 revision and submission package | 3 | Writer + Daniel | card written |
 
 ## Wave 2 (Gate B: 1.0.0b1)
 
@@ -111,13 +119,52 @@ Each step: agent → PR → review → Daniel merges → next. A discrepancy fou
 fix PR before Gate B. WP8a waits for wave 3. Gate B needs every wave 2 acceptance table met or a discrepancy report
 settled, WP7b's comparisons, and campaign 2.
 
-## Notes for wave 3 (from wave 2 reports)
+## Wave 3: the article about the tool (Gate C: 1.0.0)
 
-* Strangled bend (WP8): at 90 GHz, 50 mm raised-cosine tapers from WR-90 to 1.6 mm reflect 1.6 % into TM12, which
-  is generated near its cutoff plane in the taper and bounces back from it, and transmit 1.4 % as TM12 (WP5).
-  Longer or shaped tapers are a design item of the study.
-* Butterweck & de Ronde fig. 15: the symmetric reading with flat-guide bend radius about 20 mm is the one on record
-  (WP5 report); the asymmetric reading contradicts the paper's "mainly wall loss".
+Decided by Daniel on 16 Nov 2026. The work on the tool becomes its own article, with very little about SPARC. The
+SPARC bend studies (plan studies 1–6, WP8a) leave this swarm: they become a separate article, written after the
+design is chosen and the bends are built and tested. Wave 3 therefore releases 1.0.0 and writes the article. The
+hand-off note for the studies is a project doc ("SPARC bend studies: hand-off"), not a file in this public
+repository, so that the study plan stays out of it until it is published.
+
+Order, in series as wave 2 (one agent at a time; each step ends with a PR that Daniel merges):
+
+1. **P0** outline, claims table, figure list and the release's needs. Daniel approves before anything else is
+   written; it sets the scope of WF4, R1 and P1.
+2. **WF4** open items of the wave 2 reports and the library items of P0's needs list.
+3. **R1** documentation, examples, packaging; 1.0.0rc1, then 1.0.0. Daniel enables Zenodo, tags `v1.0.0`, makes the
+   GitHub release and uploads to PyPI. **Gate C** is this release: every wave 1–2 row met (Gates A and B), the
+   guide reviewed from a clean install, clean-install CI on three OSes. No COMSOL campaign 3 is planned; P0 asks for
+   one only if a claim cannot stand without it.
+4. **P1** figures, tables and numbers, run against 1.0.0.
+5. **P2** draft in three checkpoints (methods; validation and examples; introduction, conclusions, abstract).
+6. **P3** referee review by an agent that saw none of the writing.
+7. **P4** answers to the review, Daniel's and co-authors' revisions, submission package. Daniel submits.
+
+A bug found while writing goes to a fix card and a 1.0.x release, and P1 reruns the figures against it.
+
+**Rules for the article.** Every number comes from P1's generated macros; every claim is in `CLAIMS.md` (manuscript repository)
+with its evidence; statements about other authors' results use wording Daniel approved; nothing from the JINST
+paper is reused (it is cited); no SPARC design-study result appears.
+
+### Wave 3 decisions (Daniel)
+
+| Question | Needed by | Decision |
+| --- | --- | --- |
+| Target journal (template, length, article type) | P0 | IEEE Transactions on Microwave Theory and Techniques (23 Nov). Template: IEEEtran, journal mode, from Daniel's `IEEE-Transactions-LaTeX2e-templates-and-instructions` folder |
+| Status of the JINST smooth-bend paper | P0, P4 | submitted (23 Nov). Cite it as submitted until it appears; this article is published only after the JINST paper is |
+| Where the manuscript lives | P0 | private repository `Europium-152/wrmodes_paper` (Daniel, 23 Nov): outline, claims, figure list, journal notes, manuscript, review and submission files. The figure scripts and their generated numbers stay in this public repository under `paper/`, and the manuscript repository pins them as a git submodule at the release tag |
+| Author list and internal reviewers before submission | P2 | open |
+| Docs hosting (GitHub Pages or Read the Docs) | R1 | open; the build is checked in CI either way |
+| Wording of the AI-assistance statements (README, article) | R1, P4 | open; drafts for approval |
+
+### Notes carried from wave 2
+
+The design-study notes (TM12 in strangled-bend tapers, the Butterweck fig. 15 reading, the fitted bottle profile,
+twist convergence near cutoffs) moved to the SPARC hand-off note. Those that concern the tool's documentation go
+to R1's "known limits" page:
+
 * `profile='bottle'` is wrmodes' fit (λ = 3.5) to an unscaled sketch, so the −40 dB bottle check is not an
   independent validation (WP5).
-* Studies with twists: show convergence in `cutoff_factor` near cutoffs (CONVENTIONS §3, WP6).
+* Near cutoffs, show convergence in `cutoff_factor` and `mode_factor` (CONVENTIONS §3, WP6, WF2).
+* Open issues of WF2, WF3 and WP7b that WF4 does not close.
