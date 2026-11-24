@@ -45,7 +45,8 @@ class GSM:
     ----------
     buried : BuriedPlanes or None
         Set by components whose reference planes lie inside their discontinuity (see `BuriedPlanes`); None (class
-        default) otherwise. Operations on GSMs (star products, `reversed`, ...) do not carry it over.
+        default) otherwise. `reversed` keeps it (depths swapped, WF4); star products and the other operations on GSMs
+        do not carry it over.
     """
 
     buried = None
@@ -95,11 +96,18 @@ class GSM:
         Turning around is the rotation by pi about u, (u, v, z) -> (u, -v, -z): the ports are swapped and every
         mode picks up the sign P = (-1)^(n+1), so S' = P S_swapped P. Within one family P is a common sign and
         cancels; it matters for components that couple different families.
+
+        Buried reference planes (`buried`, WF3) are kept (WF4): the reversed GSM carries
+        BuriedPlanes((depth2, depth1), buried.gsm.reversed()), so that a reversed component cascades in a `Line` as
+        well as the original. (Star products and the other operations still drop `buried`.)
         """
         P1, P2 = reversal_signs(self.basis2), reversal_signs(self.basis1)    # new port 1 = old port 2
-        return GSM(P1[:, None] * self.S22 * P1[None, :], P1[:, None] * self.S21 * P2[None, :],
-                   P2[:, None] * self.S12 * P1[None, :], P2[:, None] * self.S11 * P2[None, :],
-                   self.basis2, self.basis1, self.f, self.name + " (reversed)" if self.name else "")
+        out = GSM(P1[:, None] * self.S22 * P1[None, :], P1[:, None] * self.S21 * P2[None, :],
+                  P2[:, None] * self.S12 * P1[None, :], P2[:, None] * self.S11 * P2[None, :],
+                  self.basis2, self.basis1, self.f, self.name + " (reversed)" if self.name else "")
+        if self.buried is not None:
+            out.buried = BuriedPlanes((self.buried.depth[1], self.buried.depth[0]), self.buried.gsm.reversed())
+        return out
 
     def transmission(self, mode_in, mode_out=None):
         """Complex transmission amplitude from mode_in at port 1 to mode_out (default: the same mode) at port 2."""
