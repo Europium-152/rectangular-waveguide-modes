@@ -5,7 +5,7 @@ __all__ = ["convergence_study"]
 
 
 def convergence_study(component, f, mesh_densities=(10, 15, 20, 30), n_evanescent=(2, 4, 6, 10),
-                      basis1=None, basis2=None, verbose=False):
+                      basis1=None, basis2=None, verbose=False, input_mode=None):
     """Change of every |S| entry of a 2D-solver component under mesh refinement and under the number M of
     evanescent port modes.
 
@@ -20,10 +20,16 @@ def convergence_study(component, f, mesh_densities=(10, 15, 20, 30), n_evanescen
         Values of M, from small to large (mesh at the component's setting).
     basis1, basis2 : ModeBasis, optional
         Port bases (default: the component's default basis).
+    input_mode : mode, optional
+        Incident mode of the record's powers (default TE1,0, else the first propagating mode of port 1).
 
     Returns
     -------
-    dict with
+    `wrmodes.convergence.ConvergenceRecord` (WF4): rows with parameter 'mesh_density' (n_evanescent at the
+    component's setting), then 'n_evanescent' (mesh at the component's setting); n_modes per row = the number of port modes (port 1 + port 2;
+    the FEM size is the key 'ndof', degrees of freedom per row);
+    powers of the column of the input mode; max_change against the finest row of each sweep; no Richardson
+    extrapolation. Earlier keys, kept as aliases for one release:
         'mesh': list of (density, ndof, max_abs_change, gsm), where max_abs_change is max |(|S| - |S_finest|)| over
                 all entries, and also the complex change max |S - S_finest| (key 'mesh_complex');
         'modes': the same for M (keys 'modes', 'modes_complex');
@@ -43,10 +49,25 @@ def convergence_study(component, f, mesh_densities=(10, 15, 20, 30), n_evanescen
             print(f"{label}: ndof {g.fem_info['ndof']}, unitarity {g.unitarity_defect():.2e}")
         return g
 
+    from ..convergence import build_record, column_powers, default_input_mode
+    import time
+    mode = default_input_mode(basis1, f, input_mode)
+    rows, ndof = [], []
     for key, param, values in (("mesh", "mesh_density", mesh_densities), ("modes", "n_evanescent", n_evanescent)):
-        gs = [run(f"{param}={v}", **{param: v}) for v in values]
+        gs = []
+        for v in values:
+            t0 = time.perf_counter()
+            g = run(f"{param}={v}", **{param: v})
+            gs.append(g)
+            nd = sum(n for _, n in g.fem_info["ndof"])
+            ndof.append(nd)
+            rows.append(dict(parameter=param, value=v, variant={}, n_modes=len(basis1) + len(basis2),
+                             powers=column_powers(g, mode, f), wall_time=time.perf_counter() - t0))
         ref = gs[-1].S
         out[key] = [(v, sum(n for _, n in g.fem_info["ndof"]), float(np.max(np.abs(np.abs(g.S) - np.abs(ref)))), g)
                     for v, g in zip(values, gs)]
         out[key + "_complex"] = [(v, float(np.max(np.abs(g.S - ref)))) for v, g in zip(values, gs)]
-    return out
+    rec = build_record(component, f, mode, rows, None,
+                       "the finest row of each sweep (largest mesh density; largest n_evanescent)", aliases=out)
+    rec["ndof"] = ndof
+    return rec

@@ -433,7 +433,12 @@ def test_convergence_study_report():
     r = tp.convergence_study(15e9, "TE1,0", basis1=b1, basis2=b2)
     assert [row["mode_factor"] for row in r["rows"]] == [2.0, 4.0, 2.0, 4.0, 2.0]
     assert [row["slice_factor"] is None for row in r["rows"]] == [True] * 4 + [False]
-    assert set(r["richardson"]) == {True, False}
+    assert {True, False} <= set(r["richardson"])                     # the earlier keys, kept as aliases (WF4)
+    # WF4: the common record
+    assert r["parameter"] == ["mode_factor"] * 4 + ["slices"] and r["values"][:4] == [2.0, 4.0, 2.0, 4.0]
+    assert r["variants"][0] == {"tail": True} and r["richardson"]["order"] == 1 and r["input_mode"] == "TE1,0"
+    assert r["max_change"][1] == 0.0 and r["max_change"][0] < 1e-4 and len(r["wall_time"]) == 5
+    assert set(r["powers"][0]["transmitted"]) == set(r["modes2"])
     assert r["modes2"] == ["TE1,0", "TE2,0", "TE3,0", "TE4,0"]
     assert len(r["column"]) == 5
     slices = [row for row in r["rows"] if row["slice_factor"] is not None]

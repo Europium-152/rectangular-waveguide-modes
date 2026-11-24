@@ -299,12 +299,12 @@ class Step(Component):
         return GSM(g.S11[np.ix_(i1, i1)], g.S12[np.ix_(i1, i2)], g.S21[np.ix_(i2, i1)], g.S22[np.ix_(i2, i2)],
                    basis1, basis2, f, g.name)
 
-    def convergence_study(self, f, cutoff_factors):
+    def convergence_study(self, f, cutoff_factors, input_mode=None):
         """See :func:`convergence_study`."""
-        return convergence_study(self, f, cutoff_factors)
+        return convergence_study(self, f, cutoff_factors, input_mode)
 
 
-def convergence_study(component, f, cutoff_factors):
+def convergence_study(component, f, cutoff_factors, input_mode=None):
     """Convergence of the propagating block of a component's GSM with the number of evanescent modes.
 
     Parameters
@@ -317,10 +317,14 @@ def convergence_study(component, f, cutoff_factors):
         Frequency (Hz).
     cutoff_factors : sequence of float
         Truncations to compute, in increasing order.
+    input_mode : mode, optional
+        Incident mode of the record's powers (default TE1,0, else the first propagating mode of port 1).
 
     Returns
     -------
-    dict with
+    `wrmodes.convergence.ConvergenceRecord` (WF4): one row per truncation, parameter 'cutoff_factor', n_modes
+    (port 1, port 2) per row, powers of the column of the input mode, max_change against the largest truncation, no
+    Richardson extrapolation. Earlier keys, kept as aliases for one release:
         'cutoff_factor' : (K,) array
         'n_modes' : (K, 2) int array, numbers of modes of port 1 and port 2
         'modes1', 'modes2' : names of the propagating modes of port 1 and port 2
@@ -329,13 +333,19 @@ def convergence_study(component, f, cutoff_factors):
         'change_complex' : (K,) array, max |S_k - S_{k-1}| (complex entries) over the propagating block
         'unitarity', 'reciprocity' : (K,) arrays, defects of each GSM
     """
+    from ..convergence import build_record, column_powers, default_input_mode
+    import time
     cfs = np.asarray(cutoff_factors, dtype=float)
-    S_list, n_modes, uni, rec = [], [], [], []
+    S_list, n_modes, uni, rec, rows = [], [], [], [], []
     names = None
     for cf in cfs:
         b1, b2 = component.default_basis(f, cutoff_factor=cf)
+        t0 = time.perf_counter()
         # a component that extends its bases internally (Step.gsm) exposes the truncated problem as `solve`
         g = component.solve(f, b1, b2) if hasattr(component, "solve") else component.gsm(f, b1, b2)
+        mode = default_input_mode(b1, f, input_mode)
+        rows.append(dict(parameter="cutoff_factor", value=float(cf), variant={}, n_modes=(len(b1), len(b2)),
+                         powers=column_powers(g, mode, f), wall_time=time.perf_counter() - t0))
         m1, m2 = g.propagating()
         nm = ([md.name for md, p in zip(b1.modes, m1) if p], [md.name for md, p in zip(b2.modes, m2) if p])
         if names is not None and nm != names:
@@ -352,5 +362,9 @@ def convergence_study(component, f, cutoff_factors):
     for k in range(1, len(cfs)):
         change[k] = np.max(np.abs(np.abs(S[k]) - np.abs(S[k - 1])))
         change_c[k] = np.max(np.abs(S[k] - S[k - 1]))
-    return {"cutoff_factor": cfs, "n_modes": np.array(n_modes), "modes1": names[0], "modes2": names[1], "S": S,
-            "change": change, "change_complex": change_c, "unitarity": np.array(uni), "reciprocity": np.array(rec)}
+    out = build_record(component, f, mode, rows, None, "the largest cutoff factor",
+                       aliases={"cutoff_factor": cfs, "modes1": names[0], "modes2": names[1], "S": S,
+                                "change": change, "change_complex": change_c, "unitarity": np.array(uni),
+                                "reciprocity": np.array(rec)})
+    out["n_modes"] = np.array(n_modes)            # (K, 2), as before: one (port 1, port 2) pair per row
+    return out

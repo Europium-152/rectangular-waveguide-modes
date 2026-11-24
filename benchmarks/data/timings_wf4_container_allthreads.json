@@ -1,0 +1,821 @@
+{
+ "machine": {
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.30GHz",
+  "logical_cores": 2,
+  "physical_cores": 2,
+  "ram_gb": 7.8,
+  "os": "Linux-6.18.44-fc-v819-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "python": "3.13.18",
+  "numpy": "2.5.3",
+  "scipy": "1.18.1",
+  "blas": [
+   {
+    "api": "openblas",
+    "vendor": "blas",
+    "version": "0.3.31.dev",
+    "threads": 1,
+    "threading_layer": "pthreads",
+    "architecture": "SkylakeX",
+    "library": "libscipy_openblas-5f890258.so"
+   },
+   {
+    "api": "openblas",
+    "vendor": "blas",
+    "version": "0.3.34.106.0",
+    "threads": 1,
+    "threading_layer": "pthreads",
+    "architecture": "SkylakeX",
+    "library": "libscipy_openblas64_-f48b354e.so"
+   }
+  ],
+  "wrmodes": "1.0.0b1",
+  "git_commit": "f05927225b209fd0d241db0cbe3e08ea99bfec8e",
+  "date": "2026-11-24T13:11:06"
+ },
+ "settings": {
+  "threads": "all",
+  "repeat": 1,
+  "quick": false
+ },
+ "components": [
+  {
+   "key": "lossy_straight_90GHz",
+   "description": "Straight 1 m, WR-90 aluminium (3.5e7 S/m), all propagating modes (all families coupled by the wall loss), 90 GHz",
+   "f": 90000000000.0,
+   "n_modes": [
+    129,
+    129
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    0.1041913149992979
+   ],
+   "best_s": 0.1041913149992979,
+   "warnings": []
+  },
+  {
+   "key": "smoothbend_propagating_40GHz",
+   "description": "SmoothBend H-plane sech 90 deg, 20 cm, WR-90 aluminium, propagating modes (transfer-matrix route), 40 GHz",
+   "f": 40000000000.0,
+   "n_modes": [
+    26,
+    26
+   ],
+   "blas_threads": "all",
+   "self_limited": true,
+   "times_s": [
+    0.2169804249997469
+   ],
+   "best_s": 0.2169804249997469,
+   "warnings": []
+  },
+  {
+   "key": "smoothbend_evanescent_40GHz",
+   "description": "the same bend, basis to 1.5 f (evanescent route, VariableGuide slice GSMs, internal list to 3 f), 40 GHz",
+   "f": 40000000000.0,
+   "n_modes": [
+    57,
+    57
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    2.355881131999922
+   ],
+   "best_s": 2.355881131999922,
+   "warnings": []
+  },
+  {
+   "key": "taper_raised_cosine_90GHz",
+   "description": "Taper raised cosine WR-90 -> 22.86 x 1.6 mm over 5 cm (E3's taper), perfect walls, default bases, 90 GHz",
+   "f": 90000000000.0,
+   "n_modes": [
+    129,
+    13
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    3.9366221770005723
+   ],
+   "best_s": 3.9366221770005723,
+   "warnings": []
+  },
+  {
+   "key": "strangled_bend_40GHz",
+   "description": "StrangledBend E3 geometry (90 deg, R = 50 mm, 1.6 mm flat, 5 cm raised-cosine tapers), WR-90, perfect walls, 40 GHz",
+   "f": 40000000000.0,
+   "n_modes": [
+    26,
+    26
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    1.3187429210001937
+   ],
+   "best_s": 1.3187429210001937,
+   "warnings": []
+  },
+  {
+   "key": "strangled_bend_90GHz",
+   "description": "StrangledBend E3 geometry (90 deg, R = 50 mm, 1.6 mm flat, 5 cm raised-cosine tapers), WR-90, perfect walls, 90 GHz",
+   "f": 90000000000.0,
+   "n_modes": [
+    129,
+    129
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    18.35704298699966
+   ],
+   "best_s": 18.35704298699966,
+   "warnings": []
+  },
+  {
+   "key": "twist_constant_18GHz",
+   "description": "Twist 90 deg constant, 20 in, tall WR187 (Doane), defaults (mode_factor 3, tail), 18 GHz",
+   "f": 18000000000.0,
+   "n_modes": [
+    23,
+    23
+   ],
+   "blas_threads": "all",
+   "self_limited": true,
+   "times_s": [
+    0.3565241930000411
+   ],
+   "best_s": 0.3565241930000411,
+   "warnings": []
+  },
+  {
+   "key": "twist_triangular_18GHz",
+   "description": "Twist 90 deg triangular, 20 in, tall WR187 (Doane), defaults (mode_factor 2, tail), 18 GHz",
+   "f": 18000000000.0,
+   "n_modes": [
+    23,
+    23
+   ],
+   "blas_threads": "all",
+   "self_limited": true,
+   "times_s": [
+    4.594863500999963
+   ],
+   "best_s": 4.594863500999963,
+   "warnings": []
+  },
+  {
+   "key": "miter_mm_H_30GHz",
+   "description": "MiterMM H-plane 90 deg optical mirror, WR-90, default truncation, 30 GHz",
+   "f": 30000000000.0,
+   "n_modes": [
+    12,
+    12
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    0.05471809500068048
+   ],
+   "best_s": 0.05471809500068048,
+   "warnings": []
+  },
+  {
+   "key": "miter_mm_H_60GHz",
+   "description": "MiterMM H-plane 90 deg optical mirror, WR-90, default truncation, 60 GHz",
+   "f": 60000000000.0,
+   "n_modes": [
+    57,
+    57
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    0.22951100600039354
+   ],
+   "best_s": 0.22951100600039354,
+   "warnings": []
+  },
+  {
+   "key": "miter_mm_H_90GHz",
+   "description": "MiterMM H-plane 90 deg optical mirror, WR-90, default truncation, 90 GHz",
+   "f": 90000000000.0,
+   "n_modes": [
+    129,
+    129
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    0.5408828790004918
+   ],
+   "best_s": 0.5408828790004918,
+   "warnings": []
+  },
+  {
+   "key": "miter_mm_E_30GHz",
+   "description": "MiterMM E-plane 90 deg optical mirror, WR-90, default truncation, 30 GHz",
+   "f": 30000000000.0,
+   "n_modes": [
+    12,
+    12
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    0.08447138100018492
+   ],
+   "best_s": 0.08447138100018492,
+   "warnings": []
+  },
+  {
+   "key": "miter_mm_E_60GHz",
+   "description": "MiterMM E-plane 90 deg optical mirror, WR-90, default truncation, 60 GHz",
+   "f": 60000000000.0,
+   "n_modes": [
+    57,
+    57
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    0.26412491999963095
+   ],
+   "best_s": 0.26412491999963095,
+   "warnings": []
+  },
+  {
+   "key": "miter_mm_E_90GHz",
+   "description": "MiterMM E-plane 90 deg optical mirror, WR-90, default truncation, 90 GHz",
+   "f": 90000000000.0,
+   "n_modes": [
+    129,
+    129
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    0.522810323000158
+   ],
+   "best_s": 0.522810323000158,
+   "warnings": []
+  },
+  {
+   "key": "fem2d_miter_H_one_family_90GHz",
+   "description": "fem2d.Miter H-plane 90 deg, WR-90, family n = 0 only (13 modes), default mesh, 90 GHz",
+   "f": 90000000000.0,
+   "n_modes": [
+    13,
+    13
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    0.5904284599992025
+   ],
+   "best_s": 0.5904284599992025,
+   "warnings": []
+  },
+  {
+   "key": "fem2d_miter_H_full_90GHz",
+   "description": "fem2d.Miter H-plane 90 deg, WR-90, all propagating modes (129), default mesh, 90 GHz",
+   "f": 90000000000.0,
+   "n_modes": [
+    129,
+    129
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    4.1497982460005005
+   ],
+   "best_s": 4.1497982460005005,
+   "warnings": []
+  },
+  {
+   "key": "step_parity_on_90GHz",
+   "description": "Step WR-90 -> 22.86 x 1.6 mm, default truncation (3415, 526 modes), parity reduction on, 90 GHz",
+   "f": 90000000000.0,
+   "n_modes": [
+    3415,
+    526
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    0.28907579299993813
+   ],
+   "best_s": 0.28907579299993813,
+   "warnings": []
+  },
+  {
+   "key": "step_parity_off_90GHz",
+   "description": "Step WR-90 -> 22.86 x 1.6 mm, default truncation (3415, 526 modes), parity reduction off, 90 GHz",
+   "f": 90000000000.0,
+   "n_modes": [
+    3415,
+    526
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    2.5252264780001497
+   ],
+   "best_s": 2.5252264780001497,
+   "warnings": []
+  },
+  {
+   "key": "lossy_wall_filter_M80_75GHz",
+   "description": "LossyWallFilter 15 cm, 250 ohm narrow walls, WR-90, M = 80 modes per family, propagating basis, 75 GHz",
+   "f": 75000000000.0,
+   "n_modes": [
+    94,
+    94
+   ],
+   "blas_threads": "all",
+   "self_limited": false,
+   "times_s": [
+    6.162221690000479
+   ],
+   "best_s": 6.162221690000479,
+   "warnings": []
+  },
+  {
+   "key": "demo_line_pec",
+   "description": "straight 1 m -> H-plane sech bend 90 deg, 30 cm -> straight 0.5 m -> constant-rate 90 deg twist, 15 cm -> straight 0.3 m -> E-plane 90 deg chamfered miter (d/h = 0.87, COMSOL E1's validated chamfer) -> straight 0.2 m -> linear H-plane taper to 22.86 x 10.16 mm over 10 cm -> straight 2 m -> two 45 deg optical H-plane miters with spacer 3a -> straight 0.5 m. Perfect walls.",
+   "elements": [
+    "straight 1 m",
+    "H-plane bend 0.3 m",
+    "straight 0.5 m",
+    "90 deg constant twist 0.15 m",
+    "straight 0.3 m",
+    "frame change H->E",
+    "MiterMM(d/a=0.87, plane='E', Guide(w=0.015799, h=0.007899))",
+    "straight 0.2 m",
+    "frame change E->H",
+    "taper 0.1 m to 0.02286 x 0.01016 (linear)",
+    "straight 2 m",
+    "H-plane miter 45 deg",
+    "straight 0.06858 m",
+    "H-plane miter 45 deg",
+    "straight 0.5 m"
+   ],
+   "blas_threads": "all",
+   "cutoff_factor": 1.0,
+   "per_frequency": [
+    {
+     "f": 15000000000.0,
+     "best_s": 0.19356893300027878,
+     "times_s": [
+      0.19356893300027878
+     ],
+     "n_modes": [
+      1,
+      3
+     ],
+     "warnings": [
+      "EvanescentJunctionWarning"
+     ],
+     "te10_loss_db": 1.301099959005728
+    },
+    {
+     "f": 16000000000.0,
+     "best_s": 0.23196480400019936,
+     "times_s": [
+      0.23196480400019936
+     ],
+     "n_modes": [
+      1,
+      3
+     ],
+     "warnings": [],
+     "te10_loss_db": 0.24863047170951214
+    },
+    {
+     "f": 17000000000.0,
+     "best_s": 0.2867879390005328,
+     "times_s": [
+      0.2867879390005328
+     ],
+     "n_modes": [
+      1,
+      5
+     ],
+     "warnings": [],
+     "te10_loss_db": 0.21653555038999514
+    },
+    {
+     "f": 18000000000.0,
+     "best_s": 0.30197013599990896,
+     "times_s": [
+      0.30197013599990896
+     ],
+     "n_modes": [
+      1,
+      5
+     ],
+     "warnings": [],
+     "te10_loss_db": 2.802273201729154
+    },
+    {
+     "f": 19000000000.0,
+     "best_s": 0.6363472530001673,
+     "times_s": [
+      0.6363472530001673
+     ],
+     "n_modes": [
+      3,
+      5
+     ],
+     "warnings": [],
+     "te10_loss_db": 0.9435524230146108
+    },
+    {
+     "f": 20000000000.0,
+     "best_s": 0.45626200799961225,
+     "times_s": [
+      0.45626200799961225
+     ],
+     "n_modes": [
+      3,
+      8
+     ],
+     "warnings": [],
+     "te10_loss_db": 0.8243233667426528
+    },
+    {
+     "f": 21000000000.0,
+     "best_s": 0.44936368099934043,
+     "times_s": [
+      0.44936368099934043
+     ],
+     "n_modes": [
+      3,
+      8
+     ],
+     "warnings": [],
+     "te10_loss_db": 1.011528420294371
+    },
+    {
+     "f": 22000000000.0,
+     "best_s": 0.5418365850000555,
+     "times_s": [
+      0.5418365850000555
+     ],
+     "n_modes": [
+      5,
+      8
+     ],
+     "warnings": [],
+     "te10_loss_db": 4.725178394476164
+    },
+    {
+     "f": 23000000000.0,
+     "best_s": 0.5456676769999831,
+     "times_s": [
+      0.5456676769999831
+     ],
+     "n_modes": [
+      5,
+      8
+     ],
+     "warnings": [],
+     "te10_loss_db": 23.71998358431099
+    },
+    {
+     "f": 24000000000.0,
+     "best_s": 0.7411767300000065,
+     "times_s": [
+      0.7411767300000065
+     ],
+     "n_modes": [
+      5,
+      8
+     ],
+     "warnings": [],
+     "te10_loss_db": 6.212142601175113
+    },
+    {
+     "f": 25000000000.0,
+     "best_s": 0.8581631690003633,
+     "times_s": [
+      0.8581631690003633
+     ],
+     "n_modes": [
+      5,
+      10
+     ],
+     "warnings": [],
+     "te10_loss_db": 6.214893623874218
+    },
+    {
+     "f": 26000000000.0,
+     "best_s": 0.7674211080002351,
+     "times_s": [
+      0.7674211080002351
+     ],
+     "n_modes": [
+      5,
+      10
+     ],
+     "warnings": [],
+     "te10_loss_db": 7.9047379662459445
+    },
+    {
+     "f": 27000000000.0,
+     "best_s": 1.0324212730001818,
+     "times_s": [
+      1.0324212730001818
+     ],
+     "n_modes": [
+      7,
+      11
+     ],
+     "warnings": [],
+     "te10_loss_db": 10.40245086480844
+    },
+    {
+     "f": 28000000000.0,
+     "best_s": 0.9829046830000152,
+     "times_s": [
+      0.9829046830000152
+     ],
+     "n_modes": [
+      7,
+      11
+     ],
+     "warnings": [],
+     "te10_loss_db": 10.42738645416999
+    },
+    {
+     "f": 29000000000.0,
+     "best_s": 1.0553894130007393,
+     "times_s": [
+      1.0553894130007393
+     ],
+     "n_modes": [
+      8,
+      11
+     ],
+     "warnings": [],
+     "te10_loss_db": 10.662529421536892
+    },
+    {
+     "f": 30000000000.0,
+     "best_s": 1.3518677969996133,
+     "times_s": [
+      1.3518677969996133
+     ],
+     "n_modes": [
+      8,
+      12
+     ],
+     "warnings": [],
+     "te10_loss_db": 8.891217242553584
+    }
+   ],
+   "total_s": 10.433113189001233,
+   "mean_s": 0.6520695743125771
+  },
+  {
+   "key": "demo_line_copper",
+   "description": "straight 1 m -> H-plane sech bend 90 deg, 30 cm -> straight 0.5 m -> constant-rate 90 deg twist, 15 cm -> straight 0.3 m -> E-plane 90 deg chamfered miter (d/h = 0.87, COMSOL E1's validated chamfer) -> straight 0.2 m -> linear H-plane taper to 22.86 x 10.16 mm over 10 cm -> straight 2 m -> two 45 deg optical H-plane miters with spacer 3a -> straight 0.5 m. Copper (5.8e7 S/m).",
+   "elements": [
+    "straight 1 m",
+    "H-plane bend 0.3 m",
+    "straight 0.5 m",
+    "90 deg constant twist 0.15 m",
+    "straight 0.3 m",
+    "frame change H->E",
+    "E-plane miter 90 deg d/a=0.87",
+    "straight 0.2 m",
+    "frame change E->H",
+    "taper 0.1 m to 0.02286 x 0.01016 (linear)",
+    "straight 2 m",
+    "H-plane miter 45 deg",
+    "straight 0.06858 m",
+    "H-plane miter 45 deg",
+    "straight 0.5 m"
+   ],
+   "blas_threads": "all",
+   "cutoff_factor": 1.0,
+   "per_frequency": [
+    {
+     "f": 15000000000.0,
+     "best_s": 0.435790232000727,
+     "times_s": [
+      0.435790232000727
+     ],
+     "n_modes": [
+      1,
+      3
+     ],
+     "warnings": [
+      "EvanescentJunctionWarning"
+     ],
+     "te10_loss_db": 2.4557088487389205
+    },
+    {
+     "f": 16000000000.0,
+     "best_s": 0.4286602279998988,
+     "times_s": [
+      0.4286602279998988
+     ],
+     "n_modes": [
+      1,
+      3
+     ],
+     "warnings": [],
+     "te10_loss_db": 0.9200268671491454
+    },
+    {
+     "f": 17000000000.0,
+     "best_s": 0.4630941499999608,
+     "times_s": [
+      0.4630941499999608
+     ],
+     "n_modes": [
+      1,
+      5
+     ],
+     "warnings": [],
+     "te10_loss_db": 0.8727281620320457
+    },
+    {
+     "f": 18000000000.0,
+     "best_s": 0.49152300199966703,
+     "times_s": [
+      0.49152300199966703
+     ],
+     "n_modes": [
+      1,
+      5
+     ],
+     "warnings": [],
+     "te10_loss_db": 3.737950156536577
+    },
+    {
+     "f": 19000000000.0,
+     "best_s": 0.6110412150001139,
+     "times_s": [
+      0.6110412150001139
+     ],
+     "n_modes": [
+      3,
+      5
+     ],
+     "warnings": [],
+     "te10_loss_db": 1.6285459789171786
+    },
+    {
+     "f": 20000000000.0,
+     "best_s": 0.623930959000063,
+     "times_s": [
+      0.623930959000063
+     ],
+     "n_modes": [
+      3,
+      8
+     ],
+     "warnings": [],
+     "te10_loss_db": 1.478653956979704
+    },
+    {
+     "f": 21000000000.0,
+     "best_s": 0.626960515999599,
+     "times_s": [
+      0.626960515999599
+     ],
+     "n_modes": [
+      3,
+      8
+     ],
+     "warnings": [],
+     "te10_loss_db": 1.6749662814257347
+    },
+    {
+     "f": 22000000000.0,
+     "best_s": 0.6838164679993497,
+     "times_s": [
+      0.6838164679993497
+     ],
+     "n_modes": [
+      5,
+      8
+     ],
+     "warnings": [],
+     "te10_loss_db": 5.44242969637415
+    },
+    {
+     "f": 23000000000.0,
+     "best_s": 0.8933754749996297,
+     "times_s": [
+      0.8933754749996297
+     ],
+     "n_modes": [
+      5,
+      8
+     ],
+     "warnings": [],
+     "te10_loss_db": 17.771216151591812
+    },
+    {
+     "f": 24000000000.0,
+     "best_s": 1.063099756000156,
+     "times_s": [
+      1.063099756000156
+     ],
+     "n_modes": [
+      5,
+      8
+     ],
+     "warnings": [],
+     "te10_loss_db": 6.904688842874025
+    },
+    {
+     "f": 25000000000.0,
+     "best_s": 0.9620766340003684,
+     "times_s": [
+      0.9620766340003684
+     ],
+     "n_modes": [
+      5,
+      10
+     ],
+     "warnings": [],
+     "te10_loss_db": 6.696160852737345
+    },
+    {
+     "f": 26000000000.0,
+     "best_s": 1.0372901780001484,
+     "times_s": [
+      1.0372901780001484
+     ],
+     "n_modes": [
+      5,
+      10
+     ],
+     "warnings": [],
+     "te10_loss_db": 8.65228604067001
+    },
+    {
+     "f": 27000000000.0,
+     "best_s": 1.1819968480003809,
+     "times_s": [
+      1.1819968480003809
+     ],
+     "n_modes": [
+      7,
+      11
+     ],
+     "warnings": [],
+     "te10_loss_db": 10.513175623393298
+    },
+    {
+     "f": 28000000000.0,
+     "best_s": 1.2569050530000823,
+     "times_s": [
+      1.2569050530000823
+     ],
+     "n_modes": [
+      7,
+      11
+     ],
+     "warnings": [],
+     "te10_loss_db": 11.079974834954916
+    },
+    {
+     "f": 29000000000.0,
+     "best_s": 1.3925371860004816,
+     "times_s": [
+      1.3925371860004816
+     ],
+     "n_modes": [
+      8,
+      11
+     ],
+     "warnings": [],
+     "te10_loss_db": 11.917648210834937
+    },
+    {
+     "f": 30000000000.0,
+     "best_s": 1.6043137570004546,
+     "times_s": [
+      1.6043137570004546
+     ],
+     "n_modes": [
+      8,
+      12
+     ],
+     "warnings": [],
+     "te10_loss_db": 9.465077314881986
+    }
+   ],
+   "total_s": 13.756411657001081,
+   "mean_s": 0.8597757285625676
+  }
+ ]
+}

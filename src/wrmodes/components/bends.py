@@ -294,6 +294,51 @@ class SmoothBend(Component):
                              families=self.families, breakpoints=self.breakpoints, uniform=uniform, atol=self.atol,
                              name=self.name)
 
+    def convergence_study(self, f, input_mode="TE1,0", mode_factors=(1.5, 2.0, 3.0, 4.0, 6.0, 8.0), cutoff_factor=1.2,
+                          propagating=True):
+        """Convergence of the bend at f (Hz) on an evanescent basis, in the internal mode factor (WF4).
+
+        The port basis holds the modes below cutoff_factor * f (default 1.2; if that adds no evanescent mode, up to
+        the first evanescent mode), so that the bend takes its evanescent route (`VariableGuide`); for each internal mode factor in `mode_factors` (each above cutoff_factor) the GSM
+        is computed and the powers of the column of `input_mode` over the propagating modes are recorded.
+        propagating=True adds a row with the propagating-only coupled-mode route (variant {'route': 'propagating'},
+        value 1), for comparison. Returns a `wrmodes.convergence.ConvergenceRecord`: parameter 'mode_factor', variant
+        {'route': 'evanescent', 'cutoff_factor': cutoff_factor}, max_change against the largest mode factor, no
+        Richardson extrapolation (a coplanar bend converges fast in the mode count: its coefficients are exact in
+        kappa and fall off with the mode order; docs/reports/WF4.md). Needs a guide.
+        """
+        from ..convergence import build_record, column_powers, timed
+        if self.guide is None:
+            raise ValueError("convergence_study needs a guide")
+        if any(mf <= cutoff_factor for mf in mode_factors):
+            raise ValueError("every mode factor must exceed the port cutoff_factor")
+        port = self.guide.basis(f, cutoff_factor, plane=self.plane)
+        if np.all(port.propagating_mask(f)):
+            # no evanescent mode below cutoff_factor * f: take the port basis up to the first evanescent mode
+            big = self.guide.basis(f, min(mode_factors), plane=self.plane)
+            ev = [m for m, p in zip(big.modes, big.propagating_mask(f)) if not p]
+            if not ev:
+                raise ValueError("no evanescent mode below min(mode_factors) * f: raise the mode factors")
+            k = 2 * np.pi * f / cst.c
+            chi = min(np.pi * np.hypot(m.m / big.a, m.n / big.b) for m in ev)
+            cutoff_factor = chi / k * (1 + 1e-9)
+            port = self.guide.basis(f, cutoff_factor, plane=self.plane)
+        rows = []
+        if propagating:
+            pb = self.guide.basis(f, 1.0, plane=self.plane)
+            g, dt = timed(self.gsm, f, pb)
+            rows.append(dict(parameter="mode_factor", value=1.0, variant={"route": "propagating"}, n_modes=len(pb),
+                             powers=column_powers(g, input_mode, f), wall_time=dt))
+        for mf in mode_factors:
+            bend = type(self)(self.length, self.curvature, self.plane, self.breakpoints, self.atol, self.guide,
+                              self.max_slices, self.name, self.families, float(mf))
+            g, dt = timed(bend.gsm, f, port)
+            rows.append(dict(parameter="mode_factor", value=float(mf),
+                             variant={"route": "evanescent", "cutoff_factor": float(cutoff_factor)},
+                             n_modes=_total(g.info.get("n_modes", len(port))), powers=column_powers(g, input_mode, f),
+                             wall_time=dt))
+        return build_record(self, f, input_mode, rows, None, "the largest internal mode factor (evanescent route)")
+
     def _gsm_evanescent(self, f, basis1):
         """GSM with the evanescent modes coupled (VariableGuide's direct slice-GSM method, WF2)."""
         chi = max(np.pi * np.hypot(m.m / basis1.a, m.n / basis1.b) for m in basis1.modes)
@@ -303,6 +348,11 @@ class SmoothBend(Component):
         out = GSM(g.S11, g.S12, g.S21, g.S22, basis1, basis1, f, self.name)
         out.info = dict(route="VariableGuide", **g.info)
         return out
+
+
+def _total(n):
+    """A mode count, summed over the classes when it is given per class (VariableGuide info)."""
+    return int(sum(n.values())) if isinstance(n, dict) else int(n)
 
 
 def _zero(z):

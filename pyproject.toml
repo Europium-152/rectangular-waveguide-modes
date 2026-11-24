@@ -27,7 +27,7 @@ license-files = ["LICEN[CS]E*"]
 [project.optional-dependencies]
 test = ["pytest"]
 # 2D modal-port solver (wave 1, WP3); optional so that the core keeps numpy/scipy only
-fem = ["scikit-fem", "gmsh"]
+fem = ["scikit-fem", "gmsh>=4.10"]   # gmsh 4.10.5-4.15.2 give bitwise identical meshes (WF4)
 
 [project.urls]
 Homepage = "https://github.com/Europium-152/rectangular-waveguide-modes"

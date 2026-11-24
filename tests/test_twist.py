@@ -587,8 +587,8 @@ def test_convergence_study_variable_rate():
 @pytest.mark.slow
 def test_timing_doane_twist():
     """One 20-inch triangular twist at 18 GHz. WP6's model (23 modes): about 0.6 s on a laptop; WF2's default
-    (internal list to 2 f, 96 modes, tail): about 45 s on the 2-core container. Strict limits (2 s, 60 s) only with
-    WRMODES_PERF=1; otherwise 10x and 4x guards (CI runners are 2-3x slower)."""
+    (internal list to 2 f, 96 modes, tail): about 32-45 s on the 2-core container, 4.4 s after WF4. Strict limits
+    (2 s, 15 s) only with WRMODES_PERF=1; otherwise 10x and 4x guards (CI runners are 2-3x slower)."""
     perf = bool(os.environ.get("WRMODES_PERF"))
     t = time.perf_counter()
     Twist(90, L20, "triangular", guide=WR187_TALL, **LEGACY).gsm(18e9)
@@ -596,4 +596,98 @@ def test_timing_doane_twist():
     t = time.perf_counter()
     Twist(90, L20, "constant", guide=WR187_TALL).gsm(18e9)
     Twist(90, L20, "triangular", guide=WR187_TALL).gsm(18e9)
-    assert time.perf_counter() - t < (60.0 if perf else 240.0)
+    assert time.perf_counter() - t < (15.0 if perf else 60.0)
+
+
+# ======================================================================================== WF4: run time
+def _wf4_baseline():
+    path = os.path.join(os.path.dirname(__file__), "..", "benchmarks", "twist", "data", "wf4_twist_baseline.npz")
+    with np.load(path, allow_pickle=False) as z:
+        return {k: z[k] for k in z.files}
+
+
+def _max_power_change(g, ref, key):
+    names = [str(s) for s in ref[f"{key}_names"]]
+    assert names == [m.name for m in g.basis1.modes]
+    return max(float(np.max(np.abs(np.abs(getattr(g, b)) ** 2 - np.abs(ref[f"{key}_{b}"]) ** 2))) for b in ("S11", "S21"))
+
+
+def test_coupled_groups_are_the_parity_classes():
+    """WF4 item 1: the system splits into {(e, e), (o, o)} and {(e, o), (o, e)} of (m mod 2, n mod 2), with the
+    tail and the wall loss; the group-wise solution equals the solution of the whole system."""
+    from wrmodes.components.twist import coupled_groups, _sliced_solution
+    from wrmodes.transfer_matrix import _slice_edges
+    f = 16.5e9
+    tw = Twist(90, L20, "triangular", guide=Guide(WR187_TALL.w, WR187_TALL.h, sigma=5.8e7), mode_factor=1.5)
+    sb = tw.solve_basis(f, tw.default_basis(f)[0])
+    K, Q = twist_coupling_matrix(sb), twist_tail_matrix(sb, f)
+    groups = coupled_groups(K, [Q])
+    cls = [{((m.m % 2) + (m.n % 2)) % 2 for m in (sb.modes[i] for i in g)} for g in groups]
+    assert len(groups) == 2 and sorted(len(c) for c in cls) == [1, 1] and cls[0] != cls[1]
+    from wrmodes.loss import loss_matrix_full
+    Lf = loss_matrix_full(sb, f, tw.guide.wall_impedance(f))
+    N = len(sb)
+    assert len(coupled_groups(K, [Q, Lf[:N, :N], Lf[:N, N:], Lf[N:, :N], Lf[N:, N:]])) == 2
+    S, info = twist_gsm_blocks(sb, f, tw.rate, L20, loss=Lf, slices=64, tail=Q)
+    assert info["n_groups"] == 2
+    d, X = twist_system_matrices(sb, f)
+    X2 = twist_tail_system_matrix(sb, f, Q)
+    edges = _slice_edges(L20, [32, 32], [0.0, L20 / 2, L20], 0)
+    beta = sb.beta(f)
+    hmax = min(4.0 / np.max(np.abs(beta[~sb.propagating_mask(f)].imag)), 0.5 / np.linalg.norm(Lf, 1))
+    full = _sliced_solution(np.diag(d) - Lf, X, tw.rate, edges, True, N, X2, hmax)
+    nogroup = _sliced_solution(np.diag(d) - Lf, X, tw.rate, edges, True, N, X2, 1e-300)   # no grouping
+    for x, y, z in zip(S, full, nogroup):
+        assert np.max(np.abs(x - y)) < 1e-12 and np.max(np.abs(y - z)) < 1e-12
+
+
+@pytest.mark.parametrize("profile", ["cosine", "triangular"])
+def test_wf4_defaults_agree_with_wf2_defaults_15GHz(profile):
+    """WF4 item 1: the faster solver (groups, grouped slice products, earlier acceptance of the adaptive slicing)
+    changes no power |S_pq|^2 of the propagating GSM by more than 2e-6 against the WF2 defaults (stored in
+    benchmarks/twist/data/wf4_twist_baseline.npz by benchmarks/twist/wf4_speed.py; measured <= 8.2e-10)."""
+    ref = _wf4_baseline()
+    port = WR187_TALL.basis(15e9, 1.0)
+    g = Twist(90, L20, profile, guide=WR187_TALL).gsm(15e9, port)
+    assert _max_power_change(g, ref, f"{profile}_f15") < 2e-6
+    assert_lossless(g)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("profile", ["constant", "cosine", "triangular"])
+@pytest.mark.parametrize("f", [16.5e9, 18e9])
+def test_wf4_defaults_agree_with_wf2_defaults(profile, f):
+    ref = _wf4_baseline()
+    port = WR187_TALL.basis(f, 1.0)
+    g = Twist(90, L20, profile, guide=WR187_TALL).gsm(f, port)
+    assert _max_power_change(g, ref, f"{profile}_f{f / 1e9:g}") < 2e-6
+
+
+# ======================================================================================== WF4 item 7
+def test_doane_fig9_with_doanes_five_modes():
+    """WF4 item 7: restricted to Doane's five modes (his TE10, TE01, TE30, TE21, TM21 = wrmodes' TE1,0, TE0,1,
+    TE0,3, TE1,2, TM1,2), the plain truncated system reproduces Fig. 9's triangular curve within the digitizing
+    uncertainty (stored: all 119 points within 1 sigma, rms z 0.52); adding TE2,1 (Doane's TE12) moves it to the full
+    solution (0.55 % at 18 GHz against 0.15 %)."""
+    import csv
+    path = os.path.join(os.path.dirname(__file__), "..", "benchmarks", "literature", "doane1989_fig9.csv")
+    with open(path) as fh:
+        rows = [r for r in csv.DictReader(l for l in fh if not l.startswith("#")) if r["curve"] == "triangular"]
+    five = ["TE1,0", "TE0,1", "TE0,3", "TE1,2", "TM1,2"]
+    for r in rows[::24]:
+        f = float(r["x"]) * 1e9
+        basis = ModeBasis(WR187_TALL.w, WR187_TALL.h, five)
+        S, _ = twist_gsm_blocks(basis, f, TwistProfile("triangular", np.pi / 2, L20), L20)
+        i = basis.index("TE1,0")
+        assert abs(100 * (1 - abs(S[2][i, i]) ** 2) - float(r["y"])) <= float(r["uncertainty"]), r
+    basis = ModeBasis(WR187_TALL.w, WR187_TALL.h, five + ["TE2,1"])
+    S, _ = twist_gsm_blocks(basis, 18e9, TwistProfile("triangular", np.pi / 2, L20), L20)
+    i = basis.index("TE1,0")
+    assert 0.53 < 100 * (1 - abs(S[2][i, i]) ** 2) < 0.57
+    path = os.path.join(os.path.dirname(__file__), "..", "benchmarks", "twist", "data", "doane_fig9_five_modes.npz")
+    import json
+    with np.load(path, allow_pickle=False) as z:
+        meta = json.loads(str(z["meta"]))
+        assert np.all(np.abs(z["triangular_five_z"]) <= 1.0 + 1e-9) and len(z["triangular_five_z"]) == 119
+    s = meta["parameters"]["summary"]
+    assert s["constant_five"]["rms_z"] < 1.3 and s["cosine_five"]["rms_z"] < 1.2 and s["triangular_six"]["rms_z"] > 10

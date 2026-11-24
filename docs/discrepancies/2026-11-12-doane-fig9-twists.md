@@ -77,3 +77,26 @@ TM1,2 0.049 % (COMSOL fine) against 0.374 / 0.160 / 0.048 % (wrmodes); total spu
 18 GHz. Doane & Anderson's Fig. 9 triangular curve (0.05 / 0.15 %) is therefore not a full-wave result; the constant
 and cosine curves follow a reduced (TE1,0 + TE0,1) model, as WP6 found. Fig. 9 stays a qualitative reference.
 
+
+### Addendum (WF4, 24 Nov 2026): Fig. 9 with Doane's five modes
+
+Doane (IEEE Trans. MTT 36, 1033, 1988; Table I) computed the twists with TE10, TE01, TE30, TE21 and TM21 in his
+labels (first index along the broad side), i.e. wrmodes' TE1,0, TE0,1, TE0,3, TE1,2 and TM1,2 in tall WR187.
+`benchmarks/twist/doane_fig9_five_modes.py` solves the three twists on the 119-point grid of
+`benchmarks/literature/doane1989_fig9.csv` restricted to these five modes (plain truncated coupled-mode system,
+`twist_gsm_blocks`; data `benchmarks/twist/data/doane_fig9_five_modes.npz`, registry entry `wf4-doane-fig9-five-modes`):
+
+| profile | five modes: within 1σ / rms z / max \|z\| | five + TE2,1: within 1σ / rms z / max \|z\| |
+| --- | --- | --- |
+| constant | 58.8 % / 1.17 / 2.2 | 7.6 % / 37.4 / 81.3 |
+| cosine | 75.6 % / 1.04 / 2.3 | 46.2 % / 5.0 / 9.5 |
+| triangular | 100 % / 0.52 / 1.0 | 0 % / 17.1 / 29.4 |
+
+Triangular twist, spurious power at 15.03 / 16 / 16.5 / 17 / 17.98 GHz: five modes 0.044 / 0.078 / 0.098 / 0.113 /
+0.137 %, Fig. 9 0.049 / 0.080 / 0.099 / 0.116 / 0.149 %; with TE2,1 (Doane's TE12) added 0.114 / 0.188 / 0.240 /
+0.310 / 0.543 %, the full solution at the `Twist` defaults 0.115 / 0.196 / 0.254 / 0.333 / 0.590 % (COMSOL E4: 0.60 %
+at 18 GHz). The coordinator's check of 24 Nov (0.044 / 0.078 / 0.098 / 0.114 / 0.138 %; 0.55 % with TE2,1, full
+0.60 % at 18 GHz) is reproduced. All three curves of Fig. 9 are therefore reproduced, within the digitizing
+uncertainty, by the five-mode basis; the difference from the full-wave result (COMSOL E4, WP7b) is the power
+converted to TE2,1, which that basis does not contain. Fig. 9 stays a qualitative reference for the full solution and
+becomes a pass for the five-mode model.

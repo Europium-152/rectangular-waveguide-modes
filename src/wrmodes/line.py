@@ -84,8 +84,8 @@ from .components.guide import Guide, map_basis, _check_plane
 from .components.frames import FrameChange
 from .components import Straight, SmoothBend, SechCurvature, ConstantCurvature   # noqa: F401 (re-exported by wrmodes)
 
-__all__ = ["Line", "SweepResult", "EvanescentJunctionWarning", "BuriedPlaneWarning", "NonPassiveCascadeWarning",
-           "NEAR_FIELD_DECAY_LENGTHS", "PASSIVITY_TOL"]
+__all__ = ["Line", "SweepResult", "InternalAmplitudes", "EvanescentJunctionWarning", "BuriedPlaneWarning",
+           "NonPassiveCascadeWarning", "NEAR_FIELD_DECAY_LENGTHS", "PASSIVITY_TOL"]
 
 NEAR_FIELD_DECAY_LENGTHS = 3.0
 """Two non-uniform components closer than this many decay lengths of the least-attenuated evanescent mode are joined
@@ -324,6 +324,40 @@ class Line(Component):
         before the line's port than its depth), the result is the GSM at those planes, as for the component alone,
         and carries `buried` (`wrmodes.gsm.BuriedPlanes`) like a component.
         """
+        gsms, bases_in, guides_in, depths, defer, basis1, current = self._prepare(
+            f, basis1, basis2, cutoff_factor, evanescent_families, cache, buried_planes)
+        # 3. near-field warning (WF2), on the uniform guide actually left between non-uniform components
+        last, gap = None, 0.0
+        for i, e in enumerate(self.elements):
+            if _nonuniform(e):
+                if last is not None and not getattr(self, "_junction_warned", False):
+                    left = gap - depths[last][1] - depths[i][0]
+                    self._check_junction(f, self.elements[last], e, 0.0 if abs(left) < 1e-12 else left,
+                                         bases_in[i], guides_in[i])
+                last, gap = i, 0.0
+            elif isinstance(e, Straight):
+                gap += float(e.length)
+        # 4. cascade
+        out = None
+        for g in gsms:
+            out = g if out is None else out @ g
+        if out is None:
+            out = straight(basis1, f, 0.0)
+        res = GSM(out.S11, out.S12, out.S21, out.S22, out.basis1, out.basis2, f, self.name)
+        if defer is not None and (defer[2] > 0 or defer[3] > 0):
+            # the line's own ports lie inside a discontinuity: shift the evanescent modes (deferred through the
+            # uniform end runs) to them; the propagating modes are already at the reference planes
+            res = shift_planes(res, defer[0], defer[1])
+            p1, p2 = res.basis1.propagating_mask(f), res.basis2.propagating_mask(f)
+            core = shift_planes(out, -defer[2] * p1, -defer[3] * p2, name=self.name)
+            res.buried = BuriedPlanes((defer[2], defer[3]), core)
+        self._check_passivity(f, res, gsms)
+        return res
+
+    def _prepare(self, f, basis1, basis2, cutoff_factor, evanescent_families, cache, buried_planes):
+        """Steps 1 and 2 of `gsm`: the GSM of every element in the line's bases, with buried planes absorbed.
+
+        Returns (gsms, bases_in, guides_in, depths, defer, basis1, basis2)."""
         if buried_planes not in ("absorb", "keep"):
             raise ValueError("buried_planes must be 'absorb' or 'keep'")
 
@@ -372,33 +406,68 @@ class Line(Component):
             gsms, defer = self._absorb(f, gsms, depths, basis1, current)
         else:
             defer = None
-        # 3. near-field warning (WF2), on the uniform guide actually left between non-uniform components
-        last, gap = None, 0.0
-        for i, e in enumerate(self.elements):
-            if _nonuniform(e):
-                if last is not None and not getattr(self, "_junction_warned", False):
-                    left = gap - depths[last][1] - depths[i][0]
-                    self._check_junction(f, self.elements[last], e, 0.0 if abs(left) < 1e-12 else left,
-                                         bases_in[i], guides_in[i])
-                last, gap = i, 0.0
-            elif isinstance(e, Straight):
-                gap += float(e.length)
-        # 4. cascade
-        out = None
-        for g in gsms:
-            out = g if out is None else out @ g
-        if out is None:
-            out = straight(basis1, f, 0.0)
-        res = GSM(out.S11, out.S12, out.S21, out.S22, out.basis1, out.basis2, f, self.name)
-        if defer is not None and (defer[2] > 0 or defer[3] > 0):
-            # the line's own ports lie inside a discontinuity: shift the evanescent modes (deferred through the
-            # uniform end runs) to them; the propagating modes are already at the reference planes
-            res = shift_planes(res, defer[0], defer[1])
-            p1, p2 = res.basis1.propagating_mask(f), res.basis2.propagating_mask(f)
-            core = shift_planes(out, -defer[2] * p1, -defer[3] * p2, name=self.name)
-            res.buried = BuriedPlanes((defer[2], defer[3]), core)
-        self._check_passivity(f, res, gsms)
-        return res
+        return gsms, bases_in, guides_in, depths, defer, basis1, current
+
+    def internal_amplitudes(self, f, input_mode, cutoff_factor=1.0, evanescent_families="live", basis1=None,
+                            cache=None):
+        """Forward and backward mode amplitudes at every junction of the line for unit incidence (WF4).
+
+        The line is excited by `input_mode` (amplitude 1, in the frame of the line's port 1) at port 1, with nothing
+        incident at port 2. Junction k (k = 0 .. n, n = len(line.elements)) is the plane between element k - 1 and
+        element k (junction 0 the line's port 1, junction n its port 2). With L the cascade of the elements before
+        the junction and R that of the elements after it, the amplitudes there are
+
+            a+ = (I - L22 R11)^-1 L21 a_in,      a- = R11 a+
+
+        (CONVENTIONS.md section 5: |a+|^2 and |a-|^2 are the powers carried forward and backward by a propagating
+        mode; evanescent amplitudes carry no power but show the near fields). The GSMs are those of `Line.gsm` with
+        the same arguments (buried reference planes absorbed: where a component's plane lies inside its
+        discontinuity, its propagating amplitudes are given at the reference plane and its evanescent ones at the
+        uniform-arm plane, `wrmodes.line`). Cost: about twice `gsm` (the partial cascades from both ends).
+
+        Returns an `InternalAmplitudes`: ``junctions``, a list of dicts (index, left, right: names of the
+        elements on either side or None, basis: the ModeBasis there, frame: its frame tag, forward, backward:
+        complex arrays in basis order), and `largest()`.
+
+        Recipe: naming a trapped-mode resonance. A narrow dip or spike in a sweep (`Line.sweep`) at f0 is usually a
+        mode trapped between two components (totally reflected at both, weakly coupled to the input). Call
+        ``amps = line.internal_amplitudes(f0, input_mode)`` at f0 and at a frequency off the resonance, and look at
+        ``amps.largest(5)``: the trapped mode is the one whose |a+| and |a-| grow at f0 (often well above 1 for a
+        high-Q resonance) over a run of junctions; the components on either side of that run are the two
+        reflectors. Its frequencies follow from the round-trip phase of that mode between them
+        (2 beta s + phases of the two reflections = 2 pi q); a change of the straight between them moves the
+        resonance accordingly, which confirms it.
+        """
+        mode = Mode.parse(input_mode)
+        gsms, bases_in, _, _, _, basis1, current = self._prepare(
+            f, basis1, None, cutoff_factor, evanescent_families, cache, "absorb")
+        n = len(gsms)
+        if mode not in basis1:
+            raise ValueError(f"{mode.name} is not in the line's port-1 basis")
+        a_in = np.zeros(len(basis1), complex)
+        a_in[basis1.index(mode)] = 1.0
+        bases = list(bases_in) + [current]
+        left = [None] * (n + 1)
+        right = [None] * (n + 1)
+        for k in range(1, n + 1):
+            left[k] = gsms[k - 1] if left[k - 1] is None else left[k - 1] @ gsms[k - 1]
+        for k in range(n - 1, -1, -1):
+            right[k] = gsms[k] if right[k + 1] is None else gsms[k] @ right[k + 1]
+        junctions = []
+        for k in range(n + 1):
+            B = bases[k]
+            L, R = left[k], right[k]
+            if L is None:
+                fwd = a_in.copy()
+            else:
+                R11 = R.S11 if R is not None else np.zeros((len(B), len(B)), complex)
+                fwd = np.linalg.solve(np.eye(len(B)) - L.S22 @ R11, L.S21 @ a_in)
+            bwd = R.S11 @ fwd if R is not None else np.zeros(len(B), complex)
+            junctions.append(dict(index=k, left=None if k == 0 else (self.elements[k - 1].name or
+                                                                      type(self.elements[k - 1]).__name__),
+                                  right=None if k == n else (self.elements[k].name or type(self.elements[k]).__name__),
+                                  basis=B, frame=B.frame, forward=fwd, backward=bwd))
+        return InternalAmplitudes(f, mode, junctions)
 
     def _absorb(self, f, gsms, depths, basis1, basis2):
         """Take the depth of buried reference planes from the uniform guide next to them (module docstring).
@@ -586,7 +655,7 @@ def _sweep_point(line, f, mode, cutoff_factor, keep_gsm, evanescent_families="li
         g = line.gsm(f, cutoff_factor=cutoff_factor, evanescent_families=evanescent_families)
     b1, b2 = g.basis1, g.basis2
     p1, p2 = b1.propagating_mask(f), b2.propagating_mask(f)
-    out = dict(gsm=g if keep_gsm else None, loss_db=np.nan, converted={}, reflected=np.nan)
+    out = dict(gsm=g if keep_gsm else None, loss_db=np.nan, converted={}, reflected=np.nan, absorbed=np.nan)
     if mode not in b1 or not p1[b1.index(mode)]:
         return out
     j = b1.index(mode)
@@ -594,7 +663,33 @@ def _sweep_point(line, f, mode, cutoff_factor, keep_gsm, evanescent_families="li
     out["converted"] = {m: float(abs(col[i]) ** 2) for i, m in enumerate(b2.modes) if p2[i] and m != mode}
     out["loss_db"] = float(-20 * np.log10(abs(col[b2.index(mode)]))) if mode in b2 else np.inf
     out["reflected"] = float(np.sum(np.abs(g.S11[p1, j]) ** 2))
+    out["absorbed"] = float(1.0 - np.sum(np.abs(col[p2]) ** 2) - out["reflected"])
     return out
+
+
+class InternalAmplitudes:
+    """Result of `Line.internal_amplitudes`: mode amplitudes at every junction of a line for unit incidence."""
+
+    def __init__(self, f, input_mode, junctions):
+        self.f, self.input_mode, self.junctions = f, input_mode, junctions
+
+    def __repr__(self):
+        return f"<InternalAmplitudes at {self.f / 1e9:.6g} GHz, input {self.input_mode}, {len(self.junctions)} junctions>"
+
+    def largest(self, count=5, interior=True):
+        """The `count` largest |amplitude|s as tuples (|a|, junction index, left element, right element, mode name,
+        'forward' or 'backward', propagating?), over the inner junctions only if interior (not the line's ports)."""
+        out = []
+        last = len(self.junctions) - 1
+        for j in self.junctions:
+            if interior and j["index"] in (0, last):
+                continue
+            prop = j["basis"].propagating_mask(self.f)
+            for direction in ("forward", "backward"):
+                for i, m in enumerate(j["basis"].modes):
+                    out.append((float(abs(j[direction][i])), j["index"], j["left"], j["right"], m.name, direction,
+                                bool(prop[i])))
+        return sorted(out, key=lambda t: -t[0])[:count]
 
 
 class _ModeDict(dict):
@@ -626,6 +721,10 @@ class SweepResult:
         indexed by name, e.g. result.converted_power['TE2,0']). NaN where the mode does not propagate.
     reflected_power : ndarray
         Total power reflected into the propagating modes at port 1, as a fraction of the input power.
+    absorbed_power : ndarray
+        1 - sum |S|^2 over the input column (transmitted and reflected propagating modes): the power absorbed by the
+        walls (ohmic loss, impedance walls), as a fraction of the input power (WF4). Zero to round-off (about 1e-13)
+        for lossless lines; NaN where the input mode does not propagate.
     gsms : list of GSM or None
         The GSMs, if the sweep was run with keep_gsm=True.
     """
@@ -635,6 +734,7 @@ class SweepResult:
         self.input_mode = input_mode
         self.loss_db = np.array([p["loss_db"] for p in points])
         self.reflected_power = np.array([p["reflected"] for p in points])
+        self.absorbed_power = np.array([p.get("absorbed", np.nan) for p in points])
         modes = sorted({m for p in points for m in p["converted"]}, key=lambda m: (m.kind, m.m, m.n))
         self.converted_power = _ModeDict()
         for m in modes:

@@ -1,4 +1,5 @@
 """Tests of the 2D modal-port FEM solver (wrmodes.fem2d, WP3). Skipped without the optional extra wrmodes[fem]."""
+import os
 import subprocess
 import sys
 
@@ -756,3 +757,26 @@ def test_fem_lines_without_buried_planes_are_bitwise_unchanged():
     assert sorted(new) == sorted(ref)
     for k in ref:
         assert np.array_equal(new[k], ref[k]) or np.max(np.abs(new[k] - ref[k])) <= 1e-11, k
+
+
+def test_gsm_is_reproducible_across_gmsh_versions():
+    """WF4 item 6 (FEM determinism): the 90 degree H-plane miter (WR-90, 30 GHz, default options) equals the GSM
+    stored by benchmarks/fem2d/determinism.py with gmsh 4.15.2 to 1e-10 (gmsh 4.10.5-4.15.2 gave bitwise equal
+    results there), and a renumbering of the mesh nodes moves it by less than 1e-12."""
+    import importlib.util
+    path = os.path.join(os.path.dirname(__file__), "..", "benchmarks", "fem2d", "data", "determinism_4.15.2.npz")
+    with np.load(path, allow_pickle=False) as z:
+        ref = z["miter90_H_30GHz_S"]
+    g = Miter(90, plane="H", guide=Guide(22.86e-3, 10.16e-3)).gsm(30e9)
+    assert np.max(np.abs(g.S - ref)) < 1e-10
+    spec = importlib.util.spec_from_file_location(
+        "determinism", os.path.join(os.path.dirname(__file__), "..", "benchmarks", "fem2d", "determinism.py"))
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "benchmarks", "fem2d"))
+    try:
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        perm = mod._permuted_gsm(Miter(90, plane="H", guide=Guide(22.86e-3, 10.16e-3)), 30e9, None)
+    finally:
+        sys.path.pop(0)
+    assert np.max(np.abs(perm.S - g.S)) < 1e-12

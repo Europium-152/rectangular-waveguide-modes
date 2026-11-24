@@ -682,3 +682,51 @@ def test_passivity_check_cost_is_small():
     ln.gsm(f, cutoff_factor=1.5)
     t_line = time.perf_counter() - t0
     assert t_check < 0.2 * t_line, (t_check, t_line)
+
+
+# ------------------------------------------------------------------------------------------ WF4: reversed buried GSMs
+class _Reversed(Component):
+    """Test component: `inner` turned around (its GSM.reversed())."""
+
+    def __init__(self, inner, name="reversed"):
+        self.inner, self.name = inner, name
+        self.plane = inner.plane
+        self.guide = getattr(inner, "guide", None)
+
+    def with_guide(self, guide):
+        return _Reversed(self.inner.with_guide(guide), self.name)
+
+    def default_basis(self, f, cutoff_factor=None):
+        b1, b2 = self.inner.default_basis(f, cutoff_factor)
+        return b2, b1
+
+    def gsm(self, f, basis1=None, basis2=None):
+        return self.inner.gsm(f, basis2, basis1).reversed()
+
+
+def test_reversed_gsm_keeps_its_buried_planes():
+    """WF4 item 3 (WF3 open issue 6): GSM.reversed() keeps `buried` with the depths swapped, so that a reversed
+    component whose planes lie inside its discontinuity cascades in a Line as well as the original (cf 3: equal to
+    the cascade at the uniform planes, the line's ports lying inside as well); star products still drop it."""
+    f, W = 30e9, WR90.w
+    d1, d2 = W, 0.4 * W
+    mm = wr.MiterMM()
+    X = _Buried(mm, (d1, d2))
+    b = WR90.basis(f, 3.0)
+    g = X.with_guide(WR90).gsm(f, b, b)
+    r = g.reversed()
+    assert r.buried is not None and r.buried.depth == (d2, d1)
+    assert np.array_equal(r.buried.gsm.S, g.buried.gsm.reversed().S)
+    assert _close_relative(r.S, shift_planes(r.buried.gsm, d2, d1).S, 1e-12)
+    assert r.reversed().buried.depth == (d1, d2) and np.array_equal(r.reversed().buried.gsm.S, g.buried.gsm.S)
+    assert (r @ _straight(b, f, 2 * W)).buried is None                  # star products drop it (documented)
+    s = d1 + d2 + 0.5 * W
+    with _nowarn(BuriedPlaneWarning):
+        orig = Line(WR90, [X, Straight(s), X]).gsm(f, cutoff_factor=3.0)
+        rev = Line(WR90, [_Reversed(X), Straight(s), _Reversed(X)]).gsm(f, cutoff_factor=3.0)
+    ref_orig = Line(WR90, [mm, Straight(0.5 * W), mm]).gsm(f, cutoff_factor=3.0)
+    ref_rev = Line(WR90, [_Reversed(mm), Straight(0.5 * W), _Reversed(mm)]).gsm(f, cutoff_factor=3.0)
+    assert orig.buried.depth == (d1, d2) and rev.buried.depth == (d2, d1)
+    assert np.max(np.abs(orig.buried.gsm.S - ref_orig.S)) < 1e-13
+    assert np.max(np.abs(rev.buried.gsm.S - ref_rev.S)) < 1e-13
+    assert _close_relative(rev.S, shift_planes(ref_rev, d2, d1).S, 1e-11)
