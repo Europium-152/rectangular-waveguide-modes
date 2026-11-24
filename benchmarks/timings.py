@@ -11,7 +11,7 @@ Usage (from the repository root; Windows, macOS and Linux):
     python benchmarks/timings.py --parse-logs FILE [FILE ...]   # the COMSOL log table only
 
 Options: --repeat N (best of N runs per item, default 1), --out FILE.json (default
-benchmarks/data/timings_<host>_<date>.json; a markdown copy of the tables goes next to it).
+benchmarks/data/timings[_comsol]_<date>_<time>.json, no host name; a markdown copy of the tables goes next to it).
 
 Output: JSON with the machine (CPU model, cores, RAM, OS, Python, NumPy, SciPy, BLAS vendor and threads, wrmodes
 version and git commit) and one record per item: its description, frequency, mode count, the BLAS threads used and
@@ -153,7 +153,7 @@ def machine_info():
                 ram_gb=None if ram is None else round(ram / 2 ** 30, 1), os=platform.platform(),
                 machine=platform.machine(), python=sys.version.split()[0], numpy=np.__version__,
                 scipy=scipy.__version__, blas=blas_info(), wrmodes=wr.__version__, git_commit=_git_commit(),
-                hostname=platform.node(), date=datetime.datetime.now().isoformat(timespec="seconds"))
+                date=datetime.datetime.now().isoformat(timespec="seconds"))
 
 
 @contextlib.contextmanager
@@ -618,8 +618,7 @@ def main(argv=None):
         result["components"] = run_components(a)
         md = markdown(machine, components=result["components"])
     out = pathlib.Path(a.out) if a.out else (REPO / "benchmarks" / "data" / (
-        f"timings_{'comsol_' if a.comsol_cases else ''}{re.sub(r'[^A-Za-z0-9_-]', '_', platform.node())}_"
-        f"{datetime.date.today().isoformat()}.json"))
+        f"timings_{'comsol_' if a.comsol_cases else ''}{datetime.datetime.now().strftime('%Y-%m-%d_%H%M')}.json"))
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=1, default=float))
     out.with_suffix(".md").write_text(md + "\n")

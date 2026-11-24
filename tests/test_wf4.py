@@ -2,6 +2,7 @@
 amplitudes of a line, absorbed power of a sweep, the LossyWallFilter quadrature. Report: docs/reports/WF4.md.
 (Item 1 is tested in test_twist.py, item 3 in test_line.py, the timing harness and the registry in
 test_wf4_tools.py.)"""
+import os
 import warnings
 
 import numpy as np
@@ -163,6 +164,7 @@ def test_lossy_wall_filter_quadrature_resolves_320_modes():
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(not os.environ.get("WRMODES_LONG"), reason="about 9 min and 3 GB: set WRMODES_LONG=1 to run")
 def test_lossy_wall_filter_at_320_modes_per_family():
     """WF4 item 2: Butterweck's filter (WR-90, 75 GHz, 250 ohm, 15 cm) at M = 320 (RootFindingError before WF4);
     within 0.33 % of M = 160 in the attenuation of every port mode. About 9 minutes and 3 GB."""
