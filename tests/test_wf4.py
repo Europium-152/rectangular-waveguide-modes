@@ -165,7 +165,7 @@ def test_lossy_wall_filter_quadrature_resolves_320_modes():
 @pytest.mark.slow
 def test_lossy_wall_filter_at_320_modes_per_family():
     """WF4 item 2: Butterweck's filter (WR-90, 75 GHz, 250 ohm, 15 cm) at M = 320 (RootFindingError before WF4);
-    within 0.33 % of M = 160 in the attenuation of every port mode. About 9 minutes."""
+    within 0.33 % of M = 160 in the attenuation of every port mode. About 9 minutes and 3 GB."""
     from wrmodes.filters import LossyWallFilter
     f = 75e9
     basis = WR90.basis(f, 1.0, "H")

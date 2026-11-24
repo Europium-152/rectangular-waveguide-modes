@@ -464,7 +464,11 @@ def _time_campaign1(case, threads):
         for fn in fines:
             if (RAW / (fn + ".txt")).exists():
                 fine.update(read(fn + ".txt"))
-        times, deltas, mesh = [], [], []
+        fine_mesh = dict(fine)                                 # the mesh check: coarse vs fine mesh only
+        if (RAW / (coarse + "_more_ports.txt")).exists():
+            # as compare_campaign_1.c1: ports for TE10-TE40 on each arm, complete below the TE50 cutoff only
+            fine.update({f: v for f, v in read(coarse + "_more_ports.txt").items() if f * 1e9 < 5 * 299792458 / (2 * W90)})
+        times, deltas, deltas11, mesh = [], [], [], []
         for f in c:
             with blas_threads(threads), warnings.catch_warnings():
                 warnings.simplefilter("ignore")
@@ -473,9 +477,11 @@ def _time_campaign1(case, threads):
                 times.append(time.perf_counter() - t)
             ref = fine.get(f, c[f])
             deltas.append(_db(s21) - _db(ref["S21"]))
-            if f in fine:
-                mesh.append(abs(_db(c[f]["S21"]) - _db(fine[f]["S21"])))
+            deltas11.append(_db(s11) - _db(ref["S11"]))
+            if f in fine_mesh:
+                mesh.append(abs(_db(c[f]["S21"]) - _db(fine_mesh[f]["S21"])))
         out.append(dict(variant=variant, freqs_ghz=list(c), times_s=times, delta_db=deltas,
+                        delta_s11_db=deltas11 if case in ("C3a", "C3b") else None,
                         comsol_mesh_check_db=max(mesh) if mesh else None))
     return out
 
@@ -564,7 +570,7 @@ def markdown(machine, components=None, comsol=None):
             else:
                 out.append("COMSOL: – (no log entry)")
             out += ["", "| wrmodes variant | frequencies | s per frequency, 1 thread | all threads | max \\|Δ\\| vs "
-                    "COMSOL finest | COMSOL mesh check / allowed |", "|---|---|---|---|---|---|"]
+                    "COMSOL finest (\\|S21\\|; steps also \\|S11\\|) | COMSOL mesh check / allowed |", "|---|---|---|---|---|---|"]
             one, allt = rec["wrmodes"].get("1 thread", []), {v["variant"]: v for v in rec["wrmodes"].get("all threads", [])}
             for v in one:
                 a = allt.get(v["variant"])
@@ -573,6 +579,8 @@ def markdown(machine, components=None, comsol=None):
                 unit = " dB" if v.get("quantity", "dB") == "dB" else " (power)"
                 chk = v.get("comsol_mesh_check_db")
                 chk = f"{chk:.4f} dB" if chk is not None else (f"{max(v['allowed']):.4f} allowed" if v.get("allowed") else "–")
+                if v.get("delta_s11_db"):
+                    dmax += f" (\\|S11\\| {max(abs(x) for x in v['delta_s11_db']):.4f})"
                 out.append(f"| {v['variant']} | {len(v['freqs_ghz'])} ({min(v['freqs_ghz']):g}–{max(v['freqs_ghz']):g} GHz) "
                            f"| {np.mean(v['times_s']):.3f} | " + (f"{np.mean(a['times_s']):.3f}" if a else "–")
                            + f" | {dmax}{unit if d else ''} | {chk} |")

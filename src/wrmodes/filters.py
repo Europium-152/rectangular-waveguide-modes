@@ -637,7 +637,7 @@ class LossyWallFilter(_Filter):
         the same number of LS modes. Default: max(80, 2 m_max + 20), m_max the largest m of the port basis. The
         result converges as M grows (TE_m0 to about 1e-3 dB between 80 and 160 modes, T1 section 7; at 75 GHz in
         WR-90 with 250 ohm walls the attenuation of every port mode changes by at most 0.24 dB, 0.33 %, from 160 to
-        320). Tested up to M = 320 (WF4): WR-90, 75 GHz, 15 cm, about 9 min and 2 GB on one core for the propagating
+        320). Tested up to M = 320 (WF4): WR-90, 75 GHz, 15 cm, about 8 min and 3 GB on one core for the propagating
         basis (cost and memory grow like M^3 and M^2 per family); before WF4 the u quadrature was too coarse above
         M of about 250 (`lsu_quadrature_points`).
     guide : Guide, optional

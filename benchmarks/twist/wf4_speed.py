@@ -1,6 +1,6 @@
 """WF4 item 1: run time and accuracy of the Twist defaults on Doane & Anderson's 20-inch twists (tall WR187).
 
-    PYTHONPATH=src python benchmarks/twist/wf4_speed.py baseline   # on the code before WF4 (commit a1943b4)
+    WF4_BASELINE_COMMIT=a1943b4 PYTHONPATH=<checkout of a1943b4>/src python benchmarks/twist/wf4_speed.py baseline
     PYTHONPATH=src python benchmarks/twist/wf4_speed.py compare    # on the current code
 
 `baseline` stores the GSMs (propagating port basis, all blocks) of the defaults for the three rate profiles at 15,
@@ -51,8 +51,10 @@ def baseline():
         out[f"{k}_n_slices"] = np.array(g.info["n_slices"])
         out[f"{k}_names"] = np.array([m.name for m in g.basis1.modes])
         print(f"{k:22s} {dt:7.2f} s  N={g.info['n_modes']} slices={g.info['n_slices']}", flush=True)
+    import wrmodes
     m = meta("benchmarks/twist/wf4_speed.py", "Twist defaults before WF4 (Doane 20-inch twists, tall WR187)",
-             a_m=A, b_m=B, length_m=L, angle_deg=90, cases=[key(p, f) for p, f in CASES], blas_threads=1)
+             a_m=A, b_m=B, length_m=L, angle_deg=90, cases=[key(p, f) for p, f in CASES], blas_threads=1,
+             solver_commit=os.environ.get("WF4_BASELINE_COMMIT", "the checkout's"), solver_path=wrmodes.__file__)
     print(save("wf4_twist_baseline.npz", m, **out))
 
 
