@@ -65,6 +65,13 @@ asks of the library. No change to any validated result beyond the bounds stated 
    * **FEM determinism**: how far `fem2d` results depend on the gmsh version and platform (mesh node order); pin or
      document a range, and state the tolerance figure scripts can promise for FEM results.
    * **`SweepResult.absorbed_power`** (1 − Σ|S|² over the input column, i.e. wall loss), documented.
+   * **wrmodes against COMSOL on the same machine** (Daniel, 24 Nov): a harness mode `--comsol-cases` that times
+     wrmodes on every case of COMSOL campaigns 1 and 2 (C1–C3, E1–E5) at the frequencies and settings used in their
+     comparisons, single-threaded and with all threads. Daniel runs it on the COMSOL machine. A parser turns the
+     COMSOL logs into a table of degrees of freedom, solution time and frequencies per case:
+     `benchmarks/comsol/campaign_2/comsol_logs.txt` exists; Daniel supplies the campaign 1 timings. Output: one table
+     per case, with the COMSOL time per frequency and the wrmodes time per frequency, and the accuracy each achieved
+     against the other.
 7. **Doane & Anderson Fig. 9 with Doane's five modes.** Doane (IEEE Trans. MTT 36, 1033, 1988; Table I) computed
    Fig. 9 with TE10, TE01, TE30, TE21 and TM21 in his labels, which are wrmodes' TE1,0, TE0,1, TE0,3, TE1,2 and TM1,2
    in tall WR187 (his first index runs along the broad side). Add to `benchmarks/twist/doane_fig9.py` (or a sibling

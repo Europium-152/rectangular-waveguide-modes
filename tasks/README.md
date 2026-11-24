@@ -157,7 +157,10 @@ paper is reused (it is cited); no SPARC design-study result appears.
 | Status of the JINST smooth-bend paper | P0, P4 | submitted (23 Nov). Cite it as submitted until it appears; this article is published only after the JINST paper is |
 | Where the manuscript lives | P0 | private repository `Europium-152/wrmodes_paper` (Daniel, 23 Nov): outline, claims, figure list, journal notes, manuscript, review and submission files. The figure scripts and their generated numbers stay in this public repository under `paper/`, and the manuscript repository pins them as a git submodule at the release tag |
 | Statements about other authors' results | P0 | decided 24 Nov (manuscript repository, `CLAIMS.md` §P) |
-| Author list and internal reviewers before submission | P2 | open |
+| Author list, internal reviewers, acknowledgments | P4 | Daniel, at the end stage (24 Nov) |
+| Measurements of an overmoded component | P0, P4 | possible later: unpublished group data, Daniel to ask (24 Nov); the article is planned without them |
+| Preprint | P4 | none (24 Nov) |
+| COMSOL run times in the article | WF4, P1 | yes: COMSOL timings saved by Daniel against wrmodes on the same machine (24 Nov; WF4 item 6) |
 | Docs hosting (GitHub Pages or Read the Docs) | R1 | open; the build is checked in CI either way |
 | Wording of the AI-assistance statements (README, article) | R1, P4 | open; drafts for approval |
 
