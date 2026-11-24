@@ -34,7 +34,22 @@ docstrings of `wrmodes`; the documentation items of P0's needs list (copied into
    without `[fem]`) in a fresh environment and runs the quick start and the examples.
 6. **Version**: 1.0.0rc1 in this PR. After Daniel's check, a one-line PR sets 1.0.0; Daniel enables the Zenodo
    GitHub integration, tags `v1.0.0`, creates the GitHub release (Zenodo archives it) and uploads to PyPI.
-7. **AI assistance**: a short statement in `CONTRIBUTING.md` and the README on how 1.0 was developed (agent-written
+7. **Items from P0's needs list** (copied by the coordinator on 24 Nov):
+   * examples matching the article's: Doane's twists; Kotik's overmoded optical miter; the E-plane miters of COMSOL
+     E1; a linear taper through cutoff and the strangled bend; two 45° miters with a spacer (buried planes);
+     Butterweck's lossy-wall and resistive-sheet filters; Marcuvitz steps; a demonstration line (WR-62, copper,
+     reduced band);
+   * a guide page "Accuracy and convergence": `cutoff_factor` against `mode_factor`; the 1/M behaviour of tapers and
+     twists and the tail corrections; reading `convergence_study` (WF4's record); the evanescent-junction rule (three
+     decay lengths); buried planes and the overlap warning;
+   * a known-limits page: first-order wall loss (≈ 1e-3 relative for f_c/f < 0.9); Steps refuse lossy guides (use a
+     Taper for a lossy transition); MiterMM is 90° and lossless, fem2d.Miter takes any angle and impedance walls;
+     coplanar 2D components only; twists with τa ≥ 0.5 need `mode_factor` ≥ 4; the bottle profile is a fit; show
+     convergence in `cutoff_factor` near cutoffs;
+   * the validation page generated from the registry, with WF4's status vocabulary;
+   * `CITATION.cff` and `.zenodo.json` citing the JINST paper as submitted (updated on publication);
+   * an install note for `wrmodes[fem]` with the tested gmsh and scikit-fem versions.
+8. **AI assistance**: a short statement in `CONTRIBUTING.md` and the README on how 1.0 was developed (agent-written
    code and tests, independent verification, maintainer review), in wording Daniel approves.
 
 ## Acceptance

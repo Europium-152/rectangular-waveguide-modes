@@ -90,9 +90,10 @@ Verified by: <card or role> · Time box: <days> (then status review)
 | Gate B: COMSOL campaign 2 | 2 | Coordinator + Daniel | passed with WF3 (#30, #31), 1.0.0b1 |
 | WF3 cascades through buried reference planes; passivity check | 2 | Implementer | merged (#31); v1.0.0b1 tagged |
 | Wave 3 cards | 3 | Coordinator | this PR |
-| P0 article outline, claims, figure list | 3 | Writer | card written; waits for Daniel's decisions |
-| WF4 open items before 1.0.0 | 3 | Implementer | card written |
-| R1 release 1.0.0 (Gate C) | 3 | Implementer | card written |
+| P0 article outline, claims, figure list | 3 | Writer | done; wrmodes_paper PR #2 |
+| L3 prior work on the tail correction and twist coefficients | 3 | Literature | card written; before P2 |
+| WF4 open items before 1.0.0 | 3 | Implementer | card updated with P0's needs (24 Nov) |
+| R1 release 1.0.0 (Gate C) | 3 | Implementer | card updated with P0's needs (24 Nov) |
 | P1 figures, tables, numbers from the release | 3 | Implementer | card written |
 | P2 article draft (three checkpoints) | 3 | Writer | card written |
 | P3 independent referee review | 3 | Reviewer | card written |
@@ -136,7 +137,8 @@ Order, in series as wave 2 (one agent at a time; each step ends with a PR that D
    GitHub release and uploads to PyPI. **Gate C** is this release: every wave 1–2 row met (Gates A and B), the
    guide reviewed from a clean install, clean-install CI on three OSes. No COMSOL campaign 3 is planned; P0 asks for
    one only if a claim cannot stand without it.
-4. **P1** figures, tables and numbers, run against 1.0.0.
+4. **P1** figures, tables and numbers, run against 1.0.0. **L3** (a literature check of Katsenelenbaum and Doane
+   1988 for prior work on the article's contributions) runs before P2.
 5. **P2** draft in three checkpoints (methods; validation and examples; introduction, conclusions, abstract).
 6. **P3** referee review by an agent that saw none of the writing.
 7. **P4** answers to the review, Daniel's and co-authors' revisions, submission package. Daniel submits.
@@ -154,7 +156,11 @@ paper is reused (it is cited); no SPARC design-study result appears.
 | Target journal (template, length, article type) | P0 | IEEE Transactions on Microwave Theory and Techniques (23 Nov). Template: IEEEtran, journal mode, from Daniel's `IEEE-Transactions-LaTeX2e-templates-and-instructions` folder |
 | Status of the JINST smooth-bend paper | P0, P4 | submitted (23 Nov). Cite it as submitted until it appears; this article is published only after the JINST paper is |
 | Where the manuscript lives | P0 | private repository `Europium-152/wrmodes_paper` (Daniel, 23 Nov): outline, claims, figure list, journal notes, manuscript, review and submission files. The figure scripts and their generated numbers stay in this public repository under `paper/`, and the manuscript repository pins them as a git submodule at the release tag |
-| Author list and internal reviewers before submission | P2 | open |
+| Statements about other authors' results | P0 | decided 24 Nov (manuscript repository, `CLAIMS.md` §P) |
+| Author list, internal reviewers, acknowledgments | P4 | Daniel, at the end stage (24 Nov) |
+| Measurements of an overmoded component | P0, P4 | possible later: unpublished group data, Daniel to ask (24 Nov); the article is planned without them |
+| Preprint | P4 | none (24 Nov) |
+| COMSOL run times in the article | WF4, P1 | yes: COMSOL timings saved by Daniel against wrmodes on the same machine (24 Nov; WF4 item 6) |
 | Docs hosting (GitHub Pages or Read the Docs) | R1 | open; the build is checked in CI either way |
 | Wording of the AI-assistance statements (README, article) | R1, P4 | open; drafts for approval |
 
