@@ -464,8 +464,13 @@ def _hplane_x(aol, al):
 #   a/lambda = 0.85: X/Z0 = 11.07 +- 0.05 (stated by the reviewer)
 #   a/lambda = 1.4:  2a Z0 / (lambda_g X) = 0.1077 +- 0.0003 (Richardson estimates from the reviewer's N = 100/200/400
 #                    runs with two junction-plane placements lie in 0.10756-0.10761; the +-0.0003 is my bound)
+# (stored by WF4 in benchmarks/modematch/data/fd_hplane_step_review.npz, with meta; checked against these values)
 @pytest.mark.parametrize("aol,ref,sigma,quantity", [(0.85, 11.07, 0.05, "X"), (1.4, 0.1077, 0.0003, "2aZ0/lgX")])
 def test_hplane_symmetric_step_against_fd_reference(aol, ref, sigma, quantity):
+    path = os.path.join(os.path.dirname(__file__), "..", "benchmarks", "modematch", "data", "fd_hplane_step_review.npz")
+    with np.load(path, allow_pickle=False) as z:
+        k = int(np.argmin(np.abs(z["a_over_lambda"] - aol)))
+        assert (z["value"][k], z["sigma"][k]) == (ref, sigma) and json.loads(str(z["meta"]))["git_commit"]
     x, f = _hplane_x(aol, 0.8)
     val = x if quantity == "X" else 2 * A / (M.guide_wavelength(A, f) * x)
     assert abs(val - ref) <= 2 * sigma
