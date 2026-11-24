@@ -37,7 +37,7 @@ from .guide import Guide
 
 __all__ = ["Twist", "TwistProfile", "twist_coupling_matrix", "twist_system_matrices", "twist_tail_matrix",
            "twist_tail_system_matrix", "helical_propagation_constants", "zero_length_twist_transfer_matrix",
-           "twist_gsm_blocks"]
+           "twist_gsm_blocks", "coupled_groups"]
 
 PROFILES = ("constant", "cosine", "triangular")
 DEFAULT_MODE_FACTOR = {"constant": 3.0, "variable": 2.0}
@@ -127,6 +127,11 @@ def twist_system_matrices(basis, f, K=None):
     X = np.block([[A, B], [B, A]])
     return np.concatenate([-1j * beta, 1j * beta]), X
 
+
+ACCEPT_MARGIN = 0.1
+"""Adaptive slicing of variable rates (`twist_gsm_blocks`): a level is accepted after one halving ratio >= 8 of the
+Richardson differences (4th-order behaviour) when its error estimate is at most ACCEPT_MARGIN * atol; otherwise two
+consecutive ratios >= 8 are required (WF4; before WF4 always two, which cost one more doubling)."""
 
 TAIL_RADII = (8.0, 16.0)
 """Quasi-static tail (`twist_tail_matrix`): the sum over the modes outside the solved list is taken up to the cutoff
@@ -387,18 +392,43 @@ def _tail_slice_exponentials(D, X, X2, rate, edges):
     return expm(omega)
 
 
-def _sliced_solution(D, X, rate, edges, use_gsm, N, X2=None):
+def _group_products(P, h, hmax):
+    """Multiply runs of consecutive slice transfer matrices whose total length stays within hmax (WF4).
+
+    The GSM route caps each slice at hmax (|Im beta| h <= 4, ||Lambda|| h <= 0.5) so that no transfer matrix holds a
+    large growing exponential; a product of slices of total length <= hmax obeys the same bound, so converting the
+    product instead of every slice keeps the conditioning and saves the star products."""
+    n = P.shape[0]
+    g = 1 if not np.isfinite(hmax) else int(max(1, np.floor(hmax / np.max(h) * (1 + 1e-12))))
+    g = min(g, n)
+    if g == 1:
+        return P
+    full = (n // g) * g
+    Q = P[:full].reshape((n // g, g) + P.shape[1:])
+    while Q.shape[1] > 1:                       # tree product inside every group, later slices on the left
+        m = Q.shape[1]
+        last = Q[:, -1:] if m % 2 else None
+        Q = Q[:, 1:m - m % 2:2] @ Q[:, 0:m - m % 2:2]
+        if last is not None:
+            Q = np.concatenate([Q, last], axis=1)
+    out = Q[:, 0]
+    if full < n:
+        out = np.concatenate([out, _tree_product(P[full:])[None]])
+    return out
+
+
+def _sliced_solution(D, X, rate, edges, use_gsm, N, X2=None, hmax=np.inf):
     """GSM blocks of the twist sliced at `edges` (4th-order commutator-free Magnus with two Gauss points per slice,
     `transfer_matrix._slice_exponentials`, or `_tail_slice_exponentials` with the tail term X2). use_gsm: convert
-    every slice to a GSM and star them (evanescent modes or loss); otherwise multiply the slice transfer matrices
-    and convert once."""
+    the slices to GSMs and star them (evanescent modes or loss), after multiplying runs of slices of total length
+    <= hmax (`_group_products`); otherwise multiply the slice transfer matrices and convert once."""
     acc = None
     c = _chunk_size(N)
     for i0 in range(0, len(edges) - 1, c):
         e = edges[i0:i0 + c + 1]
         P = _slice_exponentials(D, X, rate, e) if X2 is None else _tail_slice_exponentials(D, X, X2, rate, e)
         if use_gsm:
-            part = _star_reduce(_gsm_from_transfer_stack(P, N))
+            part = _star_reduce(_gsm_from_transfer_stack(_group_products(P, np.diff(e), hmax), N))
             acc = part if acc is None else _star(acc, part)
         else:
             part = _tree_product(P)
@@ -406,6 +436,43 @@ def _sliced_solution(D, X, rate, edges, use_gsm, N, X2=None):
     if use_gsm:
         return acc
     return tuple(x[0] for x in _gsm_from_transfer_stack(acc[None], N))
+
+
+def coupled_groups(K, extra=()):
+    """Index groups of the modes that the twist couples (WF4): the connected components of the pattern of K + K^T
+    and of the N x N matrices in `extra` (the tail Q, the four N x N blocks of the loss matrix).
+
+    The selection rule of K (m + m' and n + n' odd) splits every basis into the two classes {(even, even),
+    (odd, odd)} and {(even, odd), (odd, even)} of (m mod 2, n mod 2), which the tail (block diagonal in the four
+    parity classes) and the wall loss (which keeps the parities) do not join. The system is solved per group: the
+    entries between groups are zero in exact arithmetic, and the cost (N^3 per slice) drops about four times."""
+    from scipy.sparse.csgraph import connected_components
+    pat = (K != 0) | (K.T != 0)
+    for M in extra:
+        pat = pat | (M != 0) | (M.T != 0)
+    pat = pat | np.eye(len(K), dtype=bool)
+    nc, lab = connected_components(pat, directed=False)
+    return [np.flatnonzero(lab == c) for c in range(nc)]
+
+
+class _Blocks:
+    """The twist system split into the independent groups of `coupled_groups` (2N-space index sets)."""
+
+    def __init__(self, groups, N, *mats):
+        self.groups, self.N = groups, N
+        self.ii = [np.concatenate([g, g + N]) for g in groups]
+        self.mats = [[None if M is None else M[np.ix_(ii, ii)] for M in mats] for ii in self.ii]
+
+    def solve(self, fn):
+        """fn(n_group, *group matrices) -> blocks (S11, S12, S21, S22) of the group; returns the assembled blocks."""
+        N = self.N
+        S = [np.zeros((N, N), complex) for _ in range(4)]
+        for g, mats in zip(self.groups, self.mats):
+            part = fn(len(g), *mats)
+            ix = np.ix_(g, g)
+            for blk, src in zip(S, part):
+                blk[ix] = src
+        return tuple(S)
 
 
 def twist_gsm_blocks(basis, f, rate, length, loss=None, atol=1e-6, max_slices=16384, slices=None, K=None,
@@ -438,19 +505,32 @@ def twist_gsm_blocks(basis, f, rate, length, loss=None, atol=1e-6, max_slices=16
         The tail matrix Q of `twist_tail_matrix`: the system becomes dy/dz = (D + theta' X + theta'^2 X2) y with
         X2 = `twist_tail_system_matrix(basis, f, Q)`. None: the plain truncated system.
 
-    Method (CONVENTIONS.md section 6). Propagating modes only and no loss: the transfer matrix of the twist (one
-    `expm` of the whole section for a constant rate, which is exact; a product of 4th-order Magnus slice exponentials
-    otherwise), converted with `from_transfer_matrix`. With evanescent modes or loss, the GSM is built directly:
-    every slice's transfer matrix is converted to a GSM and the slices are joined by Redheffer star products, with
-    slices short enough that |Im beta| h <= 4 and ||Lambda|| h <= 0.5 (no large growing exponential). For a constant
-    rate the slices are identical and are doubled by star products (2^k slices; exact up to round-off).
+    Method (CONVENTIONS.md section 6). The modes are split into the groups that the system couples
+    (`coupled_groups`: the two parity classes of the selection rule of K, which the tail and the wall loss keep),
+    and each group is solved on its own with the same slicing; the blocks between groups are zero. Propagating
+    modes only and no loss: the transfer matrix of the twist (one `expm` of the whole section for a constant rate,
+    which is exact; a product of 4th-order Magnus slice exponentials otherwise), converted with
+    `from_transfer_matrix`. With evanescent modes or loss, the GSM is built directly: runs of consecutive slices of
+    total length h <= hmax, with |Im beta| hmax <= 4 and ||Lambda|| hmax <= 0.5 (no large growing exponential),
+    are multiplied as transfer matrices, converted to GSMs and joined by Redheffer star products. For a constant
+    rate the slices are identical and are doubled by star products (2^k slices; exact up to round-off). Adaptive
+    slicing (variable rates): the slices are doubled until the Richardson estimate (difference of two levels / 15)
+    is below atol with 4th-order behaviour confirmed by two halving ratios >= 8, or by one when the estimate is
+    below `ACCEPT_MARGIN` * atol (WF4).
     """
     N = len(basis)
+    K = twist_coupling_matrix(basis) if K is None else K
     d, X = twist_system_matrices(basis, f, K)
     D = np.diag(d)
     X2 = None if tail is None else twist_tail_system_matrix(basis, f, tail)
     if loss is not None:
         D = D - np.asarray(loss, dtype=complex)
+    extra = [] if tail is None else [np.asarray(tail)]
+    if loss is not None:
+        Lf = np.asarray(loss)
+        extra += [Lf[:N, :N], Lf[:N, N:], Lf[N:, :N], Lf[N:, N:]]
+    groups = coupled_groups(K, extra) if N else [np.arange(0)]
+    blocks = _Blocks(groups, N, D, X, X2)
     beta = basis.beta(f)
     prop = basis.propagating_mask(f)
     use_gsm = bool(loss is not None or not np.all(prop))
@@ -466,17 +546,20 @@ def twist_gsm_blocks(basis, f, rate, length, loss=None, atol=1e-6, max_slices=16
 
     if rate.is_constant:
         r0 = rate(np.array([0.0]))[0]
-        M = D + r0 * X if X2 is None else D + r0 * X + r0 * r0 * X2
-        if not use_gsm:
-            S = tuple(x[0] for x in _gsm_from_transfer_stack(expm(length * M)[None], N))
-            info.update(n_slices=1, error_estimate=0.0, success=True)
-            return S, info
-        k = 0 if not np.isfinite(hmax) else max(0, int(np.ceil(np.log2(length / hmax))))
-        S = tuple(x[0] for x in _gsm_from_transfer_stack(expm(length / 2 ** k * M)[None], N))
-        for _ in range(k):
-            S = _star(S, S)
-        info.update(n_slices=2 ** k, error_estimate=0.0, success=True)
+        k = 0 if not (use_gsm and np.isfinite(hmax)) else max(0, int(np.ceil(np.log2(length / hmax))))
+
+        def constant(n, Dg, Xg, X2g):
+            M = Dg + r0 * Xg if X2g is None else Dg + r0 * Xg + r0 * r0 * X2g
+            S = tuple(x[0] for x in _gsm_from_transfer_stack(expm(length / 2 ** k * M)[None], n))
+            for _ in range(k):
+                S = _star(S, S)
+            return S
+        S = blocks.solve(constant)
+        info.update(n_slices=2 ** k, error_estimate=0.0, success=True, n_groups=len(groups))
         return S, info
+
+    def sliced(edges):
+        return blocks.solve(lambda n, Dg, Xg, X2g: _sliced_solution(Dg, Xg, rate, edges, use_gsm, n, X2g, hmax))
 
     points = [0.0] + [p for p in rate.breakpoints if 0 < p < length] + [float(length)]
     seg = np.diff(points)
@@ -487,8 +570,8 @@ def twist_gsm_blocks(basis, f, rate, length, loss=None, atol=1e-6, max_slices=16
         # fixed slicing: distribute over the segments in proportion to their length (at least one each)
         base = [max(1, int(round(slices * s / length))) for s in seg]
         edges = _slice_edges(length, base, points, 0)
-        S = _sliced_solution(D, X, rate, edges, use_gsm, N, X2)
-        info.update(n_slices=len(edges) - 1, error_estimate=np.nan, success=True)
+        S = sliced(edges)
+        info.update(n_slices=len(edges) - 1, error_estimate=np.nan, success=True, n_groups=len(groups))
         return S, info
     # minimum slicing: every pair that can exchange an amplitude above atol slips by at most pi per slice
     zz = np.linspace(0.0, length, 513)
@@ -508,7 +591,7 @@ def twist_gsm_blocks(basis, f, rate, length, loss=None, atol=1e-6, max_slices=16
     while sum(base) * 2 ** level < min(n_min, max_slices // 8) and sum(base) * 2 ** (level + 1) <= max_slices:
         level += 1
     edges = _slice_edges(length, base, points, level)
-    S = _sliced_solution(D, X, rate, edges, use_gsm, N, X2)
+    S = sliced(edges)
     n = len(edges) - 1
     status, err, diff_prev, ratio_prev, small_prev, history = 1, np.inf, None, None, False, []
     while 2 * n <= max_slices:
@@ -516,7 +599,7 @@ def twist_gsm_blocks(basis, f, rate, length, loss=None, atol=1e-6, max_slices=16
         level += 1
         edges = _slice_edges(length, base, points, level)
         n = len(edges) - 1
-        S = _sliced_solution(D, X, rate, edges, use_gsm, N, X2)
+        S = sliced(edges)
         diff = max(float(np.max(np.abs(x - y))) for x, y in zip(S, S_prev))
         err = diff / 15.0
         ratio = np.inf if diff == 0 else (diff_prev / diff if diff_prev is not None else None)
@@ -525,11 +608,13 @@ def twist_gsm_blocks(basis, f, rate, length, loss=None, atol=1e-6, max_slices=16
         ratio_prev = ratio
         history.append((n, err))
         small = err <= atol * 1e-3
-        if err <= atol and (asymptotic or (small and small_prev)):
+        # WF4: one 4th-order ratio is enough when the estimate is well inside the tolerance (ACCEPT_MARGIN)
+        margin = ratio is not None and ratio >= 8.0 and err <= ACCEPT_MARGIN * atol
+        if err <= atol and (asymptotic or margin or (small and small_prev)):
             status = 0
             break
         small_prev, diff_prev = small, diff
-    info.update(n_slices=n, error_estimate=err, success=status == 0, history=history)
+    info.update(n_slices=n, error_estimate=err, success=status == 0, history=history, n_groups=len(groups))
     return S, info
 
 
@@ -605,10 +690,12 @@ class Twist(Component):
     cutoff couples strongly (the power-wave coupling grows like |beta|^(-1/2)); results within about 1 % of a
     cutoff depend on the truncation (docs/reports/WP6.md).
 
-    Cost. A constant rate is one matrix exponential of the internal system (2N x 2N; N = 150-210 modes for Doane's
-    guide, 0.3-0.8 s). A variable rate needs about 1000-2600 Magnus slices on the internal list (N = 69-96 at the
-    default, 15-50 s per frequency on a 2-core machine; mode_factor 1 with the tail: about 1 s, but 1.5e-4 off for
-    the triangular twist at 18 GHz).
+    Cost. The selection rule splits the system into two independent groups of modes (`coupled_groups`), solved
+    separately (WF4; about 4x cheaper than one system of all modes). A constant rate is one matrix exponential per
+    group (2N x 2N in all; N = 150-210 modes for Doane's guide, 0.2-0.4 s). A variable rate needs about 560-660
+    Magnus slices at the last level of the adaptive doubling (plus the coarser levels) on the internal list
+    (N = 69-96 at the default, 1.6-4.4 s per frequency on one core of a 2-core machine, against 12-32 s before WF4;
+    docs/reports/WF4.md).
 
     Wall loss (guide with a conductivity): the T1 loss matrix of the constant cross-section,
     `wrmodes.loss.loss_matrix_full` (propagating modes coupled, evanescent modes their own Lambda^+_pp), is added in
@@ -617,8 +704,8 @@ class Twist(Component):
     latter is odd under each mirror (like the twist coupling), so it cannot change the attenuation of any mode at
     first order in tau and only perturbs the twist coupling by a relative amount of order R_s / eta0 (about 1e-4).
 
-    Each GSM carries `info` (solver diagnostics: route, n_modes, n_slices, error_estimate, success, mode_factor,
-    tail, chi_max of the internal list).
+    Each GSM carries `info` (solver diagnostics: route, n_modes, n_groups, n_slices, error_estimate, success,
+    mode_factor, tail, chi_max of the internal list).
     """
 
     plane = "H"
