@@ -661,3 +661,33 @@ def test_wf4_defaults_agree_with_wf2_defaults(profile, f):
     port = WR187_TALL.basis(f, 1.0)
     g = Twist(90, L20, profile, guide=WR187_TALL).gsm(f, port)
     assert _max_power_change(g, ref, f"{profile}_f{f / 1e9:g}") < 2e-6
+
+
+# ======================================================================================== WF4 item 7
+def test_doane_fig9_with_doanes_five_modes():
+    """WF4 item 7: restricted to Doane's five modes (his TE10, TE01, TE30, TE21, TM21 = wrmodes' TE1,0, TE0,1,
+    TE0,3, TE1,2, TM1,2), the plain truncated system reproduces Fig. 9's triangular curve within the digitizing
+    uncertainty (stored: all 119 points within 1 sigma, rms z 0.52); adding TE2,1 (Doane's TE12) moves it to the full
+    solution (0.55 % at 18 GHz against 0.15 %)."""
+    import csv
+    path = os.path.join(os.path.dirname(__file__), "..", "benchmarks", "literature", "doane1989_fig9.csv")
+    with open(path) as fh:
+        rows = [r for r in csv.DictReader(l for l in fh if not l.startswith("#")) if r["curve"] == "triangular"]
+    five = ["TE1,0", "TE0,1", "TE0,3", "TE1,2", "TM1,2"]
+    for r in rows[::24]:
+        f = float(r["x"]) * 1e9
+        basis = ModeBasis(WR187_TALL.w, WR187_TALL.h, five)
+        S, _ = twist_gsm_blocks(basis, f, TwistProfile("triangular", np.pi / 2, L20), L20)
+        i = basis.index("TE1,0")
+        assert abs(100 * (1 - abs(S[2][i, i]) ** 2) - float(r["y"])) <= float(r["uncertainty"]), r
+    basis = ModeBasis(WR187_TALL.w, WR187_TALL.h, five + ["TE2,1"])
+    S, _ = twist_gsm_blocks(basis, 18e9, TwistProfile("triangular", np.pi / 2, L20), L20)
+    i = basis.index("TE1,0")
+    assert 0.53 < 100 * (1 - abs(S[2][i, i]) ** 2) < 0.57
+    path = os.path.join(os.path.dirname(__file__), "..", "benchmarks", "twist", "data", "doane_fig9_five_modes.npz")
+    import json
+    with np.load(path, allow_pickle=False) as z:
+        meta = json.loads(str(z["meta"]))
+        assert np.all(np.abs(z["triangular_five_z"]) <= 1.0 + 1e-9) and len(z["triangular_five_z"]) == 119
+    s = meta["parameters"]["summary"]
+    assert s["constant_five"]["rms_z"] < 1.3 and s["cosine_five"]["rms_z"] < 1.2 and s["triangular_six"]["rms_z"] > 10
