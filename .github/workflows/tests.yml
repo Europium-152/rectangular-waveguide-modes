@@ -40,3 +40,5 @@ jobs:
         run: python -m pip install -e ".[test,fem]"
       - name: Run the FEM tests
         run: python -m pytest -q tests/test_fem2d.py tests/test_bend_evanescent_fem.py tests/adversarial/test_wp3_adversarial.py tests/adversarial/test_wp7b_fem_adversarial.py
+      - name: Check the benchmark registry (WF4; every module is collectable here)
+        run: python benchmarks/check_registry.py

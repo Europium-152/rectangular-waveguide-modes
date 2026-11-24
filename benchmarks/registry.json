@@ -1,814 +1,1608 @@
 {
-  "description": "Benchmark registry of wrmodes 1.0 (CONVENTIONS.md section 9). One entry per benchmark: what it checks, the reference and its type, the data file, the tolerance and the test or script that applies it. Created by WP7 (wave 1). status: 'reference ready' = reference data and comparison exist, waiting for the implementation; 'waiting for data' = needs L1 or COMSOL output; 'self-check' = validates a WP7 reference itself.",
-  "reference_types": [
-    "independent method",
-    "COMSOL",
-    "literature",
-    "closed form"
-  ],
-  "entries": [
-    {
-      "id": "wp7-line-v01",
-      "component": "WP7 global-ODE line reference",
-      "card": "WP7",
-      "reference_type": "independent method",
-      "reference": "wrmodes 0.1 transfer-matrix solver (atol 1e-10, error_control='full'), product of segment transfer matrices",
-      "data_file": "benchmarks/validation_v1/data/line_reference.npz",
-      "tolerance": "1e-9 of input power, every output mode (WP7 acceptance)",
-      "test": "tests/adversarial/test_wp7_references.py::test_stored_line_reference_agrees_with_v01, ::test_line_reference_matches_v01_at_20GHz",
-      "status": "self-check, passes (largest difference 3.2e-11)"
-    },
-    {
-      "id": "wp1-line-same-plane",
-      "component": "WP1 Line (Straight + SmoothBend, H plane)",
-      "card": "WP1 acceptance: WP7's global-ODE reference for three lines",
-      "reference_type": "independent method",
-      "reference": "WP7 global-ODE reference (benchmarks/validation_v1/ref_line.py), line 'same-plane', 20/40/60/90 GHz",
-      "data_file": "benchmarks/validation_v1/data/line_reference.npz",
-      "tolerance": "1e-6 of input power for every output mode (|S|^2 of S11, S21, S12, S22)",
-      "test": "tests/adversarial/test_wp1_adversarial.py::test_lines_match_global_ode_reference[same-plane]; benchmarks/validation_v1/compare_wp1_lines.py",
-      "status": "reference ready"
-    },
-    {
-      "id": "wp1-line-mixed-planes",
-      "component": "WP1 Line with FrameChange (H and E bends)",
-      "card": "WP1 acceptance: WP7's global-ODE reference for three lines",
-      "reference_type": "independent method",
-      "reference": "WP7 global-ODE reference with independently derived frame relabelling (ref_frames.py), line 'mixed-planes', 20/30/40 GHz",
-      "data_file": "benchmarks/validation_v1/data/line_reference.npz",
-      "tolerance": "1e-6 of input power for every output mode",
-      "test": "tests/adversarial/test_wp1_adversarial.py::test_lines_match_global_ode_reference[mixed-planes], ::test_mixed_plane_line_at_40GHz_all_families_coupled; compare_wp1_lines.py",
-      "status": "reference ready"
-    },
-    {
-      "id": "wp1-line-long-straights",
-      "component": "WP1 Line with 10 m straights (paper section 7 sequence)",
-      "card": "WP1 acceptance: WP7's global-ODE reference for three lines",
-      "reference_type": "independent method",
-      "reference": "WP7 global-ODE reference, line 'long-straights' (21.4 m), 20/50/90 GHz",
-      "data_file": "benchmarks/validation_v1/data/line_reference.npz",
-      "tolerance": "1e-6 of input power for every output mode",
-      "test": "tests/adversarial/test_wp1_adversarial.py::test_lines_match_global_ode_reference[long-straights], ::test_long_line_equals_reference_at_90GHz; compare_wp1_lines.py",
-      "status": "reference ready"
-    },
-    {
-      "id": "wp1-frame-change",
-      "component": "WP1 FrameChange",
-      "card": "WP1 acceptance: FrameChange is a signed permutation; H -> E -> H is the identity",
-      "reference_type": "closed form",
-      "reference": "relabelling derived from the potentials (ref_frames.py docstring), checked against quadrature and wrmodes.modes.eplane_frame_signs",
-      "data_file": null,
-      "tolerance": "exact",
-      "test": "tests/adversarial/test_wp1_adversarial.py::test_frame_change_is_the_derived_signed_permutation, ::test_square_guide_frame_tags_prevent_silent_joins, ::test_square_guide_mixed_line_matches_reference",
-      "status": "reference ready"
-    },
-    {
-      "id": "wp7-loss-textbook",
-      "component": "WP7 surface-integral loss reference",
-      "card": "WP7",
-      "reference_type": "closed form",
-      "reference": "classical TE_mn / TM_mn attenuation formulas (Collin; Pozar eq. 3.96 for TE10)",
-      "data_file": "benchmarks/validation_v1/data/loss_reference.npz",
-      "tolerance": "1e-9 relative (observed 2e-12)",
-      "test": "tests/adversarial/test_wp7_references.py::test_loss_reference_equals_textbook, ::test_wp2_card_numbers_for_te10_in_aluminium",
-      "status": "self-check, passes"
-    },
-    {
-      "id": "wp2-alpha-surface-integral",
-      "component": "WP2 per-mode attenuation",
-      "card": "WP2 acceptance: lossy straight vs WP7 surface-integral reference",
-      "reference_type": "independent method",
-      "reference": "P_loss/(2P) with P_loss = (1/2) R_s oint |H_tan|^2 dl from transverse_field (ref_loss.py); WR-90 and 20 mm square, aluminium and copper; degenerate groups by eigenvalues of the wall-loss matrix",
-      "data_file": "benchmarks/validation_v1/data/loss_reference.npz",
-      "tolerance": "1e-6 relative on alpha for every mode",
-      "test": "tests/adversarial/test_wp2_adversarial.py::test_alpha_of_all_129_modes_at_90GHz, ::test_alpha_just_above_cutoff; compare_wp2_loss.py",
-      "status": "passes against WP2 (2e-12, coordinator)"
-    },
-    {
-      "id": "wp2-lossy-straight-coupled",
-      "component": "WP2 lossy Straight (all propagating modes)",
-      "card": "WP2 acceptance: lossy straight vs WP7 reference",
-      "reference_type": "independent method",
-      "reference": "WP7 first-order coupled system (own derivation = T1 B3-B4: all pairs through the walls, forward and backward blocks), solved by eigenmodes (ref_loss.first_order_matrices, straight_gsm_blocks); physics checked against exact Leontovich modes with one pair of impedance walls (ref_loss.one_pair_comparison)",
-      "data_file": null,
-      "tolerance": "1e-8 absolute on S11 and S21 (implementation agreement); physical accuracy of the first-order model vs exact: 1e-3 (fc/f < 0.9), 2.5e-3 near cutoff",
-      "test": "tests/adversarial/test_wp2_adversarial.py::test_20m_lossy_straight_at_90GHz, ::test_square_guide_degenerate_groups_in_a_lossy_straight; compare_wp2_loss.py; self-checks in test_wp7_references.py",
-      "status": "reference ready; replaces the group-block comparison (docs/discrepancies/2026-11-08-wp2-wp7-straight-attenuation.md)"
-    },
-    {
-      "id": "wp3-ma1997-table1",
-      "component": "WP3 Miter (H plane, diagonal miter c/a = 1)",
-      "card": "WP3 acceptance: H-plane miter vs Ma et al. 1997",
-      "reference_type": "literature",
-      "reference": "Ma, Yamane & Yamashita, Electron. Commun. Jpn. 2, 80(5) (1997), Table 1, p. 5: 15.799 x 7.899 mm, 16 GHz, |S11| = 0.2622, |S21| = 0.9650",
-      "data_file": null,
-      "tolerance": "none (qualitative); the disagreement is reported",
-      "test": "tests/adversarial/test_wp3_adversarial.py::test_h_miter_against_ma1997_table1; compare_literature.py; benchmarks/fem2d/ma1997.py (WP3b)",
-      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md. WP3b: Ma's own staircase (60 steps, division method (a)) gives |S11| = 0.2811 (FEM), not 0.2622: the staircase moves |S11| away from Ma's value; 50/60-step staircases converge to the exact 0.2778 from above (docs/reports/WP3b.md)"
-    },
-    {
-      "id": "wp3-ma1997-figures",
-      "component": "WP3 Miter (H plane)",
-      "card": "WP3 acceptance: H-plane miter vs Ma et al. 1997 (D3 of L1)",
-      "reference_type": "literature",
-      "reference": "Ma et al. (1997) Figs. 5, 6, 8, 9, 11 (figure reading in ref_literature.FIGURES)",
-      "data_file": "benchmarks/literature/ma1997_fig<k>.csv (L1, D3); results benchmarks/fem2d/data/ma1997.npz",
-      "tolerance": "the uncertainty column of each point",
-      "test": "benchmarks/fem2d/ma1997.py (WP3b; data benchmarks/fem2d/data/ma1997.npz); benchmarks/validation_v1/compare_literature.py",
-      "status": "WP3b (FEM, Ma's staircase geometries modelled): pass for Fig. 5 (rms z 0.24, BEM 0.62), Fig. 6 10 steps (0.20) and BEM (0.57), Fig. 8 20 steps (a)/(b)/(c) (0.64/0.49/0.62), Fig. 11 c/a = 0 (0.19); not met for the c/a = 1 curves with 40-60 steps (Fig. 6 rms z 2.37, Fig. 9 1.28, Fig. 11 c/a = 1.0 2.05; 0.3-0.5 dB, the Table 1 discrepancy; proposed qualitative) and Fig. 6 20 steps (1.69). Fig. 11 chamfered curves qualitative (Daniel, 11 Nov 2026): rms z 17-31 (c/a = 0.60-0.70), 1.29 (c/a = 1.30) | qualitative (Daniel, 12 Nov 2026) for: Fig. 6 at 40 and 60 steps, Fig. 9, Fig. 11 c/a = 1.0; see docs/discrepancies/2026-11-12-reiter-and-ma-many-step-miters.md"
-    },
-    {
-      "id": "wave2-alessandri1994",
-      "component": "E-plane mitered bends (WP3 smoke test in wave 1, full in wave 2)",
-      "card": "L1 D1; wave 2",
-      "reference_type": "literature",
-      "reference": "Alessandri, Mongiardo & Sorrentino, IEEE MGWL 4(12) (1994), Figs. 4-5; the paper does not state the guide (b/a needed)",
-      "data_file": "benchmarks/literature/alessandri1994_fig4.csv, _fig5.csv (L1, D1)",
-      "tolerance": "the uncertainty column of each point",
-      "test": "benchmarks/validation_v1/compare_literature.py --b-over-a <ratio>; tests/test_modematch_miter.py::test_alessandri_eplane_b_over_a_half, test_alessandri_rules_out_wr90_ratio; benchmarks/modematch/miter_literature.py (WP4b); benchmarks/fem2d/alessandri1994.py (WP3b)",
-      "status": "waiting for data (L1) and for the guide ratio; WP4b: b/a = 0.5 fits (rms z 0.2-0.9 for d/b = 1.41, 0.707, 0.9, 0.87); WR-90 b/a = 0.444 does not (rms z 5-25); deep curves d/b = 0.85, 0.83 within 3e-3 in |S11| near their zeros; crosses of ref. [7] for d/b = 0.87 lie 1-6 dB below (docs/reports/WP4b.md). WP3b (FEM): b/a = 0.5 rms z 0.30/0.23/0.93 (Fig. 4 d/b = 1.41/0.707/0.87), 0.46/0.91/1.63/2.26 (Fig. 5 d/b = 0.9/0.87/0.85/0.83; outliers at the zeros of 0.85, 0.83, as WP4b); b/a = 0.444: rms z 5.4-25 (rejected)"
-    },
-    {
-      "id": "wp3-comsol-c1",
-      "component": "WP3 Miter, WR-90 H-plane plain 90 deg miter, 18-90 GHz",
-      "card": "WP3 (verified by WP7 COMSOL at Gate A)",
-      "reference_type": "COMSOL",
-      "reference": "benchmarks/comsol/WP7_C1_h_miter.java, field projection by benchmarks/comsol/wp7_postprocess.py",
-      "data_file": "benchmarks/comsol/data/WP7_C1.npz",
-      "tolerance": "0.02 dB on TE10 transmission (CONVENTIONS.md 8); complex column and converted powers reported",
-      "test": "benchmarks/validation_v1/compare_comsol.py",
-      "status": "superseded: the GUI campaign 1 (benchmarks/comsol/campaign_1/, Gate A, 11 Nov 2026) replaced the WP7 Java models"
-    },
-    {
-      "id": "wp2-comsol-c2",
-      "component": "WP1 SmoothBend + WP2 wall loss: 60 cm 60 deg sech H bend, aluminium WR-90",
-      "card": "WP2 (Gate A COMSOL campaign)",
-      "reference_type": "COMSOL",
-      "reference": "benchmarks/comsol/WP7_C2_sech_bend_aluminium.java (impedance boundary), 10 frequencies 18-38 GHz",
-      "data_file": "benchmarks/comsol/data/WP7_C2.npz",
-      "tolerance": "0.02 dB on TE10 transmission",
-      "test": "benchmarks/validation_v1/compare_comsol.py",
-      "status": "superseded: the GUI campaign 1 (benchmarks/comsol/campaign_1/, Gate A, 11 Nov 2026) replaced the WP7 Java models"
-    },
-    {
-      "id": "wp4-comsol-c3",
-      "component": "WP4 Step, WR-90 <-> 22.86 x 1.6 mm (strangling step)",
-      "card": "WP4 (Gate A COMSOL campaign)",
-      "reference_type": "COMSOL",
-      "reference": "benchmarks/comsol/WP7_C3_strangling_step.java, both excitations, 5 frequencies",
-      "data_file": "benchmarks/comsol/data/WP7_C3.npz",
-      "tolerance": "0.02 dB on TE10 transmission",
-      "test": "benchmarks/validation_v1/compare_comsol.py",
-      "status": "superseded: the GUI campaign 1 (benchmarks/comsol/campaign_1/, Gate A, 11 Nov 2026) replaced the WP7 Java models"
-    },
-    {
-      "id": "wp4-marcuvitz-eplane-step",
-      "component": "WP4 Step, symmetric E-plane step (change in height)",
-      "card": "WP4 acceptance: single-mode E-plane and H-plane steps vs Marcuvitz (D6 of L1)",
-      "reference_type": "literature",
-      "reference": "Marcuvitz, Waveguide Handbook (1951), sec. 5.26a eqs. (1), (2a), pp. 307-308 (implemented in ref_literature.marcuvitz_eplane_step, checked against its asymptotic forms 2c, 2d)",
-      "data_file": null,
-      "tolerance": "|S11| inside the band given by +-1 % on B (Marcuvitz's stated accuracy for b/lambda_g < 1)",
-      "test": "tests/adversarial/test_wp4_adversarial.py::test_symmetric_eplane_step_against_marcuvitz; compare_literature.py",
-      "status": "reference ready"
-    },
-    {
-      "id": "wp4-marcuvitz-hplane-step",
-      "component": "WP4 Step, symmetric H-plane step (change in width)",
-      "card": "WP4 acceptance: single-mode H-plane steps vs Marcuvitz (D6 of L1)",
-      "reference_type": "literature",
-      "reference": "Marcuvitz (1951) sec. 5.24a (pp. 296-297), to be taken from L1's transcription docs/literature/marcuvitz-steps-and-bends.md",
-      "data_file": "docs/literature/marcuvitz-steps-and-bends.md (L1, D6)",
-      "tolerance": "Marcuvitz's stated accuracy",
-      "test": "not written: WP7 transcribed only sec. 5.26a; compare_literature.compare_marcuvitz takes any |S11| model",
-      "status": "not done (waiting for L1 D6)"
-    },
-    {
-      "id": "wp7-comsol-postprocess",
-      "component": "COMSOL post-processing (projection, frames, de-embedding, file format)",
-      "card": "WP7",
-      "reference_type": "closed form",
-      "reference": "synthetic fields from planted modal amplitudes, C1 and C3 geometries",
-      "data_file": null,
-      "tolerance": "1e-9",
-      "test": "tests/adversarial/test_wp7_comsol_postprocess.py",
-      "status": "self-check, passes"
-    },
-    {
-      "id": "wave2-alimenti1994-fig2",
-      "component": "H-plane 90 deg corner, unmitered (d/a = sqrt(2))",
-      "card": "L2; used by WP3b, WP4b, WP7b",
-      "reference_type": "literature",
-      "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 2: |S11| (dB) vs f/fc, MMFD line (MM coincides) and 10 MM dots",
-      "data_file": "benchmarks/literature/alimenti1994_fig2_mmfd.csv, alimenti1994_fig2_mm.csv (L2)",
-      "tolerance": "the uncertainty column of each point",
-      "test": "tests/test_modematch_miter.py::test_alimenti_unmitered_and_optical_mirror (WP4b); benchmarks/fem2d/alimenti1994.py (WP3b)",
-      "status": "reference ready (L2); agrees with Ma et al. 1997 Fig. 11 c/a = 0 to 0.14 dB rms; WP4b: agrees (MMFD line rms z 0.76, MM dots 1.12); WP3b (FEM): agrees (MMFD rms z 0.76, MM dots 1.12)"
-    },
-    {
-      "id": "wave2-alimenti1994-fig3",
-      "component": "H-plane 90 deg optical-mirror miter (t/a = 0, d/a = 1/sqrt(2))",
-      "card": "L2; used by WP3b, WP4b, WP7b",
-      "reference_type": "literature",
-      "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 3: |S11| (dB) vs f/fc, MM line (MMFD coincides to f/fc 1.93) and 10 MMFD diamonds",
-      "data_file": "benchmarks/literature/alimenti1994_fig3_mm.csv, alimenti1994_fig3_mmfd.csv (L2)",
-      "tolerance": "the uncertainty column of each point",
-      "test": "tests/test_modematch_miter.py::test_alimenti_unmitered_and_optical_mirror (WP4b); benchmarks/fem2d/alimenti1994.py (WP3b)",
-      "status": "reference ready (L2); lies 0.5-1.0 dB above Ma et al. 1997 Fig. 11 c/a = 1.0 (same geometry): a difference between the papers, see docs/reports/L2.md; WP4b: agrees (MM line rms z 0.71, mean -0.23 dB); WP4b and an independent FD solution give |S11| = 0.2778 at f/fc = 1.686 (Ma Table 1: 0.2622, this figure: about 0.288); WP3b (FEM): agrees (MM rms z 0.71, MMFD diamonds 0.95)"
-    },
-    {
-      "id": "wave2-alimenti1994-fig4",
-      "component": "H-plane 90 deg chamfered miter, t/a = 0.30, 0.34, 0.38 (d/a = (1 + t/a)/sqrt(2) = 0.919, 0.948, 0.976)",
-      "card": "L2; used by WP3b, WP4b, WP7b",
-      "reference_type": "literature",
-      "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 4: |S11| (dB) vs f/fc (MMFD)",
-      "data_file": "benchmarks/literature/alimenti1994_fig4_t030.csv, _t034.csv, _t038.csv (L2)",
-      "tolerance": "none (qualitative); the disagreement is reported",
-      "test": "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented (WP4b); benchmarks/fem2d/alimenti1994.py (WP3b)",
-      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md; WP3b (FEM, reported): rms z 5.1/7.6/12.4 for t/a = 0.30/0.34/0.38"
-    },
-    {
-      "id": "wave2-alimenti1994-fig5",
-      "component": "H-plane 90 deg chamfered miter, design chart t/a = 0.30-0.40",
-      "card": "L2; used by WP3b, WP4b, WP8a",
-      "reference_type": "literature",
-      "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 5: matching (zero) frequency f/fc and 30 dB bandwidth / fc vs t/a; bandwidth jumps at t/a = 0.3867 from 0.274 to 0.364",
-      "data_file": "benchmarks/literature/alimenti1994_fig5_matching_frequency.csv, alimenti1994_fig5_bandwidth.csv (L2)",
-      "tolerance": "none (qualitative); the disagreement is reported",
-      "test": "not tested (WP4b: matching frequencies at t/a = 0.30, 0.32 agree to 0.01, above 0.34 ours are 0.03-0.07 lower; docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md); benchmarks/fem2d/alimenti1994.py (WP3b)",
-      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md; WP3b (FEM, reported): zeros 1.302 ... 1.757 (t/a 0.30 ... 0.40); the 30 dB band jumps between t/a = 0.386 and 0.390 (Alimenti 0.3867)"
-    },
-    {
-      "id": "wave2-alimenti1994-fig6",
-      "component": "H-plane 90 deg chamfered miter, t/a = 0.386 (d/a = 0.980), widest 30 dB band",
-      "card": "L2; used by WP3b, WP4b, WP7b",
-      "reference_type": "literature",
-      "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 6: |S11| (dB) vs f/fc, MMFD and BCMM (Reiter & Arndt 1994) lines, 10 BCMM diamonds",
-      "data_file": "benchmarks/literature/alimenti1994_fig6_mmfd.csv, alimenti1994_fig6_bcmm.csv (L2)",
-      "tolerance": "none (qualitative); the disagreement is reported",
-      "test": "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented (WP4b); benchmarks/fem2d/alimenti1994.py (WP3b)",
-      "status": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md; WP3b (FEM, reported): MMFD rms z 34, BCMM 13.5"
-    },
-    {
-      "id": "wave2-kotik1965-fig3",
-      "component": "Overmoded H-plane 90 deg optical-mirror miter (d/a = 1/sqrt(2)), TE10 power transmission, kd = 2 pi a/lambda = 10-31",
-      "card": "L2 (L1 item D8); used by WP3b, WP4b, WP7b",
-      "reference_type": "literature",
-      "reference": "Kotik & Sivov, Radio Eng. Electron. Phys. 10 (1965) 140-142, Fig. 3: |B1|^2 vs kd, rigorous solution (truncated mode system, N <= 18)",
-      "data_file": "benchmarks/literature/kotik1965_fig3_rigorous.csv (L2)",
-      "tolerance": "the uncertainty column of each point (reading and the 0.005 drafting accuracy of the figure)",
-      "test": "tests/test_modematch_miter.py::test_kotik_optical_mirror_overmoded (WP4b); benchmarks/fem2d/kotik1965.py (WP3b)",
-      "status": "reference ready (L2); text: 3 % loss at kd ~ 30 (figure: 0.971 at kd = 30); WP4b: rms z 1.30 over 416 points; outliers just above the TE40/TE60/TE80 cutoffs and -0.011 for kd > 30.4 (docs/reports/WP4b.md); WP3b (FEM): rms z 1.30, 96 % within 2u, same outliers (TE40 cutoff dip, kd > 30.4)"
-    },
-    {
-      "id": "wave2-kotik1965-asymptotic",
-      "component": "Overmoded H-plane 90 deg optical-mirror miter, TE10 power transmission, large kd",
-      "card": "L2; used by WP7b",
-      "reference_type": "closed form",
-      "reference": "Katsenelenbaum (1963) as quoted by Kotik & Sivov (1965) p. 142: |B1|^2 = 1 - 7.4/(kd)^(3/2) (printed exponent 2/3 is a misprint), within 3 % (relative) of the rigorous solution for kd > 6 pi",
-      "data_file": "benchmarks/literature/kotik1965_fig3_asymptotic.csv (L2; the drawn curve, documents a drafting accuracy of 0.005 rms, 0.011 max)",
-      "tolerance": "3 % relative for kd > 6 pi (the authors' statement)",
-      "test": "benchmarks/fem2d/kotik1965.py (WP3b)",
-      "status": "reference ready (L2); WP3b (FEM): see docs/reports/WP3b.md (within 3 % away from the cutoff dips of the rigorous solution)"
-    },
-    {
-      "id": "wp4b-marcuvitz-corners",
-      "component": "WP4b MiterMM, unmitered right-angle corner (d/a = sqrt(2)), H and E plane, TE10",
-      "card": "WP4b (phase reference for the reference planes, port-2 frame and LSE sign)",
-      "reference_type": "literature",
-      "reference": "Marcuvitz, Waveguide Handbook (1951) Secs. 5.28a eqs. (3a), (4a) and 5.29a eqs. (3a), (4a): pi networks at the planes T' through the inner corner (transcription docs/literature/marcuvitz-steps-and-bends.md)",
-      "data_file": null,
-      "tolerance": "3e-3 on complex S11 and S21 (Marcuvitz: about 1 % on the susceptances), WR-90 at 7.5, 8.5, 10 GHz",
-      "test": "tests/test_modematch_miter.py::test_unmitered_corner_against_marcuvitz_complex",
-      "status": "passes (max |dS| 1.7e-3 at 2b/lambda_g <= 0.51 and 2a/lambda_g <= 1.15)"
-    },
-    {
-      "id": "wp4b-fd-hplane-miter",
-      "component": "WP4b MiterMM, H-plane chamfered (t/a = 0.38) and optical-mirror miters, TE10",
-      "card": "WP4b",
-      "reference_type": "independent method",
-      "reference": "5-point finite differences with exact discrete modal ports, Richardson in h (benchmarks/modematch/fd_hplane_miter.py)",
-      "data_file": "benchmarks/modematch/data/fd_hplane_miter.npz",
-      "tolerance": "3e-4 on |S11| (FD extrapolation uncertainty)",
-      "test": "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented, test_alimenti_fd_cross_check (slow)",
-      "status": "passes (|S11|: 0.037100 vs 0.037103, 0.013867 vs 0.013867, mirror 0.277786 vs 0.277793)"
-    },
-    {
-      "id": "wp4b-miter-convergence",
-      "component": "WP4b MiterMM default truncation",
-      "card": "WP4b",
-      "reference_type": "closed form",
-      "reference": "self-convergence: Aitken extrapolation in the truncation (2D), 3x the default (3D)",
-      "data_file": "benchmarks/modematch/data/miter_convergence_2d_D.npz, _N.npz, miter_convergence_3d.npz",
-      "tolerance": "1e-4 in every propagating entry",
-      "test": "tests/test_modematch_miter.py::test_default_truncation_reaches_1e4 (slow)",
-      "status": "passes (3D: max 4.9e-5 over 60 WR-90 cases against a 3.3x tighter error target)"
-    },
-    {
-      "id": "wp4b-miter-wr90-sweep",
-      "component": "WP4b MiterMM, WR-90, H and E plane, d/a = 0.707-1.0, 10-90 GHz",
-      "card": "WP4b; for WP7b (FEM vs MM)",
-      "reference_type": "independent method",
-      "reference": "to be compared by WP7b with wrmodes.fem2d.Miter",
-      "data_file": "benchmarks/modematch/data/miter_wr90_sweep.npz",
-      "tolerance": "0.01 dB on TE10 transmission, 1e-4 of the input power per converted mode (card WP4b)",
-      "test": "WP7b",
-      "status": "compared by WP7b (FEM on WP7b outlines, entry wp7b-miter-fem-sweep): passes the card criterion at every point"
-    },
-    {
-      "id": "wp4b-step-parity",
-      "component": "WP4 Step, parity-reduced solve (WP4b)",
-      "card": "WP4b",
-      "reference_type": "closed form",
-      "reference": "the full solve (Step.solve(reduce=False))",
-      "data_file": "benchmarks/modematch/data/step_parity_timing.npz",
-      "tolerance": "1e-12",
-      "test": "tests/test_modematch_miter.py::test_step_parity_reduction_equals_full_solve",
-      "status": "passes (max 1.4e-14)"
-    },
-    {
-      "id": "wp3b-reiter1995-fig3",
-      "component": "fem2d.Miter, H- and E-plane bends and mitered bends, gamma = 90-150 deg, WR62",
-      "card": "WP3b acceptance",
-      "reference_type": "literature",
-      "reference": "Reiter & Arndt, IEEE MTT 43(4) (1995) 796-801, Fig. 3(a)-(d)",
-      "data_file": "benchmarks/literature/reiter1995_fig3a-d.csv (L1); results benchmarks/fem2d/data/reiter1995.npz",
-      "tolerance": "the uncertainty column of each point",
-      "test": "benchmarks/fem2d/reiter1995.py",
-      "status": "see docs/reports/WP3b.md: Fig. 3(a) gamma = 90-135 pass, gamma = 150 not met (FEM agrees with Marcuvitz's measured 30 deg corners, Reiter is 3 dB higher); Fig. 3(c) not met by about 1 dB (Reiter's E-plane 90 deg corner differs from Alessandri's for the same guide; the FEM agrees with Alessandri and with Marcuvitz 5.28b); mitered curves (b), (d) not met (zeros shifted, like the Alimenti/Ma chamfered curves) | qualitative (Daniel, 12 Nov 2026) for: Fig. 3(a) gamma = 150 and Figs. 3(b)-(d); Fig. 3(a) gamma = 90-135 pass/fail; see docs/discrepancies/2026-11-12-reiter-and-ma-many-step-miters.md"
-    },
-    {
-      "id": "wp3b-reiter1995-fig4",
-      "component": "Line [H-plane miter, Straight(l), E-plane miter] with FrameChange, WR90, l = 0 and l = b",
-      "card": "WP3b acceptance",
-      "reference_type": "literature",
-      "reference": "Reiter & Arndt (1995) Fig. 4 (theory and measurement)",
-      "data_file": "benchmarks/literature/reiter1995_fig4.csv (L1); results benchmarks/fem2d/data/reiter1995.npz",
-      "tolerance": "none (qualitative); the comparison is reported",
-      "test": "benchmarks/fem2d/reiter1995.py",
-      "status": "see docs/reports/WP3b.md | qualitative (Daniel, 12 Nov 2026) for: all of Fig. 4; see docs/discrepancies/2026-11-12-reiter-and-ma-many-step-miters.md"
-    },
-    {
-      "id": "wp3b-impedance-alpha",
-      "component": "fem2d impedance walls: per-mode attenuation of a straight with impedance walls at u = +-a/2 (aluminium, WR-90, H plane)",
-      "card": "WP3b acceptance",
-      "reference_type": "closed form",
-      "reference": "exact Leontovich roots of T1 box B6 (wrmodes.filters.impedance_wall_modes); first-order wrmodes.loss (T1 B2-B3) reported",
-      "data_file": "benchmarks/fem2d/data/impedance_walls.npz",
-      "tolerance": "1e-6 relative on alpha (exact roots)",
-      "test": "tests/test_fem2d.py::test_lossy_attenuation_equals_exact_leontovich_roots, ::test_lossy_attenuation_all_modes_slow; benchmarks/fem2d/impedance_walls.py",
-      "status": "passes: max 6.7e-7 (12 modes, 10 and 30 GHz, families 0 and 1); first order differs from exact by up to 7.3e-4 (TE/TM 1,1 pair), as T1 section 5 states"
-    },
-    {
-      "id": "wp3b-butterweck-fem",
-      "component": "fem2d Coplanar2D straight with 250 ohm narrow walls (Butterweck's lossy-wall filter)",
-      "card": "WP3b acceptance",
-      "reference_type": "independent method",
-      "reference": "WP2 LossyWallFilter (exact B6 + B9) and Butterweck & de Ronde, Philips Tech. Rev. 29 (1968) 94-95: 0.6 / 2.5 / 5.4 dB",
-      "data_file": "benchmarks/fem2d/data/impedance_walls.npz",
-      "tolerance": "5 % against WP2 (pass/fail); Butterweck's printed values reported only (coordinator, 12 Nov 2026)",
-      "test": "tests/test_fem2d.py::test_butterweck_lossy_wall_filter",
-      "status": "vs WP2: pass (0.05-0.06 %); vs Butterweck's numbers: -5.2 / -7.5 / -1.2 % (the same as WP2's exact method; Butterweck's 0.6 dB is a rounded 4 dB/m, 2.5 dB is a measurement)"
-    },
-    {
-      "id": "wp3b-lossy-straight-vs-filter",
-      "component": "fem2d impedance walls, all families (LSM-LSE coupling for n >= 1)",
-      "card": "WP3b",
-      "reference_type": "independent method",
-      "reference": "WP2 LossyWallFilter (exact LS^u modes)",
-      "data_file": "benchmarks/fem2d/data/impedance_walls.npz",
-      "tolerance": "5e-4 (metal walls), 3e-3 (25 ohm) on every propagating entry",
-      "test": "tests/test_fem2d.py::test_lossy_straight_matches_lossy_wall_filter",
-      "status": "passes; at 250 ohm the junction reflections of n >= 1 modes converge slowly in both methods (max |dS| 1e-2)"
-    },
-    {
-      "id": "wp3b-chained-miters",
-      "component": "fem2d chained_miter_outline (single domain) vs Miter-Straight-Miter cascade",
-      "card": "WP3b acceptance",
-      "reference_type": "independent method",
-      "reference": "the cascade of fem2d.Miter GSMs with evanescent modes",
-      "data_file": "benchmarks/fem2d/data/chained_miters.npz",
-      "tolerance": "1e-6 at spacers >= 2a (90 deg pairs) and >= 2.5a (45 deg optical pairs; coordinator, 12 Nov 2026)",
-      "test": "tests/test_fem2d.py::test_chained_miters_converge_to_the_cascade, ::test_chained_miters_converge_to_the_cascade_slow; benchmarks/fem2d/chained_miters.py",
-      "status": "90 deg pairs: 8.5e-7 / 8.2e-7 at s = 2a / 3a (32 elements per wavelength, cf 1.5); 45 deg optical pairs: 2.6e-7 from s = 2.5a (uniform guide s - 2a); see the report"
-    },
-    {
-      "id": "wp3b-e5-outline",
-      "component": "chained_miter_outline geometry of COMSOL campaign 2 case E5",
-      "card": "WP3b",
-      "reference_type": "closed form",
-      "reference": "benchmarks/comsol/CAMPAIGN_2.md, E5 vertex lists (s = 2a, 3a)",
-      "data_file": null,
-      "tolerance": "the four printed decimals",
-      "test": "tests/test_fem2d.py::test_chained_outline_reproduces_comsol_case_e5",
-      "status": "passes"
-    },
-    {
-      "id": "wp6-two-mode-law",
-      "component": "Twist, square guide, basis TE1,0 + TE0,1",
-      "card": "WP6 acceptance",
-      "reference_type": "closed form",
-      "reference": "T3 box T3-4 / T3b box 5: a10 = cos(8 theta/pi^2), a01 = -sin(8 theta/pi^2), any profile",
-      "data_file": null,
-      "tolerance": "1e-12",
-      "test": "tests/test_twist.py::test_square_guide_two_mode_law",
-      "status": "passes (constant, cosine, triangular, callable; 90, 154.7, -60 deg)"
-    },
-    {
-      "id": "wp6-zero-length-inverse",
-      "component": "Twist zero-length limit exp(theta X)",
-      "card": "WP6 acceptance",
-      "reference_type": "closed form",
-      "reference": "Z(-theta) Z(theta) = I (T3 box T3-5, T3b box 6); finite +90/-90 pairs vs the identity reported",
-      "data_file": "benchmarks/twist/data/checks.npz",
-      "tolerance": "1e-12 (algebraic); finite length reported",
-      "test": "tests/test_twist.py::test_zero_length_inverse_pair_is_identity, ::test_finite_inverse_pair_tends_to_identity_for_long_twists; benchmarks/twist/checks.py",
-      "status": "passes; finite pairs: TE1,0 loss 2.0e-2 (20 lambda) -> 1.4e-5 (320 lambda), tall WR187 9 GHz"
-    },
-    {
-      "id": "wp6-straight-limit",
-      "component": "Twist with theta = 0, lossless and aluminium, cutoff_factor 1 and 1.5",
-      "card": "WP6 acceptance",
-      "reference_type": "closed form",
-      "reference": "Straight (WP1, WP2)",
-      "data_file": null,
-      "tolerance": "1e-12",
-      "test": "tests/test_twist.py::test_zero_angle_is_a_straight",
-      "status": "passes"
-    },
-    {
-      "id": "wp6-t3-tables",
-      "component": "Twist, 20-inch 90 deg twists in tall WR187, 15 / 16.5 / 18 GHz, three profiles",
-      "card": "WP6 acceptance",
-      "reference_type": "independent method",
-      "reference": "T3 prototype docs/theory/T3/twist_formulas.py (C^T form, 2400 Magnus slices) and T3 section 6 table; T3b section 6 square-guide table",
-      "data_file": null,
-      "tolerance": "1e-3 relative (total and the three largest modes)",
-      "test": "tests/test_twist.py::test_t3_full_basis_tables, ::test_t3b_square_guide_full_basis",
-      "status": "passes (worst 3.4e-7 relative vs the prototype, i.e. its 7 printed digits; T3b angles to 1.2e-3 deg)"
-    },
-    {
-      "id": "wp6-helical-galerkin",
-      "component": "helical_propagation_constants (uniform twist, a = 2, b = 1, tau = 0.5)",
-      "card": "WP6 acceptance",
-      "reference_type": "independent method",
-      "reference": "T3b spectral Nedelec solution of the twisted guide (check_helical_eigen.out, converged to 3e-10)",
-      "data_file": "benchmarks/twist/data/checks.npz",
-      "tolerance": "modal truncation error (1/chi_max): 5.37e-3 at 89 modes, 2.93e-3 at 359, 1.45e-3 at 1443; Richardson 1.8e-4",
-      "test": "tests/test_twist.py::test_helical_modes_against_spectral_solution, ::test_helical_modes_converge_like_one_over_chi (slow)",
-      "status": "passes; reproduces T3b's numbers to 3 digits"
-    },
-    {
-      "id": "wp6-doane-fig9",
-      "component": "Twist, 20-inch 90 deg twists in tall WR187, 15-18 GHz",
-      "card": "WP6 acceptance",
-      "reference_type": "literature",
-      "reference": "Doane & Anderson 1989, Fig. 9 (benchmarks/literature/doane1989_fig9.csv)",
-      "data_file": "benchmarks/twist/data/doane_fig9.npz",
-      "tolerance": "the digitizing uncertainty (0.010-0.046 %)",
-      "test": "tests/test_twist.py::test_doane_fig9_cosine_curve, ::test_doane_fig9_constant_curve, ::test_doane_fig9_triangular_curve_open_issue; benchmarks/twist/doane_fig9.py",
-      "status": "NOT met over the band: cosine within 1 sigma at 15.1-16.35 GHz, up to 9 sigma low above; constant follows our TE0,1 conversion (rms 0.11 %) but not our TE2,1 lobes (up to 0.71 %); triangular ours 2.2-4.0x higher. docs/discrepancies/2026-11-12-doane-fig9-twists.md"
-    },
-    {
-      "id": "wp6-near-cutoff-16p5",
-      "component": "Twist, Doane twists at 16.45 / 16.5 / 16.55 GHz (TE2,3/TM2,3 cutoff 16.512 GHz)",
-      "card": "WP6 acceptance",
-      "reference_type": "independent method",
-      "reference": "the same twists with cutoff_factor 1 ... 3 (evanescent modes of all families) and +-0.05 GHz (truncation study)",
-      "data_file": "benchmarks/twist/data/near_cutoff_16p5.npz",
-      "tolerance": "reported",
-      "test": "tests/test_twist.py::test_near_cutoff_sensitivity_at_16_5_ghz; benchmarks/twist/near_cutoff_16p5.py",
-      "status": "reported in docs/reports/WP6.md"
-    },
-    {
-      "id": "wp6-e4-twist",
-      "component": "Twist, 20-inch 90 deg triangular twist in tall WR187 at 15 and 18 GHz (cosine at 18 GHz)",
-      "card": "CC2 / WP7b",
-      "reference_type": "COMSOL",
-      "reference": "COMSOL campaign 2 case E4 (benchmarks/comsol/CAMPAIGN_2.md)",
-      "data_file": "benchmarks/twist/data/e4_predictions.npz",
-      "tolerance": "CONVENTIONS section 8: COMSOL mesh error + 0.02 dB on TE1,0; 1e-4 of input power per converted mode",
-      "test": "benchmarks/twist/e4_predictions.py (predictions)",
-      "status": "waiting for data (Daniel runs COMSOL); post-processing benchmarks/comsol/campaign_2/compare_campaign_2.py ready (tested on synthetic exports); WP7b helical-FEM values shown alongside"
-    },
-    {
-      "id": "wp5-uniform-limit",
-      "card": "WP5 acceptance",
-      "component": "VariableGuide with constant a, b (kappa = 0 or 1/R), H and E plane, lossless and aluminium",
-      "reference": "Straight (wrmodes.gsm.straight, loss.straight_gsm_from_loss_matrix) and SmoothBend (atol 1e-12), propagating modes",
-      "reference_type": "independent method",
-      "data_file": "benchmarks/taper/data/checks.npz",
-      "tolerance": "1e-10",
-      "status": "passes (max 5.3e-13); with evanescent port modes the lossy evanescent diagonal differs by the first-order impedance change kept by the V-I loss (docs/reports/WP5.md)",
-      "test": "tests/test_taper.py::test_uniform_limit_straight_lossless, ::test_uniform_limit_straight_lossy, ::test_uniform_limit_smooth_bend; benchmarks/taper/checks.py"
-    },
-    {
-      "id": "wp5-airy-bessel",
-      "card": "WP5 acceptance",
-      "component": "VariableGuide, single TE1,0 mode through cutoff and in a linear H-plane taper",
-      "reference": "exact solutions Ai/Bi (a = pi / sqrt(k^2 - g (z - z_c))) and sqrt(a) J_nu, Y_nu (T2 section 10, as docs/theory/T2/check_solver.py)",
-      "reference_type": "closed form",
-      "data_file": "benchmarks/taper/data/checks.npz",
-      "tolerance": "1e-8",
-      "status": "passes (5.0e-12 Airy, 9.9e-12 Bessel at atol 1e-11; 5.8e-7, 6.3e-7 at the default atol 1e-6)",
-      "test": "tests/test_taper.py::test_single_mode_through_cutoff_airy, ::test_single_mode_linear_taper_bessel"
-    },
-    {
-      "id": "wp5-total-reflection",
-      "card": "WP5 acceptance",
-      "component": "Taper, TE3,0 totally reflected at its cutoff plane (linear H-plane taper, a' = 0.028, 20 GHz)",
-      "reference": "turning-point (Airy) connection S22 = i exp(-2i int beta) (T2 section 8.5)",
-      "reference_type": "closed form",
-      "data_file": "benchmarks/taper/data/checks.npz",
-      "tolerance": "1 - |S22| <= 1e-4; phase within 0.02 rad",
-      "status": "passes (2.1e-5; 0.017 rad, 0.013-0.015 rad without B5')",
-      "test": "tests/test_taper.py::test_total_reflection_at_cutoff_plane"
-    },
-    {
-      "id": "wp5-t2b-table",
-      "card": "WP5 acceptance",
-      "component": "Taper, linear H-plane 22.86 -> 45 mm, b = 10.16 mm, 15 GHz, L = 0.1-0.8 m",
-      "reference": "T2b section 9 table (docs/theory/T2b/t2b_solver.py, M = 10, B5' with m_tail = 500)",
-      "reference_type": "independent method",
-      "data_file": "benchmarks/taper/data/t2b_table.npz",
-      "tolerance": "1e-4 absolute on S21(TE3,0 <- TE1,0) and |S11(TE1,0)|",
-      "status": "passes (max 4.8e-6 and 8.5e-6 at the default settings)",
-      "test": "tests/test_taper.py::test_t2b_small_slope_table; benchmarks/taper/t2b_table.py"
-    },
-    {
-      "id": "wp5-t2-prototype",
-      "card": "WP5 (cross-check)",
-      "component": "VariableGuide, a', b', u0', kappa together, families 0 and 2 with evanescent modes, 20 GHz",
-      "reference": "docs/theory/T2/vi_solver.py (T2 prototype, 160 x 2 Magnus slices); coefficients vs t2_coefficients.vi_matrix and t2b_formulas.T_matrix",
-      "reference_type": "independent method",
-      "data_file": null,
-      "tolerance": "1e-6 (GSM, prototype's slicing error); 1e-12 (coefficients)",
-      "status": "passes (7.9e-8; coefficients 5.5e-16)",
-      "test": "tests/test_taper.py::test_against_t2_prototype_solver (slow), ::test_vi_system_equals_t2_and_t2b_closed_forms"
-    },
-    {
-      "id": "wp5-staircase",
-      "card": "WP5 acceptance",
-      "component": "Taper (H-plane 22.86 -> 45 mm at 15 GHz; b 10.16 -> 5.08 mm at 35 GHz; L = 0.1 m)",
-      "reference": "staircase of WP4 Steps (parity-reduced mode matching) with uniform sections, extrapolated in the step count",
-      "reference_type": "independent method",
-      "data_file": "benchmarks/taper/data/staircase.npz, staircase_b_long.npz, staircase_b_1280.npz, staircase_h_640.npz, staircase_h_1280.npz",
-      "tolerance": "extrapolated difference <= 1e-4 in every propagating entry",
-      "status": "passes: H-plane 4.7e-4 raw at n = 1280, 2.4e-5 extrapolated (order 1.01); b-taper 8.6e-5 raw at n = 1280, 5.6e-5 extrapolated (docs/reports/WP5.md)",
-      "test": "benchmarks/taper/staircase.py; tests/test_taper.py::test_staircase_of_steps_approaches_taper (slow)"
-    },
-    {
-      "id": "wp5-butterweck-bottle",
-      "card": "WP5 acceptance (L1 items P5, P6)",
-      "component": "VariableGuide, 140 mm taper 3.10 x 1.55 -> 22.86 x 10.16 mm, 75 GHz, bottle (fitted) and linear width, linear height",
-      "reference": "Butterweck & de Ronde, Philips Tech. Rev. 29 (1968) p. 96: H10 -> H30 < -40 dB (bottle), about -18 dB (linear), measured, no uncertainty",
-      "reference_type": "literature",
-      "data_file": "benchmarks/taper/data/butterweck_bottle.npz, fit_bottle.npz",
-      "tolerance": "bottle below -40 dB; linear reported",
-      "status": "bottle -40.6 dB (fitted profile: not an independent check, see wrmodes.profiles.BottleProfile); linear -20.5 dB vs about -18 dB measured",
-      "test": "tests/test_taper.py::test_butterweck_bottle_vs_linear_family_zero; benchmarks/taper/butterweck_bottle.py"
-    },
-    {
-      "id": "wp5-butterweck-fig15",
-      "card": "WP5 acceptance (L1 items P8, P9)",
-      "component": "VariableGuide (E plane), strangled 90 deg E-plane bend 22.86 x 10.13 mm, b1 = 2 mm, r = 420 mm",
-      "reference": "Butterweck & de Ronde (1968) pp. 97-98, fig. 15: 'a few tenths of a decibel, mainly due to the wall losses in the flat guide'",
-      "reference_type": "literature",
-      "data_file": "benchmarks/taper/data/butterweck_fig15.npz",
-      "tolerance": "none (reported, not pass/fail)",
-      "status": "reported: 0.15-0.33 dB (aluminium, symmetric arc tapers, 40-75 GHz), 0.06-0.17 dB with a raised-cosine taper (mainly ohmic, as the paper says); asymmetric reading 0.5-1.5 dB (offset axis, rejected); geometry read from a sketch",
-      "test": "benchmarks/taper/butterweck_fig15.py"
-    },
-    {
-      "id": "wp5-comsol-e2",
-      "card": "CC2 / WP5",
-      "component": "Taper, linear H-plane 22.86 -> 45 mm, L = 0.1 and 0.2 m, 15 GHz",
-      "reference": "COMSOL campaign 2 case E2 (benchmarks/comsol/CAMPAIGN_2.md)",
-      "reference_type": "COMSOL",
-      "data_file": "benchmarks/taper/data/e2_predictions.npz (predictions)",
-      "tolerance": "COMSOL mesh-check error + 0.02 dB (CONVENTIONS.md section 8)",
-      "status": "predictions ready; waiting for data (Daniel runs COMSOL); post-processing compare_campaign_2.py ready",
-      "test": "WP7b benchmarks/comsol/campaign_2/compare_campaign_2.py"
-    },
-    {
-      "id": "wp5-comsol-e3",
-      "card": "CC2 / WP5",
-      "component": "StrangledBend(90, 0.05, 1.6e-3, 0.05, 'raised_cosine') in WR-90, 18 and 40 GHz, PEC and aluminium 3.774e7 S/m",
-      "reference": "COMSOL campaign 2 case E3 (benchmarks/comsol/CAMPAIGN_2.md)",
-      "reference_type": "COMSOL",
-      "data_file": "benchmarks/taper/data/e3_predictions.npz (predictions)",
-      "tolerance": "COMSOL mesh-check error + 0.02 dB; 1e-4 of the input power per converted mode",
-      "status": "predictions ready; waiting for data (Daniel runs COMSOL); post-processing compare_campaign_2.py ready",
-      "test": "WP7b; tests/test_taper.py::test_e3_predictions_regression (slow, regression)"
-    },
-    {
-      "id": "l1-butterweck1968-numbers",
-      "card": "L1 (D5); used by WP2, WP3b, WP5",
-      "component": "mode filters (lossy wall, resistive sheet, coupled-mode), tapers, strangled E-plane bend",
-      "reference_type": "literature",
-      "reference": "Butterweck, IEEE MTT-16 (1968) 274-281 (items B1-B11); Butterweck & de Ronde, Philips Tech. Rev. 29 (1968) 86-101 (items P1-P9): quoted numbers with sentence and page",
-      "data_file": "benchmarks/literature/butterweck1968_numbers.csv",
-      "tolerance": "as quoted (no stated uncertainty); the cards set the targets (WP2: 10 %, WP3b: 5 % of WP2)",
-      "test": "tests/test_literature_data.py (format); WP2: tests/test_loss.py filters; entries wp3b-butterweck-fem, wp5-butterweck-bottle, wp5-butterweck-fig15, wp7b-filter-impedance-walls",
-      "status": "data ready (L1); items B8, B9, P3 (lossy-wall filter) used by WP2, WP3b and WP7b; P5, P6, P8, P9 by WP5"
-    },
-    {
-      "id": "l1-ma1997-table1-csv",
-      "card": "L1 (D3); WP3, WP3b, WP4b",
-      "component": "H-plane mitered bend, Ma et al. staircase geometry",
-      "reference_type": "literature",
-      "reference": "Ma, Yamane & Yamashita (1997) Table 1, transcribed",
-      "data_file": "benchmarks/literature/ma1997_table1.csv",
-      "tolerance": "qualitative (Daniel, 11 Nov 2026): see entry wp3-ma1997-table1",
-      "test": "tests/test_literature_data.py (format)",
-      "status": "data ready (L1); qualitative"
-    },
-    {
-      "id": "l1-doane1989-transcription",
-      "card": "L1 (D7); used by T3, T3b, WP6",
-      "component": "Twist (eqs. 17-18, design rules)",
-      "reference_type": "literature",
-      "reference": "Doane & Anderson, Microwave J. 32(3) (1989) 153-160, eqs. and text transcribed",
-      "data_file": "docs/literature/doane1989.md",
-      "tolerance": "formulas (exact transcription)",
-      "test": "docs/theory/T3-twist-coupling.md section 6 (checks); entry wp6-doane-fig9 for the figure",
-      "status": "data ready (L1)"
-    },
-    {
-      "id": "wp7b-taper-fem",
-      "card": "WP7b item 1 (verifies WP5)",
-      "component": "Taper (H-plane linear 22.86 -> 45 mm, 15 GHz, L = 0.1, 0.2 m; E-plane raised cosine WR-90 -> 1.6 mm, 50 mm, 18-90 GHz) and StrangledBend (E3 geometry, 18-90 GHz)",
-      "reference_type": "independent method",
-      "reference": "2D modal-port FEM (fem2d.Coplanar2D, wave 1) on WP7b polygon outlines with circular-arc walls (benchmarks/validation_v2/ref_taper_fem.py)",
-      "data_file": "benchmarks/validation_v2/data/taper_fem_<case>.npz",
-      "tolerance": "0.01 dB on the main transmission; 1e-4 of the input power per converted mode (CONVENTIONS 8)",
-      "test": "benchmarks/validation_v2/compare_v2.py tapers; tests/adversarial/test_wp7b_references.py",
-      "status": "passes: WP5 within 2.3e-5 of the input power per converted mode and 2.2e-4 dB on TE1,0 (worst: 90 GHz); FEM reference errors <= 3e-5 in S (benchmarks/validation_v2/REPORT.md)"
-    },
-    {
-      "id": "wp7b-taper-staircase",
-      "card": "WP7b item 1 (verifies WP5)",
-      "component": "tapers of a and b, 3.10 x 1.55 -> 22.86 x 10.16 mm, 140 mm, 75 GHz: linear; bottle a(z) (lambda 3.5) with linear b(z)",
-      "reference_type": "independent method",
-      "reference": "staircase of WP4 mode-matching Steps (parity class), Richardson in 1/n (n = 400, 800), cutoff factors 2-4 (ref_taper_staircase.py)",
-      "data_file": "benchmarks/validation_v2/data/taper_staircase_<profile>.npz",
-      "tolerance": "0.01 dB on TE1,0; 1e-4 of the input power per converted mode",
-      "test": "benchmarks/validation_v2/compare_v2.py staircase",
-      "status": "passes: linear dP 8e-6, bottle dP 2.2e-5, dTE1,0 <= 4e-5 dB; staircase error 1.8e-5 / 4.6e-5"
-    },
-    {
-      "id": "wp7b-twist-helical-fem",
-      "card": "WP7b item 2 (verifies WP6)",
-      "component": "Twist: Doane & Anderson's 20-inch 90 deg twists in WR187 tall (constant, cosine, triangular; 15, 16.5, 18 GHz), 30 mm square guide (2a/lambda = 2.5, L = 5 and 20 lambda), strong twists in WR-90 (tau a = 0.1 at 15, 30 GHz; tau a = 0.5 at 30 GHz)",
-      "reference_type": "independent method",
-      "reference": "2D FEM eigenmodes in helical coordinates (Nedelec/Lagrange order 3), mode matching at the end planes, cascade of constant-rate sections for variable rates with Richardson in 1/n^2 (helical_fem.py, ref_twist.py); no T3/T3b coupled-mode matrix",
-      "data_file": "benchmarks/validation_v2/data/twist_<case>.npz",
-      "tolerance": "0.01 dB on TE1,0; 1e-4 of the input power per spurious mode",
-      "test": "benchmarks/validation_v2/compare_v2.py twists; benchmarks/validation_v2/compare_wf2.py twists; tests/adversarial/test_wp7b_references.py; tests/test_twist.py::test_default_against_helical_fem_reference",
-      "status": "met after WF2 (Twist internal list + quasi-static tail, defaults mode_factor 3 / 2): worst dP 9.0e-6 (constant), 1.2e-5 (cosine), 2.3e-5 (triangular), 6.1e-5 / 2.6e-6 (square 5 / 20 lambda), <= 1e-6 (tau a = 0.1); tau a = 0.5: 1.9e-4 at the default, 8e-5 / 2e-5 with mode_factor 4 / 6. Before WF2: docs/discrepancies/2026-11-15-wp7b-twist-truncation.md (Resolution)"
-    },
-    {
-      "id": "wp7b-miter-fem-sweep",
-      "card": "WP7b item 3 (verifies WP4b; FEM side WP3/WP3b)",
-      "component": "MiterMM and fem2d.Miter, 90 deg, H and E plane, d/a = 0.707, 0.8, 0.9, 1.0, WR-90, 10-90 GHz every 2 GHz plus 26.3, 52.5, 53, 53.5 GHz",
-      "reference_type": "independent method",
-      "reference": "2D FEM (fem2d.Coplanar2D) on WP7b miter outlines from CONVENTIONS 6, symmetric mesh, density 10 (mesh check 16) (ref_miter_fem.py)",
-      "data_file": "benchmarks/validation_v2/data/miter_fem_<plane>_d<d>.npz",
-      "tolerance": "0.01 dB on TE1,0 transmission; 1e-4 of the input power in every propagating entry (card WP4b)",
-      "test": "benchmarks/validation_v2/compare_v2.py miters; tests/adversarial/test_wp7b_references.py",
-      "status": "passes the card criterion at all 360 points (dTE1,0 <= 0.0018 dB, converted modes <= 9.9e-5); all-entries differences up to 7e-4 at chamfered E-plane points limited by the FEM reference's own accuracy (REPORT.md)"
-    },
-    {
-      "id": "wp7b-filter-impedance-walls",
-      "card": "WP7b item 4 (verifies WP3b with WP2)",
-      "component": "Coplanar2D(straight_outline, wall_impedance=250 ohm), Butterweck lossy-wall filter, 75 GHz, 15 cm",
-      "reference_type": "independent method",
-      "reference": "WP2 LossyWallFilter (exact LS^u modes), M = 160 (ref_filter.py)",
-      "data_file": "benchmarks/validation_v2/data/filter_lossywall_wp2.npz",
-      "tolerance": "5 % of the attenuation (dB) of every attenuated propagating mode (plan; card WP3b)",
-      "test": "benchmarks/validation_v2/compare_v2.py filter",
-      "status": "passes: -0.05 % on TE1,0-TE3,0, worst -1.07 % (TE1,5) over 94 attenuated modes (target 5 %)"
-    },
-    {
-      "id": "wp7b-evanescent-bend-miter",
-      "card": "WP7b item 5 (WP1 open issue)",
-      "component": "Line [SmoothBend (R = 2a, 10a; L = 0-2a), fem2d.Miter(90)] in WR-90, 20/40/60 GHz",
-      "reference_type": "independent method",
-      "reference": "one Coplanar2D domain containing arc and miter (ref_evanescent_bends.py); decomposition into bend-model and zero-distance cascade errors",
-      "data_file": "benchmarks/validation_v2/data/evanescent_bend_miter.npz",
-      "tolerance": "WF2: 2e-4 (R = 2a) and 3e-5 (R = 10a) of the input power over the propagating block, at cutoff_factor 3",
-      "test": "benchmarks/validation_v2/summarize_refs.py; benchmarks/validation_v2/compare_wf2.py bends; tests/test_bend_evanescent_fem.py (fem job)",
-      "status": "met after WF2 (SmoothBend couples evanescent modes through VariableGuide): <= 1.7e-4 (R = 2a), <= 2.5e-5 (R = 10a) at cutoff_factor 3; before WF2 2-4e-2 / 4-6e-3"
-    },
-    {
-      "id": "wp7b-marcuvitz-524a",
-      "card": "WP7b item 5 (WP4 open issue 2, L1 open issue 1)",
-      "component": "Marcuvitz Sec. 5.24a symmetric H-plane step, eqs. (1a)-(3a)",
-      "reference_type": "independent method",
-      "reference": "WP4 mode-matching Step converted to Marcuvitz's equivalent circuit; required N12 from the X11 and X22 equations (marcuvitz_n12.py)",
-      "data_file": "benchmarks/validation_v2/data/marcuvitz_524a.npz",
-      "tolerance": "Marcuvitz's stated 1 % (5 % at a/lambda = 1.5)",
-      "test": "benchmarks/validation_v2/summarize_refs.py",
-      "status": "misprint located: N12 brace -R1 - alpha^2 R2 (printed + alpha^2 R2); (1a) then within 0.2 % for a/lambda <= 1; (2a) within 1.1 % with lambda_g' in its denominator as well"
-    },
-    {
-      "id": "wp7b-campaign2-postprocess",
-      "card": "WP7b item 6 (CC2)",
-      "component": "COMSOL campaign 2 post-processing, cases E1-E5",
-      "reference_type": "COMSOL",
-      "reference": "benchmarks/comsol/CAMPAIGN_2.md",
-      "data_file": "benchmarks/comsol/campaign_2/raw/ (Daniel's exports, not yet run)",
-      "tolerance": "COMSOL mesh-check change + 0.02 dB; E4: + 1e-4 of the input power per output mode",
-      "test": "tests/adversarial/test_wp7b_campaign2.py (synthetic exports)",
-      "status": "script ready and tested; waiting for data"
-    },
-    {
-      "id": "wf2-smoothbend-propagating-bitwise",
-      "card": "WF2 item 2",
-      "component": "SmoothBend with propagating-mode bases (perfect and aluminium walls, H and E plane, sech and constant curvature, families separate and coupled; alone and in a Line)",
-      "reference_type": "closed form",
-      "reference": "frozen outputs of origin/main 7cb7cf1 (before WF2), tests/data/make_smoothbend_propagating.py",
-      "data_file": "tests/data/smoothbend_propagating.npz",
-      "tolerance": "bitwise equality",
-      "test": "tests/test_components.py::test_propagating_path_is_bitwise_unchanged",
-      "status": "met (14 GSMs bitwise equal)"
-    },
-    {
-      "id": "wf2-strangled-bend-port-bases",
-      "card": "WF2 item 3 (WP7b adversarial, WP5)",
-      "component": "StrangledBend in WR-90 at 60 GHz, 200 flat heights 1.5-2.6 mm; Taper port 2",
-      "reference_type": "closed form",
-      "reference": "CONVENTIONS.md section 3: both ports are the same guide, so basis2 == basis1 (same ordered modes)",
-      "data_file": "benchmarks/validation_v2/data/compare_wf2_ports.json",
-      "tolerance": "exact equality of the bases",
-      "test": "tests/adversarial/test_wp7b_adversarial.py::test_strangled_bend_port_bases_are_equal; tests/test_taper.py::test_port_bases_built_from_the_given_end_guides",
-      "status": "met after WF2 (0 of 200 differ; 25 before): docs/discrepancies/2026-11-15-wp7b-strangled-bend-port-basis-order.md (Resolution)"
-    },
-    {
-      "id": "gateb-comsol-e1",
-      "component": "WP3b fem2d.Miter and WP4b MiterMM, WR-90 E-plane 90 deg miters, plain and d/h = 0.87, 8-12.4, 24, 36 GHz",
-      "card": "Gate B, COMSOL campaign 2 (benchmarks/comsol/CAMPAIGN_2.md)",
-      "reference_type": "COMSOL",
-      "reference": "benchmarks/comsol/campaign_2/java/ (GUI models by Daniel), raw/ exports",
-      "data_file": "benchmarks/comsol/campaign_2/raw/",
-      "tolerance": "COMSOL mesh-check change + 0.02 dB (main transmission); mesh-check change + COMSOL power-balance error + 1e-4 per converted mode (E4)",
-      "test": "benchmarks/comsol/campaign_2/compare_campaign_2.py",
-      "status": "pass: 28 points, FEM and MM within 0.0001-0.0078 dB of the fine mesh (0.019 dB at 24 GHz, d/h = 0.87, allowed 0.047) (16 Nov 2026)"
-    },
-    {
-      "id": "gateb-comsol-e2",
-      "component": "WP5 Taper, linear H-plane 22.86 -> 45 mm, L = 0.1 and 0.2 m, 15 GHz (TE30 through cutoff)",
-      "card": "Gate B, COMSOL campaign 2 (benchmarks/comsol/CAMPAIGN_2.md)",
-      "reference_type": "COMSOL",
-      "reference": "benchmarks/comsol/campaign_2/java/ (GUI models by Daniel), raw/ exports",
-      "data_file": "benchmarks/comsol/campaign_2/raw/",
-      "tolerance": "COMSOL mesh-check change + 0.02 dB (main transmission); mesh-check change + COMSOL power-balance error + 1e-4 per converted mode (E4)",
-      "test": "benchmarks/comsol/campaign_2/compare_campaign_2.py",
-      "status": "pass: TE10 within 0.0000 dB, TE30 power within 1.2e-6 (16 Nov 2026)"
-    },
-    {
-      "id": "gateb-comsol-e3",
-      "component": "WP5 StrangledBend, WR-90 -> 1.6 mm raised-cosine 50 mm tapers, 90 deg E-plane arc R = 50 mm, PEC and aluminium 3.774e7 S/m, 18 and 40 GHz",
-      "card": "Gate B, COMSOL campaign 2 (benchmarks/comsol/CAMPAIGN_2.md)",
-      "reference_type": "COMSOL",
-      "reference": "benchmarks/comsol/campaign_2/java/ (GUI models by Daniel), raw/ exports",
-      "data_file": "benchmarks/comsol/campaign_2/raw/",
-      "tolerance": "COMSOL mesh-check change + 0.02 dB (main transmission); mesh-check change + COMSOL power-balance error + 1e-4 per converted mode (E4)",
-      "test": "benchmarks/comsol/campaign_2/compare_campaign_2.py",
-      "status": "pass: within 0.0007 dB (PEC) and 0.0033 dB (aluminium) (16 Nov 2026)"
-    },
-    {
-      "id": "gateb-comsol-e4",
-      "component": "WP6/WF2 Twist, Doane & Anderson 20-inch 90 deg twists in tall WR187, triangular (15-18 GHz, mesh check) and cosine, every propagating mode ported",
-      "card": "Gate B, COMSOL campaign 2 (benchmarks/comsol/CAMPAIGN_2.md)",
-      "reference_type": "COMSOL",
-      "reference": "benchmarks/comsol/campaign_2/java/ (GUI models by Daniel), raw/ exports",
-      "data_file": "benchmarks/comsol/campaign_2/raw/",
-      "tolerance": "COMSOL mesh-check change + 0.02 dB (main transmission); mesh-check change + COMSOL power-balance error + 1e-4 per converted mode (E4)",
-      "test": "benchmarks/comsol/campaign_2/compare_campaign_2.py",
-      "status": "pass: every spurious mode within 2.3e-5 of the input power (triangular, 18 GHz: TE1,2 0.3764 % COMSOL fine vs 0.3741 % wrmodes vs 0.3761 % WP7b); main mode within COMSOL's power-balance error (16 Nov 2026)"
-    },
-    {
-      "id": "gateb-comsol-e5",
-      "component": "WP3b chained_miter_outline and Line cascade, two 45 deg optical H-plane miters, s = 2a and 3a, 30 and 56 GHz",
-      "card": "Gate B, COMSOL campaign 2 (benchmarks/comsol/CAMPAIGN_2.md)",
-      "reference_type": "COMSOL",
-      "reference": "benchmarks/comsol/campaign_2/java/ (GUI models by Daniel), raw/ exports",
-      "data_file": "benchmarks/comsol/campaign_2/raw/",
-      "tolerance": "COMSOL mesh-check change + 0.02 dB (main transmission); mesh-check change + COMSOL power-balance error + 1e-4 per converted mode (E4)",
-      "test": "benchmarks/comsol/campaign_2/compare_campaign_2.py",
-      "status": "pass: single domain within 0.0008 dB; cascade within 0.0012 dB at cf 1.5 and 0.0002 dB at cf 3 after WF3 (the pre-WF3 cascade with evanescent modes failed: docs/discrepancies/2026-11-15-gateb-45deg-miter-cascade-evanescent.md, resolved by WF3) (16 Nov 2026)"
-    },
-    {
-      "id": "wf3-buried-planes",
-      "component": "Line cascade [Miter(45), Straight(s), Miter(45)] (reference planes a inside the optical mirrors), WR-90, s = 2a, 3a, 30 and 56 GHz, cutoff factor 1-3",
-      "card": "WF3 acceptance",
-      "reference_type": "independent method",
-      "reference": "single FEM domain of the same geometry (fem2d.chained_miter_outline, COMSOL campaign 2 case E5)",
-      "data_file": "benchmarks/fem2d/data/buried_planes_d6_absorb.npz (also _d6_keep, _d12_30GHz_absorb, _d16_30GHz_absorb, _d12_56GHz_absorb)",
-      "tolerance": "1e-4 of the input power for every output mode of the TE1,0 column; no LinAlgError; passive",
-      "test": "tests/test_fem2d.py::test_45_degree_optical_miters_cascade_like_the_single_domain, ::test_45_degree_optical_miters_cascade_at_cutoff_factor_3 (slow), ::test_passivity_check_fires_on_the_cascade_before_wf3; benchmarks/fem2d/buried_planes.py",
-      "status": "s = 3a: pass at every cf (<= 1.2e-5 at 12/lambda); s = 2a: pass from cf 1.5 (30 GHz) / 2 (56 GHz), not met at cf 1.0 and 1.2 (truncation of a zero-length junction, mesh independent); see docs/reports/WF3.md"
-    }
-  ]
+ "description": "Benchmark registry of wrmodes 1.0 (CONVENTIONS.md section 9). One entry per benchmark: what it checks, the reference and its type, the data file, the tolerance and the test or script that applies it. Created by WP7 (wave 1). Fields (WF4): data_file (list of files that exist), test (pytest node ids), script (scripts that exist), status (one of the vocabulary below), note (free text, with the earlier status text), and optionally files_note / test_note (the earlier free text). benchmarks/check_registry.py checks them (CI).",
+ "status_vocabulary": {
+  "pass": "the reference is applied and the criterion (tolerance) is met",
+  "not met": "the criterion is not met (a documented discrepancy)",
+  "qualitative": "compared and reported, not a pass/fail criterion (decided by Daniel or the card)",
+  "superseded": "replaced by another entry, named in the note",
+  "reference": "reference data, a transcription or a study used by other entries or by the documentation; no criterion of its own"
+ },
+ "reference_types": [
+  "independent method",
+  "COMSOL",
+  "literature",
+  "closed form"
+ ],
+ "entries": [
+  {
+   "id": "wp7-line-v01",
+   "component": "WP7 global-ODE line reference",
+   "card": "WP7",
+   "reference_type": "independent method",
+   "reference": "wrmodes 0.1 transfer-matrix solver (atol 1e-10, error_control='full'), product of segment transfer matrices",
+   "data_file": [
+    "benchmarks/validation_v1/data/line_reference.npz"
+   ],
+   "test": [
+    "tests/adversarial/test_wp7_references.py::test_stored_line_reference_agrees_with_v01",
+    "tests/adversarial/test_wp7_references.py::test_line_reference_matches_v01_at_20GHz"
+   ],
+   "script": [],
+   "tolerance": "1e-9 of input power, every output mode (WP7 acceptance)",
+   "status": "pass",
+   "note": "self-check, passes (largest difference 3.2e-11)",
+   "test_note": "tests/adversarial/test_wp7_references.py::test_stored_line_reference_agrees_with_v01, ::test_line_reference_matches_v01_at_20GHz"
+  },
+  {
+   "id": "wp1-line-same-plane",
+   "component": "WP1 Line (Straight + SmoothBend, H plane)",
+   "card": "WP1 acceptance: WP7's global-ODE reference for three lines",
+   "reference_type": "independent method",
+   "reference": "WP7 global-ODE reference (benchmarks/validation_v1/ref_line.py), line 'same-plane', 20/40/60/90 GHz",
+   "data_file": [
+    "benchmarks/validation_v1/data/line_reference.npz"
+   ],
+   "test": [
+    "tests/adversarial/test_wp1_adversarial.py::test_lines_match_global_ode_reference[same-plane]"
+   ],
+   "script": [
+    "benchmarks/validation_v1/compare_wp1_lines.py"
+   ],
+   "tolerance": "1e-6 of input power for every output mode (|S|^2 of S11, S21, S12, S22)",
+   "status": "pass",
+   "note": "WF4: the test passes (WP1 line within the reference tolerance). Before WF4: reference ready"
+  },
+  {
+   "id": "wp1-line-mixed-planes",
+   "component": "WP1 Line with FrameChange (H and E bends)",
+   "card": "WP1 acceptance: WP7's global-ODE reference for three lines",
+   "reference_type": "independent method",
+   "reference": "WP7 global-ODE reference with independently derived frame relabelling (ref_frames.py), line 'mixed-planes', 20/30/40 GHz",
+   "data_file": [
+    "benchmarks/validation_v1/data/line_reference.npz"
+   ],
+   "test": [
+    "tests/adversarial/test_wp1_adversarial.py::test_lines_match_global_ode_reference[mixed-planes]",
+    "tests/adversarial/test_wp1_adversarial.py::test_mixed_plane_line_at_40GHz_all_families_coupled"
+   ],
+   "script": [
+    "benchmarks/validation_v1/compare_wp1_lines.py"
+   ],
+   "tolerance": "1e-6 of input power for every output mode",
+   "status": "pass",
+   "note": "WF4: the tests pass. Before WF4: reference ready",
+   "test_note": "tests/adversarial/test_wp1_adversarial.py::test_lines_match_global_ode_reference[mixed-planes], ::test_mixed_plane_line_at_40GHz_all_families_coupled; compare_wp1_lines.py"
+  },
+  {
+   "id": "wp1-line-long-straights",
+   "component": "WP1 Line with 10 m straights (paper section 7 sequence)",
+   "card": "WP1 acceptance: WP7's global-ODE reference for three lines",
+   "reference_type": "independent method",
+   "reference": "WP7 global-ODE reference, line 'long-straights' (21.4 m), 20/50/90 GHz",
+   "data_file": [
+    "benchmarks/validation_v1/data/line_reference.npz"
+   ],
+   "test": [
+    "tests/adversarial/test_wp1_adversarial.py::test_lines_match_global_ode_reference[long-straights]",
+    "tests/adversarial/test_wp1_adversarial.py::test_long_line_equals_reference_at_90GHz"
+   ],
+   "script": [
+    "benchmarks/validation_v1/compare_wp1_lines.py"
+   ],
+   "tolerance": "1e-6 of input power for every output mode",
+   "status": "pass",
+   "note": "WF4: the tests pass. Before WF4: reference ready",
+   "test_note": "tests/adversarial/test_wp1_adversarial.py::test_lines_match_global_ode_reference[long-straights], ::test_long_line_equals_reference_at_90GHz; compare_wp1_lines.py"
+  },
+  {
+   "id": "wp1-frame-change",
+   "component": "WP1 FrameChange",
+   "card": "WP1 acceptance: FrameChange is a signed permutation; H -> E -> H is the identity",
+   "reference_type": "closed form",
+   "reference": "relabelling derived from the potentials (ref_frames.py docstring), checked against quadrature and wrmodes.modes.eplane_frame_signs",
+   "data_file": [],
+   "test": [
+    "tests/adversarial/test_wp1_adversarial.py::test_frame_change_is_the_derived_signed_permutation",
+    "tests/adversarial/test_wp1_adversarial.py::test_square_guide_frame_tags_prevent_silent_joins",
+    "tests/adversarial/test_wp1_adversarial.py::test_square_guide_mixed_line_matches_reference"
+   ],
+   "script": [],
+   "tolerance": "exact",
+   "status": "pass",
+   "note": "WF4: the tests pass. Before WF4: reference ready",
+   "test_note": "tests/adversarial/test_wp1_adversarial.py::test_frame_change_is_the_derived_signed_permutation, ::test_square_guide_frame_tags_prevent_silent_joins, ::test_square_guide_mixed_line_matches_reference"
+  },
+  {
+   "id": "wp7-loss-textbook",
+   "component": "WP7 surface-integral loss reference",
+   "card": "WP7",
+   "reference_type": "closed form",
+   "reference": "classical TE_mn / TM_mn attenuation formulas (Collin; Pozar eq. 3.96 for TE10)",
+   "data_file": [
+    "benchmarks/validation_v1/data/loss_reference.npz"
+   ],
+   "test": [
+    "tests/adversarial/test_wp7_references.py::test_loss_reference_equals_textbook",
+    "tests/adversarial/test_wp7_references.py::test_wp2_card_numbers_for_te10_in_aluminium"
+   ],
+   "script": [],
+   "tolerance": "1e-9 relative (observed 2e-12)",
+   "status": "pass",
+   "note": "self-check, passes",
+   "test_note": "tests/adversarial/test_wp7_references.py::test_loss_reference_equals_textbook, ::test_wp2_card_numbers_for_te10_in_aluminium"
+  },
+  {
+   "id": "wp2-alpha-surface-integral",
+   "component": "WP2 per-mode attenuation",
+   "card": "WP2 acceptance: lossy straight vs WP7 surface-integral reference",
+   "reference_type": "independent method",
+   "reference": "P_loss/(2P) with P_loss = (1/2) R_s oint |H_tan|^2 dl from transverse_field (ref_loss.py); WR-90 and 20 mm square, aluminium and copper; degenerate groups by eigenvalues of the wall-loss matrix",
+   "data_file": [
+    "benchmarks/validation_v1/data/loss_reference.npz"
+   ],
+   "test": [
+    "tests/adversarial/test_wp2_adversarial.py::test_alpha_of_all_129_modes_at_90GHz",
+    "tests/adversarial/test_wp2_adversarial.py::test_alpha_just_above_cutoff"
+   ],
+   "script": [
+    "benchmarks/validation_v1/compare_wp2_loss.py"
+   ],
+   "tolerance": "1e-6 relative on alpha for every mode",
+   "status": "pass",
+   "note": "passes against WP2 (2e-12, coordinator)",
+   "test_note": "tests/adversarial/test_wp2_adversarial.py::test_alpha_of_all_129_modes_at_90GHz, ::test_alpha_just_above_cutoff; compare_wp2_loss.py"
+  },
+  {
+   "id": "wp2-lossy-straight-coupled",
+   "component": "WP2 lossy Straight (all propagating modes)",
+   "card": "WP2 acceptance: lossy straight vs WP7 reference",
+   "reference_type": "independent method",
+   "reference": "WP7 first-order coupled system (own derivation = T1 B3-B4: all pairs through the walls, forward and backward blocks), solved by eigenmodes (ref_loss.first_order_matrices, straight_gsm_blocks); physics checked against exact Leontovich modes with one pair of impedance walls (ref_loss.one_pair_comparison)",
+   "data_file": [],
+   "test": [
+    "tests/adversarial/test_wp2_adversarial.py::test_20m_lossy_straight_at_90GHz",
+    "tests/adversarial/test_wp2_adversarial.py::test_square_guide_degenerate_groups_in_a_lossy_straight"
+   ],
+   "script": [
+    "benchmarks/validation_v1/compare_wp2_loss.py",
+    "tests/adversarial/test_wp7_references.py"
+   ],
+   "tolerance": "1e-8 absolute on S11 and S21 (implementation agreement); physical accuracy of the first-order model vs exact: 1e-3 (fc/f < 0.9), 2.5e-3 near cutoff",
+   "status": "pass",
+   "note": "WF4: the tests pass. Before WF4: reference ready; replaces the group-block comparison (docs/discrepancies/2026-11-08-wp2-wp7-straight-attenuation.md)",
+   "test_note": "tests/adversarial/test_wp2_adversarial.py::test_20m_lossy_straight_at_90GHz, ::test_square_guide_degenerate_groups_in_a_lossy_straight; compare_wp2_loss.py; self-checks in test_wp7_references.py"
+  },
+  {
+   "id": "wp3-ma1997-table1",
+   "component": "WP3 Miter (H plane, diagonal miter c/a = 1)",
+   "card": "WP3 acceptance: H-plane miter vs Ma et al. 1997",
+   "reference_type": "literature",
+   "reference": "Ma, Yamane & Yamashita, Electron. Commun. Jpn. 2, 80(5) (1997), Table 1, p. 5: 15.799 x 7.899 mm, 16 GHz, |S11| = 0.2622, |S21| = 0.9650",
+   "data_file": [],
+   "test": [
+    "tests/adversarial/test_wp3_adversarial.py::test_h_miter_against_ma1997_table1"
+   ],
+   "script": [
+    "benchmarks/validation_v1/compare_literature.py",
+    "benchmarks/fem2d/ma1997.py"
+   ],
+   "tolerance": "none (qualitative); the disagreement is reported",
+   "status": "qualitative",
+   "note": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md. WP3b: Ma's own staircase (60 steps, division method (a)) gives |S11| = 0.2811 (FEM), not 0.2622: the staircase moves |S11| away from Ma's value; 50/60-step staircases converge to the exact 0.2778 from above (docs/reports/WP3b.md)",
+   "test_note": "tests/adversarial/test_wp3_adversarial.py::test_h_miter_against_ma1997_table1; compare_literature.py; benchmarks/fem2d/ma1997.py (WP3b)"
+  },
+  {
+   "id": "wp3-ma1997-figures",
+   "component": "WP3 Miter (H plane)",
+   "card": "WP3 acceptance: H-plane miter vs Ma et al. 1997 (D3 of L1)",
+   "reference_type": "literature",
+   "reference": "Ma et al. (1997) Figs. 5, 6, 8, 9, 11 (figure reading in ref_literature.FIGURES)",
+   "data_file": [
+    "benchmarks/literature/ma1997_fig<k>.csv",
+    "benchmarks/fem2d/data/ma1997.npz"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/fem2d/ma1997.py",
+    "benchmarks/validation_v1/compare_literature.py"
+   ],
+   "tolerance": "the uncertainty column of each point",
+   "status": "not met",
+   "note": "WF4 final: pass for Fig. 5, Fig. 6 10 steps and BEM, Fig. 8 (a)/(b)/(c), Fig. 11 c/a = 0; qualitative (Daniel, 11/12 Nov 2026) for Fig. 6 at 40 and 60 steps, Fig. 9, Fig. 11 c/a = 1.0 and the chamfered Fig. 11 curves; not met: Fig. 6 20 steps (rms z 1.69, -0.39 dB), which the resolution of docs/discrepancies/2026-11-12-reiter-and-ma-many-step-miters.md keeps pass/fail. Before WF4: WP3b (FEM, Ma's staircase geometries modelled): pass for Fig. 5 (rms z 0.24, BEM 0.62), Fig. 6 10 steps (0.20) and BEM (0.57), Fig. 8 20 steps (a)/(b)/(c) (0.64/0.49/0.62), Fig. 11 c/a = 0 (0.19); not met for the c/a = 1 curves with 40-60 steps (Fig. 6 rms z 2.37, Fig. 9 1.28, Fig. 11 c/a = 1.0 2.05; 0.3-0.5 dB, the Table 1 discrepancy; proposed qualitative) and Fig. 6 20 steps (1.69). Fig. 11 chamfered curves qualitative (Daniel, 11 Nov 2026): rms z 17-31 (c/a = 0.60-0.70), 1.29 (c/a = 1.30) | qualitative (Daniel, 12 Nov 2026) for: Fig. 6 at 40 and 60 steps, Fig. 9, Fig. 11 c/a = 1.0; see docs/discrepancies/2026-11-12-reiter-and-ma-many-step-miters.md",
+   "files_note": "benchmarks/literature/ma1997_fig<k>.csv (L1, D3); results benchmarks/fem2d/data/ma1997.npz",
+   "test_note": "benchmarks/fem2d/ma1997.py (WP3b; data benchmarks/fem2d/data/ma1997.npz); benchmarks/validation_v1/compare_literature.py"
+  },
+  {
+   "id": "wave2-alessandri1994",
+   "component": "E-plane mitered bends (WP3 smoke test in wave 1, full in wave 2)",
+   "card": "L1 D1; wave 2",
+   "reference_type": "literature",
+   "reference": "Alessandri, Mongiardo & Sorrentino, IEEE MGWL 4(12) (1994), Figs. 4-5; the paper does not state the guide (b/a needed)",
+   "data_file": [
+    "benchmarks/literature/alessandri1994_fig4.csv",
+    "benchmarks/literature/alessandri1994_fig5.csv"
+   ],
+   "test": [
+    "tests/test_modematch_miter.py::test_alessandri_eplane_b_over_a_half",
+    "tests/test_modematch_miter.py::test_alessandri_rules_out_wr90_ratio"
+   ],
+   "script": [
+    "benchmarks/validation_v1/compare_literature.py",
+    "benchmarks/modematch/miter_literature.py",
+    "benchmarks/fem2d/alessandri1994.py"
+   ],
+   "tolerance": "the uncertainty column of each point",
+   "status": "pass",
+   "note": "WF4 final: pass with b/a = 0.5 (the ratio that reproduces every curve; WR-90 b/a = 0.444 ruled out by test_alessandri_rules_out_wr90_ratio); d/b = 0.85 and 0.83 have outliers at their zeros (<= 3e-3 in |S11|). Before WF4: waiting for data (L1) and for the guide ratio; WP4b: b/a = 0.5 fits (rms z 0.2-0.9 for d/b = 1.41, 0.707, 0.9, 0.87); WR-90 b/a = 0.444 does not (rms z 5-25); deep curves d/b = 0.85, 0.83 within 3e-3 in |S11| near their zeros; crosses of ref. [7] for d/b = 0.87 lie 1-6 dB below (docs/reports/WP4b.md). WP3b (FEM): b/a = 0.5 rms z 0.30/0.23/0.93 (Fig. 4 d/b = 1.41/0.707/0.87), 0.46/0.91/1.63/2.26 (Fig. 5 d/b = 0.9/0.87/0.85/0.83; outliers at the zeros of 0.85, 0.83, as WP4b); b/a = 0.444: rms z 5.4-25 (rejected)",
+   "files_note": "benchmarks/literature/alessandri1994_fig4.csv, _fig5.csv (L1, D1)",
+   "test_note": "benchmarks/validation_v1/compare_literature.py --b-over-a <ratio>; tests/test_modematch_miter.py::test_alessandri_eplane_b_over_a_half, test_alessandri_rules_out_wr90_ratio; benchmarks/modematch/miter_literature.py (WP4b); benchmarks/fem2d/alessandri1994.py (WP3b)"
+  },
+  {
+   "id": "wp3-comsol-c1",
+   "component": "WP3 Miter, WR-90 H-plane plain 90 deg miter, 18-90 GHz",
+   "card": "WP3 (verified by WP7 COMSOL at Gate A)",
+   "reference_type": "COMSOL",
+   "reference": "benchmarks/comsol/WP7_C1_h_miter.java, field projection by benchmarks/comsol/wp7_postprocess.py",
+   "data_file": [],
+   "test": [],
+   "script": [
+    "benchmarks/validation_v1/compare_comsol.py"
+   ],
+   "tolerance": "0.02 dB on TE10 transmission (CONVENTIONS.md 8); complex column and converted powers reported",
+   "status": "superseded",
+   "note": "superseded by gatea-comsol-c1 and gatea-comsol-c1b (the WP7 Java model and its data file were never run). Before WF4: superseded: the GUI campaign 1 (benchmarks/comsol/campaign_1/, Gate A, 11 Nov 2026) replaced the WP7 Java models",
+   "files_note": "benchmarks/comsol/data/WP7_C1.npz"
+  },
+  {
+   "id": "wp2-comsol-c2",
+   "component": "WP1 SmoothBend + WP2 wall loss: 60 cm 60 deg sech H bend, aluminium WR-90",
+   "card": "WP2 (Gate A COMSOL campaign)",
+   "reference_type": "COMSOL",
+   "reference": "benchmarks/comsol/WP7_C2_sech_bend_aluminium.java (impedance boundary), 10 frequencies 18-38 GHz",
+   "data_file": [],
+   "test": [],
+   "script": [
+    "benchmarks/validation_v1/compare_comsol.py"
+   ],
+   "tolerance": "0.02 dB on TE10 transmission",
+   "status": "superseded",
+   "note": "superseded by gatea-comsol-c2 (the WP7 Java model and its data file were never run). Before WF4: superseded: the GUI campaign 1 (benchmarks/comsol/campaign_1/, Gate A, 11 Nov 2026) replaced the WP7 Java models",
+   "files_note": "benchmarks/comsol/data/WP7_C2.npz"
+  },
+  {
+   "id": "wp4-comsol-c3",
+   "component": "WP4 Step, WR-90 <-> 22.86 x 1.6 mm (strangling step)",
+   "card": "WP4 (Gate A COMSOL campaign)",
+   "reference_type": "COMSOL",
+   "reference": "benchmarks/comsol/WP7_C3_strangling_step.java, both excitations, 5 frequencies",
+   "data_file": [],
+   "test": [],
+   "script": [
+    "benchmarks/validation_v1/compare_comsol.py"
+   ],
+   "tolerance": "0.02 dB on TE10 transmission",
+   "status": "superseded",
+   "note": "superseded by gatea-comsol-c3a and gatea-comsol-c3b (the WP7 Java model and its data file were never run). Before WF4: superseded: the GUI campaign 1 (benchmarks/comsol/campaign_1/, Gate A, 11 Nov 2026) replaced the WP7 Java models",
+   "files_note": "benchmarks/comsol/data/WP7_C3.npz"
+  },
+  {
+   "id": "wp4-marcuvitz-eplane-step",
+   "component": "WP4 Step, symmetric E-plane step (change in height)",
+   "card": "WP4 acceptance: single-mode E-plane and H-plane steps vs Marcuvitz (D6 of L1)",
+   "reference_type": "literature",
+   "reference": "Marcuvitz, Waveguide Handbook (1951), sec. 5.26a eqs. (1), (2a), pp. 307-308 (implemented in ref_literature.marcuvitz_eplane_step, checked against its asymptotic forms 2c, 2d)",
+   "data_file": [],
+   "test": [
+    "tests/adversarial/test_wp4_adversarial.py::test_symmetric_eplane_step_against_marcuvitz"
+   ],
+   "script": [
+    "benchmarks/validation_v1/compare_literature.py"
+   ],
+   "tolerance": "|S11| inside the band given by +-1 % on B (Marcuvitz's stated accuracy for b/lambda_g < 1)",
+   "status": "pass",
+   "note": "WF4 final: the test passes (E-plane symmetric step against Marcuvitz sec. 5.26a). Before WF4: reference ready",
+   "test_note": "tests/adversarial/test_wp4_adversarial.py::test_symmetric_eplane_step_against_marcuvitz; compare_literature.py"
+  },
+  {
+   "id": "wp4-marcuvitz-hplane-step",
+   "component": "WP4 Step, symmetric H-plane step (change in width)",
+   "card": "WP4 acceptance: single-mode H-plane steps vs Marcuvitz (D6 of L1)",
+   "reference_type": "literature",
+   "reference": "Marcuvitz (1951) sec. 5.24a (pp. 296-297), to be taken from L1's transcription docs/literature/marcuvitz-steps-and-bends.md",
+   "data_file": [
+    "docs/literature/marcuvitz-steps-and-bends.md"
+   ],
+   "test": [],
+   "script": [],
+   "tolerance": "Marcuvitz's stated accuracy",
+   "status": "superseded",
+   "note": "superseded by wp7b-marcuvitz-524a (Marcuvitz sec. 5.24a with the N12 misprint located) and wp4-review-fd-hplane-step (independent FD values of the WP4 review); L1 D6 transcribed only sec. 5.26a for WP7. Before WF4: not done (waiting for L1 D6)",
+   "files_note": "docs/literature/marcuvitz-steps-and-bends.md (L1, D6)",
+   "test_note": "not written: WP7 transcribed only sec. 5.26a; compare_literature.compare_marcuvitz takes any |S11| model"
+  },
+  {
+   "id": "wp7-comsol-postprocess",
+   "component": "COMSOL post-processing (projection, frames, de-embedding, file format)",
+   "card": "WP7",
+   "reference_type": "closed form",
+   "reference": "synthetic fields from planted modal amplitudes, C1 and C3 geometries",
+   "data_file": [],
+   "test": [
+    "tests/adversarial/test_wp7_comsol_postprocess.py"
+   ],
+   "script": [],
+   "tolerance": "1e-9",
+   "status": "pass",
+   "note": "self-check, passes"
+  },
+  {
+   "id": "wave2-alimenti1994-fig2",
+   "component": "H-plane 90 deg corner, unmitered (d/a = sqrt(2))",
+   "card": "L2; used by WP3b, WP4b, WP7b",
+   "reference_type": "literature",
+   "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 2: |S11| (dB) vs f/fc, MMFD line (MM coincides) and 10 MM dots",
+   "data_file": [
+    "benchmarks/literature/alimenti1994_fig2_mmfd.csv",
+    "benchmarks/literature/alimenti1994_fig2_mm.csv"
+   ],
+   "test": [
+    "tests/test_modematch_miter.py::test_alimenti_unmitered_and_optical_mirror"
+   ],
+   "script": [
+    "benchmarks/fem2d/alimenti1994.py"
+   ],
+   "tolerance": "the uncertainty column of each point",
+   "status": "pass",
+   "note": "reference ready (L2); agrees with Ma et al. 1997 Fig. 11 c/a = 0 to 0.14 dB rms; WP4b: agrees (MMFD line rms z 0.76, MM dots 1.12); WP3b (FEM): agrees (MMFD rms z 0.76, MM dots 1.12)",
+   "files_note": "benchmarks/literature/alimenti1994_fig2_mmfd.csv, alimenti1994_fig2_mm.csv (L2)",
+   "test_note": "tests/test_modematch_miter.py::test_alimenti_unmitered_and_optical_mirror (WP4b); benchmarks/fem2d/alimenti1994.py (WP3b)"
+  },
+  {
+   "id": "wave2-alimenti1994-fig3",
+   "component": "H-plane 90 deg optical-mirror miter (t/a = 0, d/a = 1/sqrt(2))",
+   "card": "L2; used by WP3b, WP4b, WP7b",
+   "reference_type": "literature",
+   "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 3: |S11| (dB) vs f/fc, MM line (MMFD coincides to f/fc 1.93) and 10 MMFD diamonds",
+   "data_file": [
+    "benchmarks/literature/alimenti1994_fig3_mm.csv",
+    "benchmarks/literature/alimenti1994_fig3_mmfd.csv"
+   ],
+   "test": [
+    "tests/test_modematch_miter.py::test_alimenti_unmitered_and_optical_mirror"
+   ],
+   "script": [
+    "benchmarks/fem2d/alimenti1994.py"
+   ],
+   "tolerance": "the uncertainty column of each point",
+   "status": "pass",
+   "note": "reference ready (L2); lies 0.5-1.0 dB above Ma et al. 1997 Fig. 11 c/a = 1.0 (same geometry): a difference between the papers, see docs/reports/L2.md; WP4b: agrees (MM line rms z 0.71, mean -0.23 dB); WP4b and an independent FD solution give |S11| = 0.2778 at f/fc = 1.686 (Ma Table 1: 0.2622, this figure: about 0.288); WP3b (FEM): agrees (MM rms z 0.71, MMFD diamonds 0.95)",
+   "files_note": "benchmarks/literature/alimenti1994_fig3_mm.csv, alimenti1994_fig3_mmfd.csv (L2)",
+   "test_note": "tests/test_modematch_miter.py::test_alimenti_unmitered_and_optical_mirror (WP4b); benchmarks/fem2d/alimenti1994.py (WP3b)"
+  },
+  {
+   "id": "wave2-alimenti1994-fig4",
+   "component": "H-plane 90 deg chamfered miter, t/a = 0.30, 0.34, 0.38 (d/a = (1 + t/a)/sqrt(2) = 0.919, 0.948, 0.976)",
+   "card": "L2; used by WP3b, WP4b, WP7b",
+   "reference_type": "literature",
+   "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 4: |S11| (dB) vs f/fc (MMFD)",
+   "data_file": [
+    "benchmarks/literature/alimenti1994_fig4_t030.csv",
+    "benchmarks/literature/alimenti1994_fig4_t034.csv",
+    "benchmarks/literature/alimenti1994_fig4_t038.csv"
+   ],
+   "test": [
+    "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented"
+   ],
+   "script": [
+    "benchmarks/fem2d/alimenti1994.py"
+   ],
+   "tolerance": "none (qualitative); the disagreement is reported",
+   "status": "qualitative",
+   "note": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md; WP3b (FEM, reported): rms z 5.1/7.6/12.4 for t/a = 0.30/0.34/0.38",
+   "files_note": "benchmarks/literature/alimenti1994_fig4_t030.csv, _t034.csv, _t038.csv (L2)",
+   "test_note": "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented (WP4b); benchmarks/fem2d/alimenti1994.py (WP3b)"
+  },
+  {
+   "id": "wave2-alimenti1994-fig5",
+   "component": "H-plane 90 deg chamfered miter, design chart t/a = 0.30-0.40",
+   "card": "L2; used by WP3b, WP4b, WP8a",
+   "reference_type": "literature",
+   "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 5: matching (zero) frequency f/fc and 30 dB bandwidth / fc vs t/a; bandwidth jumps at t/a = 0.3867 from 0.274 to 0.364",
+   "data_file": [
+    "benchmarks/literature/alimenti1994_fig5_matching_frequency.csv",
+    "benchmarks/literature/alimenti1994_fig5_bandwidth.csv"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/fem2d/alimenti1994.py"
+   ],
+   "tolerance": "none (qualitative); the disagreement is reported",
+   "status": "qualitative",
+   "note": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md; WP3b (FEM, reported): zeros 1.302 ... 1.757 (t/a 0.30 ... 0.40); the 30 dB band jumps between t/a = 0.386 and 0.390 (Alimenti 0.3867)",
+   "files_note": "benchmarks/literature/alimenti1994_fig5_matching_frequency.csv, alimenti1994_fig5_bandwidth.csv (L2)",
+   "test_note": "not tested (WP4b: matching frequencies at t/a = 0.30, 0.32 agree to 0.01, above 0.34 ours are 0.03-0.07 lower; docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md); benchmarks/fem2d/alimenti1994.py (WP3b)"
+  },
+  {
+   "id": "wave2-alimenti1994-fig6",
+   "component": "H-plane 90 deg chamfered miter, t/a = 0.386 (d/a = 0.980), widest 30 dB band",
+   "card": "L2; used by WP3b, WP4b, WP7b",
+   "reference_type": "literature",
+   "reference": "Alimenti, Mongiardo & Sorrentino, Proc. 24th EuMC (1994) 289-293, Fig. 6: |S11| (dB) vs f/fc, MMFD and BCMM (Reiter & Arndt 1994) lines, 10 BCMM diamonds",
+   "data_file": [
+    "benchmarks/literature/alimenti1994_fig6_mmfd.csv",
+    "benchmarks/literature/alimenti1994_fig6_bcmm.csv"
+   ],
+   "test": [
+    "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented"
+   ],
+   "script": [
+    "benchmarks/fem2d/alimenti1994.py"
+   ],
+   "tolerance": "none (qualitative); the disagreement is reported",
+   "status": "qualitative",
+   "note": "qualitative (Daniel, 11 Nov 2026): not a pass/fail reference. The FEM (WP3), mode matching (WP4b) and finite differences (WP4b) agree with each other and not with this curve; see docs/discrepancies/2026-11-11-alimenti-chamfered-miters.md; WP3b (FEM, reported): MMFD rms z 34, BCMM 13.5",
+   "files_note": "benchmarks/literature/alimenti1994_fig6_mmfd.csv, alimenti1994_fig6_bcmm.csv (L2)",
+   "test_note": "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented (WP4b); benchmarks/fem2d/alimenti1994.py (WP3b)"
+  },
+  {
+   "id": "wave2-kotik1965-fig3",
+   "component": "Overmoded H-plane 90 deg optical-mirror miter (d/a = 1/sqrt(2)), TE10 power transmission, kd = 2 pi a/lambda = 10-31",
+   "card": "L2 (L1 item D8); used by WP3b, WP4b, WP7b",
+   "reference_type": "literature",
+   "reference": "Kotik & Sivov, Radio Eng. Electron. Phys. 10 (1965) 140-142, Fig. 3: |B1|^2 vs kd, rigorous solution (truncated mode system, N <= 18)",
+   "data_file": [
+    "benchmarks/literature/kotik1965_fig3_rigorous.csv"
+   ],
+   "test": [
+    "tests/test_modematch_miter.py::test_kotik_optical_mirror_overmoded"
+   ],
+   "script": [
+    "benchmarks/fem2d/kotik1965.py"
+   ],
+   "tolerance": "the uncertainty column of each point (reading and the 0.005 drafting accuracy of the figure)",
+   "status": "pass",
+   "note": "reference ready (L2); text: 3 % loss at kd ~ 30 (figure: 0.971 at kd = 30); WP4b: rms z 1.30 over 416 points; outliers just above the TE40/TE60/TE80 cutoffs and -0.011 for kd > 30.4 (docs/reports/WP4b.md); WP3b (FEM): rms z 1.30, 96 % within 2u, same outliers (TE40 cutoff dip, kd > 30.4)",
+   "files_note": "benchmarks/literature/kotik1965_fig3_rigorous.csv (L2)",
+   "test_note": "tests/test_modematch_miter.py::test_kotik_optical_mirror_overmoded (WP4b); benchmarks/fem2d/kotik1965.py (WP3b)"
+  },
+  {
+   "id": "wave2-kotik1965-asymptotic",
+   "component": "Overmoded H-plane 90 deg optical-mirror miter, TE10 power transmission, large kd",
+   "card": "L2; used by WP7b",
+   "reference_type": "closed form",
+   "reference": "Katsenelenbaum (1963) as quoted by Kotik & Sivov (1965) p. 142: |B1|^2 = 1 - 7.4/(kd)^(3/2) (printed exponent 2/3 is a misprint), within 3 % (relative) of the rigorous solution for kd > 6 pi",
+   "data_file": [
+    "benchmarks/literature/kotik1965_fig3_asymptotic.csv"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/fem2d/kotik1965.py"
+   ],
+   "tolerance": "3 % relative for kd > 6 pi (the authors' statement)",
+   "status": "qualitative",
+   "note": "WF4: the drawn asymptotic curve documents its own drafting accuracy; compared, not pass/fail. Before WF4: reference ready (L2); WP3b (FEM): see docs/reports/WP3b.md (within 3 % away from the cutoff dips of the rigorous solution)",
+   "files_note": "benchmarks/literature/kotik1965_fig3_asymptotic.csv (L2; the drawn curve, documents a drafting accuracy of 0.005 rms, 0.011 max)",
+   "test_note": "benchmarks/fem2d/kotik1965.py (WP3b)"
+  },
+  {
+   "id": "wp4b-marcuvitz-corners",
+   "component": "WP4b MiterMM, unmitered right-angle corner (d/a = sqrt(2)), H and E plane, TE10",
+   "card": "WP4b (phase reference for the reference planes, port-2 frame and LSE sign)",
+   "reference_type": "literature",
+   "reference": "Marcuvitz, Waveguide Handbook (1951) Secs. 5.28a eqs. (3a), (4a) and 5.29a eqs. (3a), (4a): pi networks at the planes T' through the inner corner (transcription docs/literature/marcuvitz-steps-and-bends.md)",
+   "data_file": [],
+   "test": [
+    "tests/test_modematch_miter.py::test_unmitered_corner_against_marcuvitz_complex"
+   ],
+   "script": [],
+   "tolerance": "3e-3 on complex S11 and S21 (Marcuvitz: about 1 % on the susceptances), WR-90 at 7.5, 8.5, 10 GHz",
+   "status": "pass",
+   "note": "passes (max |dS| 1.7e-3 at 2b/lambda_g <= 0.51 and 2a/lambda_g <= 1.15)"
+  },
+  {
+   "id": "wp4b-fd-hplane-miter",
+   "component": "WP4b MiterMM, H-plane chamfered (t/a = 0.38) and optical-mirror miters, TE10",
+   "card": "WP4b",
+   "reference_type": "independent method",
+   "reference": "5-point finite differences with exact discrete modal ports, Richardson in h (benchmarks/modematch/fd_hplane_miter.py)",
+   "data_file": [
+    "benchmarks/modematch/data/fd_hplane_miter.npz"
+   ],
+   "test": [
+    "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented",
+    "tests/test_modematch_miter.py::test_alimenti_fd_cross_check"
+   ],
+   "script": [],
+   "tolerance": "3e-4 on |S11| (FD extrapolation uncertainty)",
+   "status": "pass",
+   "note": "passes (|S11|: 0.037100 vs 0.037103, 0.013867 vs 0.013867, mirror 0.277786 vs 0.277793)",
+   "test_note": "tests/test_modematch_miter.py::test_alimenti_chamfered_disagreement_is_documented, test_alimenti_fd_cross_check (slow)"
+  },
+  {
+   "id": "wp4b-miter-convergence",
+   "component": "WP4b MiterMM default truncation",
+   "card": "WP4b",
+   "reference_type": "closed form",
+   "reference": "self-convergence: Aitken extrapolation in the truncation (2D), 3x the default (3D)",
+   "data_file": [
+    "benchmarks/modematch/data/miter_convergence_2d_D.npz",
+    "benchmarks/modematch/data/miter_convergence_2d_N.npz",
+    "benchmarks/modematch/data/miter_convergence_3d.npz"
+   ],
+   "test": [
+    "tests/test_modematch_miter.py::test_default_truncation_reaches_1e4"
+   ],
+   "script": [],
+   "tolerance": "1e-4 in every propagating entry",
+   "status": "pass",
+   "note": "passes (3D: max 4.9e-5 over 60 WR-90 cases against a 3.3x tighter error target)",
+   "files_note": "benchmarks/modematch/data/miter_convergence_2d_D.npz, _N.npz, miter_convergence_3d.npz",
+   "test_note": "tests/test_modematch_miter.py::test_default_truncation_reaches_1e4 (slow)"
+  },
+  {
+   "id": "wp4b-miter-wr90-sweep",
+   "component": "WP4b MiterMM, WR-90, H and E plane, d/a = 0.707-1.0, 10-90 GHz",
+   "card": "WP4b; for WP7b (FEM vs MM)",
+   "reference_type": "independent method",
+   "reference": "to be compared by WP7b with wrmodes.fem2d.Miter",
+   "data_file": [
+    "benchmarks/modematch/data/miter_wr90_sweep.npz"
+   ],
+   "test": [],
+   "script": [],
+   "tolerance": "0.01 dB on TE10 transmission, 1e-4 of the input power per converted mode (card WP4b)",
+   "status": "pass",
+   "note": "compared by WP7b (FEM on WP7b outlines, entry wp7b-miter-fem-sweep): passes the card criterion at every point",
+   "test_note": "WP7b"
+  },
+  {
+   "id": "wp4b-step-parity",
+   "component": "WP4 Step, parity-reduced solve (WP4b)",
+   "card": "WP4b",
+   "reference_type": "closed form",
+   "reference": "the full solve (Step.solve(reduce=False))",
+   "data_file": [
+    "benchmarks/modematch/data/step_parity_timing.npz"
+   ],
+   "test": [
+    "tests/test_modematch_miter.py::test_step_parity_reduction_equals_full_solve"
+   ],
+   "script": [],
+   "tolerance": "1e-12",
+   "status": "pass",
+   "note": "passes (max 1.4e-14)"
+  },
+  {
+   "id": "wp3b-reiter1995-fig3",
+   "component": "fem2d.Miter, H- and E-plane bends and mitered bends, gamma = 90-150 deg, WR62",
+   "card": "WP3b acceptance",
+   "reference_type": "literature",
+   "reference": "Reiter & Arndt, IEEE MTT 43(4) (1995) 796-801, Fig. 3(a)-(d)",
+   "data_file": [
+    "benchmarks/literature/reiter1995_fig3a.csv",
+    "benchmarks/literature/reiter1995_fig3b.csv",
+    "benchmarks/literature/reiter1995_fig3c.csv",
+    "benchmarks/literature/reiter1995_fig3d.csv",
+    "benchmarks/fem2d/data/reiter1995.npz"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/fem2d/reiter1995.py"
+   ],
+   "tolerance": "the uncertainty column of each point",
+   "status": "pass",
+   "note": "WF4 final: pass for Fig. 3(a) gamma = 90-135 (pass/fail); qualitative (Daniel, 12 Nov 2026) for Fig. 3(a) gamma = 150 and Figs. 3(b)-(d). Before WF4: see docs/reports/WP3b.md: Fig. 3(a) gamma = 90-135 pass, gamma = 150 not met (FEM agrees with Marcuvitz's measured 30 deg corners, Reiter is 3 dB higher); Fig. 3(c) not met by about 1 dB (Reiter's E-plane 90 deg corner differs from Alessandri's for the same guide; the FEM agrees with Alessandri and with Marcuvitz 5.28b); mitered curves (b), (d) not met (zeros shifted, like the Alimenti/Ma chamfered curves) | qualitative (Daniel, 12 Nov 2026) for: Fig. 3(a) gamma = 150 and Figs. 3(b)-(d); Fig. 3(a) gamma = 90-135 pass/fail; see docs/discrepancies/2026-11-12-reiter-and-ma-many-step-miters.md",
+   "files_note": "benchmarks/literature/reiter1995_fig3a-d.csv (L1); results benchmarks/fem2d/data/reiter1995.npz"
+  },
+  {
+   "id": "wp3b-reiter1995-fig4",
+   "component": "Line [H-plane miter, Straight(l), E-plane miter] with FrameChange, WR90, l = 0 and l = b",
+   "card": "WP3b acceptance",
+   "reference_type": "literature",
+   "reference": "Reiter & Arndt (1995) Fig. 4 (theory and measurement)",
+   "data_file": [
+    "benchmarks/literature/reiter1995_fig4.csv",
+    "benchmarks/fem2d/data/reiter1995.npz"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/fem2d/reiter1995.py"
+   ],
+   "tolerance": "none (qualitative); the comparison is reported",
+   "status": "qualitative",
+   "note": "see docs/reports/WP3b.md | qualitative (Daniel, 12 Nov 2026) for: all of Fig. 4; see docs/discrepancies/2026-11-12-reiter-and-ma-many-step-miters.md",
+   "files_note": "benchmarks/literature/reiter1995_fig4.csv (L1); results benchmarks/fem2d/data/reiter1995.npz"
+  },
+  {
+   "id": "wp3b-impedance-alpha",
+   "component": "fem2d impedance walls: per-mode attenuation of a straight with impedance walls at u = +-a/2 (aluminium, WR-90, H plane)",
+   "card": "WP3b acceptance",
+   "reference_type": "closed form",
+   "reference": "exact Leontovich roots of T1 box B6 (wrmodes.filters.impedance_wall_modes); first-order wrmodes.loss (T1 B2-B3) reported",
+   "data_file": [
+    "benchmarks/fem2d/data/impedance_walls.npz"
+   ],
+   "test": [
+    "tests/test_fem2d.py::test_lossy_attenuation_equals_exact_leontovich_roots",
+    "tests/test_fem2d.py::test_lossy_attenuation_all_modes_slow"
+   ],
+   "script": [
+    "benchmarks/fem2d/impedance_walls.py"
+   ],
+   "tolerance": "1e-6 relative on alpha (exact roots)",
+   "status": "pass",
+   "note": "passes: max 6.7e-7 (12 modes, 10 and 30 GHz, families 0 and 1); first order differs from exact by up to 7.3e-4 (TE/TM 1,1 pair), as T1 section 5 states",
+   "test_note": "tests/test_fem2d.py::test_lossy_attenuation_equals_exact_leontovich_roots, ::test_lossy_attenuation_all_modes_slow; benchmarks/fem2d/impedance_walls.py"
+  },
+  {
+   "id": "wp3b-butterweck-fem",
+   "component": "fem2d Coplanar2D straight with 250 ohm narrow walls (Butterweck's lossy-wall filter)",
+   "card": "WP3b acceptance",
+   "reference_type": "independent method",
+   "reference": "WP2 LossyWallFilter (exact B6 + B9) and Butterweck & de Ronde, Philips Tech. Rev. 29 (1968) 94-95: 0.6 / 2.5 / 5.4 dB",
+   "data_file": [
+    "benchmarks/fem2d/data/impedance_walls.npz"
+   ],
+   "test": [
+    "tests/test_fem2d.py::test_butterweck_lossy_wall_filter"
+   ],
+   "script": [],
+   "tolerance": "5 % against WP2 (pass/fail); Butterweck's printed values reported only (coordinator, 12 Nov 2026)",
+   "status": "pass",
+   "note": "vs WP2: pass (0.05-0.06 %); vs Butterweck's numbers: -5.2 / -7.5 / -1.2 % (the same as WP2's exact method; Butterweck's 0.6 dB is a rounded 4 dB/m, 2.5 dB is a measurement)"
+  },
+  {
+   "id": "wp3b-lossy-straight-vs-filter",
+   "component": "fem2d impedance walls, all families (LSM-LSE coupling for n >= 1)",
+   "card": "WP3b",
+   "reference_type": "independent method",
+   "reference": "WP2 LossyWallFilter (exact LS^u modes)",
+   "data_file": [
+    "benchmarks/fem2d/data/impedance_walls.npz"
+   ],
+   "test": [
+    "tests/test_fem2d.py::test_lossy_straight_matches_lossy_wall_filter"
+   ],
+   "script": [],
+   "tolerance": "5e-4 (metal walls), 3e-3 (25 ohm) on every propagating entry",
+   "status": "pass",
+   "note": "passes; at 250 ohm the junction reflections of n >= 1 modes converge slowly in both methods (max |dS| 1e-2)"
+  },
+  {
+   "id": "wp3b-chained-miters",
+   "component": "fem2d chained_miter_outline (single domain) vs Miter-Straight-Miter cascade",
+   "card": "WP3b acceptance",
+   "reference_type": "independent method",
+   "reference": "the cascade of fem2d.Miter GSMs with evanescent modes",
+   "data_file": [
+    "benchmarks/fem2d/data/chained_miters.npz"
+   ],
+   "test": [
+    "tests/test_fem2d.py::test_chained_miters_converge_to_the_cascade",
+    "tests/test_fem2d.py::test_chained_miters_converge_to_the_cascade_slow"
+   ],
+   "script": [
+    "benchmarks/fem2d/chained_miters.py"
+   ],
+   "tolerance": "1e-6 at spacers >= 2a (90 deg pairs) and >= 2.5a (45 deg optical pairs; coordinator, 12 Nov 2026)",
+   "status": "pass",
+   "note": "90 deg pairs: 8.5e-7 / 8.2e-7 at s = 2a / 3a (32 elements per wavelength, cf 1.5); 45 deg optical pairs: 2.6e-7 from s = 2.5a (uniform guide s - 2a); see the report",
+   "test_note": "tests/test_fem2d.py::test_chained_miters_converge_to_the_cascade, ::test_chained_miters_converge_to_the_cascade_slow; benchmarks/fem2d/chained_miters.py"
+  },
+  {
+   "id": "wp3b-e5-outline",
+   "component": "chained_miter_outline geometry of COMSOL campaign 2 case E5",
+   "card": "WP3b",
+   "reference_type": "closed form",
+   "reference": "benchmarks/comsol/CAMPAIGN_2.md, E5 vertex lists (s = 2a, 3a)",
+   "data_file": [],
+   "test": [
+    "tests/test_fem2d.py::test_chained_outline_reproduces_comsol_case_e5"
+   ],
+   "script": [],
+   "tolerance": "the four printed decimals",
+   "status": "pass",
+   "note": "passes"
+  },
+  {
+   "id": "wp6-two-mode-law",
+   "component": "Twist, square guide, basis TE1,0 + TE0,1",
+   "card": "WP6 acceptance",
+   "reference_type": "closed form",
+   "reference": "T3 box T3-4 / T3b box 5: a10 = cos(8 theta/pi^2), a01 = -sin(8 theta/pi^2), any profile",
+   "data_file": [],
+   "test": [
+    "tests/test_twist.py::test_square_guide_two_mode_law"
+   ],
+   "script": [],
+   "tolerance": "1e-12",
+   "status": "pass",
+   "note": "passes (constant, cosine, triangular, callable; 90, 154.7, -60 deg)"
+  },
+  {
+   "id": "wp6-zero-length-inverse",
+   "component": "Twist zero-length limit exp(theta X)",
+   "card": "WP6 acceptance",
+   "reference_type": "closed form",
+   "reference": "Z(-theta) Z(theta) = I (T3 box T3-5, T3b box 6); finite +90/-90 pairs vs the identity reported",
+   "data_file": [
+    "benchmarks/twist/data/checks.npz"
+   ],
+   "test": [
+    "tests/test_twist.py::test_zero_length_inverse_pair_is_identity",
+    "tests/test_twist.py::test_finite_inverse_pair_tends_to_identity_for_long_twists"
+   ],
+   "script": [
+    "benchmarks/twist/checks.py"
+   ],
+   "tolerance": "1e-12 (algebraic); finite length reported",
+   "status": "pass",
+   "note": "passes; finite pairs: TE1,0 loss 2.0e-2 (20 lambda) -> 1.4e-5 (320 lambda), tall WR187 9 GHz",
+   "test_note": "tests/test_twist.py::test_zero_length_inverse_pair_is_identity, ::test_finite_inverse_pair_tends_to_identity_for_long_twists; benchmarks/twist/checks.py"
+  },
+  {
+   "id": "wp6-straight-limit",
+   "component": "Twist with theta = 0, lossless and aluminium, cutoff_factor 1 and 1.5",
+   "card": "WP6 acceptance",
+   "reference_type": "closed form",
+   "reference": "Straight (WP1, WP2)",
+   "data_file": [],
+   "test": [
+    "tests/test_twist.py::test_zero_angle_is_a_straight"
+   ],
+   "script": [],
+   "tolerance": "1e-12",
+   "status": "pass",
+   "note": "passes"
+  },
+  {
+   "id": "wp6-t3-tables",
+   "component": "Twist, 20-inch 90 deg twists in tall WR187, 15 / 16.5 / 18 GHz, three profiles",
+   "card": "WP6 acceptance",
+   "reference_type": "independent method",
+   "reference": "T3 prototype docs/theory/T3/twist_formulas.py (C^T form, 2400 Magnus slices) and T3 section 6 table; T3b section 6 square-guide table",
+   "data_file": [],
+   "test": [
+    "tests/test_twist.py::test_t3_full_basis_tables",
+    "tests/test_twist.py::test_t3b_square_guide_full_basis"
+   ],
+   "script": [],
+   "tolerance": "1e-3 relative (total and the three largest modes)",
+   "status": "pass",
+   "note": "passes (worst 3.4e-7 relative vs the prototype, i.e. its 7 printed digits; T3b angles to 1.2e-3 deg)",
+   "test_note": "tests/test_twist.py::test_t3_full_basis_tables, ::test_t3b_square_guide_full_basis"
+  },
+  {
+   "id": "wp6-helical-galerkin",
+   "component": "helical_propagation_constants (uniform twist, a = 2, b = 1, tau = 0.5)",
+   "card": "WP6 acceptance",
+   "reference_type": "independent method",
+   "reference": "T3b spectral Nedelec solution of the twisted guide (check_helical_eigen.out, converged to 3e-10)",
+   "data_file": [
+    "benchmarks/twist/data/checks.npz"
+   ],
+   "test": [
+    "tests/test_twist.py::test_helical_modes_against_spectral_solution",
+    "tests/test_twist.py::test_helical_modes_converge_like_one_over_chi"
+   ],
+   "script": [],
+   "tolerance": "modal truncation error (1/chi_max): 5.37e-3 at 89 modes, 2.93e-3 at 359, 1.45e-3 at 1443; Richardson 1.8e-4",
+   "status": "pass",
+   "note": "passes; reproduces T3b's numbers to 3 digits",
+   "test_note": "tests/test_twist.py::test_helical_modes_against_spectral_solution, ::test_helical_modes_converge_like_one_over_chi (slow)"
+  },
+  {
+   "id": "wp6-doane-fig9",
+   "component": "Twist, 20-inch 90 deg twists in tall WR187, 15-18 GHz",
+   "card": "WP6 acceptance",
+   "reference_type": "literature",
+   "reference": "Doane & Anderson 1989, Fig. 9 (benchmarks/literature/doane1989_fig9.csv)",
+   "data_file": [
+    "benchmarks/twist/data/doane_fig9.npz",
+    "benchmarks/literature/doane1989_fig9.csv"
+   ],
+   "test": [
+    "tests/test_twist.py::test_doane_fig9_cosine_curve",
+    "tests/test_twist.py::test_doane_fig9_constant_curve",
+    "tests/test_twist.py::test_doane_fig9_triangular_curve_open_issue"
+   ],
+   "script": [
+    "benchmarks/twist/doane_fig9.py"
+   ],
+   "tolerance": "the digitizing uncertainty (0.010-0.046 %)",
+   "status": "qualitative",
+   "note": "WF4 final: qualitative for the full solution (Resolution of docs/discrepancies/2026-11-12-doane-fig9-twists.md, Gate B: COMSOL E4 agrees with wrmodes, not with Fig. 9); Doane's five-mode basis reproduces all three curves (entry wf4-doane-fig9-five-modes). Before WF4: NOT met over the band: cosine within 1 sigma at 15.1-16.35 GHz, up to 9 sigma low above; constant follows our TE0,1 conversion (rms 0.11 %) but not our TE2,1 lobes (up to 0.71 %); triangular ours 2.2-4.0x higher. docs/discrepancies/2026-11-12-doane-fig9-twists.md",
+   "test_note": "tests/test_twist.py::test_doane_fig9_cosine_curve, ::test_doane_fig9_constant_curve, ::test_doane_fig9_triangular_curve_open_issue; benchmarks/twist/doane_fig9.py"
+  },
+  {
+   "id": "wp6-near-cutoff-16p5",
+   "component": "Twist, Doane twists at 16.45 / 16.5 / 16.55 GHz (TE2,3/TM2,3 cutoff 16.512 GHz)",
+   "card": "WP6 acceptance",
+   "reference_type": "independent method",
+   "reference": "the same twists with cutoff_factor 1 ... 3 (evanescent modes of all families) and +-0.05 GHz (truncation study)",
+   "data_file": [
+    "benchmarks/twist/data/near_cutoff_16p5.npz"
+   ],
+   "test": [
+    "tests/test_twist.py::test_near_cutoff_sensitivity_at_16_5_ghz"
+   ],
+   "script": [
+    "benchmarks/twist/near_cutoff_16p5.py"
+   ],
+   "tolerance": "reported",
+   "status": "reference",
+   "note": "WF4: a sensitivity study (truncation near a cutoff), recorded in docs/reports/WP6.md; not a pass/fail comparison. Before WF4: reported in docs/reports/WP6.md"
+  },
+  {
+   "id": "wp6-e4-twist",
+   "component": "Twist, 20-inch 90 deg triangular twist in tall WR187 at 15 and 18 GHz (cosine at 18 GHz)",
+   "card": "CC2 / WP7b",
+   "reference_type": "COMSOL",
+   "reference": "COMSOL campaign 2 case E4 (benchmarks/comsol/CAMPAIGN_2.md)",
+   "data_file": [
+    "benchmarks/twist/data/e4_predictions.npz"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/twist/e4_predictions.py"
+   ],
+   "tolerance": "CONVENTIONS section 8: COMSOL mesh error + 0.02 dB on TE1,0; 1e-4 of input power per converted mode",
+   "status": "superseded",
+   "note": "superseded by gateb-comsol-e4 (COMSOL campaign 2 ran; pass). The stored WP6-model predictions stay as WP6's record (WF2 open issue 5). Before WF4: waiting for data (Daniel runs COMSOL); post-processing benchmarks/comsol/campaign_2/compare_campaign_2.py ready (tested on synthetic exports); WP7b helical-FEM values shown alongside",
+   "test_note": "benchmarks/twist/e4_predictions.py (predictions)"
+  },
+  {
+   "id": "wp5-uniform-limit",
+   "component": "VariableGuide with constant a, b (kappa = 0 or 1/R), H and E plane, lossless and aluminium",
+   "card": "WP5 acceptance",
+   "reference_type": "independent method",
+   "reference": "Straight (wrmodes.gsm.straight, loss.straight_gsm_from_loss_matrix) and SmoothBend (atol 1e-12), propagating modes",
+   "data_file": [
+    "benchmarks/taper/data/checks.npz"
+   ],
+   "test": [
+    "tests/test_taper.py::test_uniform_limit_straight_lossless",
+    "tests/test_taper.py::test_uniform_limit_straight_lossy",
+    "tests/test_taper.py::test_uniform_limit_smooth_bend"
+   ],
+   "script": [
+    "benchmarks/taper/checks.py"
+   ],
+   "tolerance": "1e-10",
+   "status": "pass",
+   "note": "passes (max 5.3e-13); with evanescent port modes the lossy evanescent diagonal differs by the first-order impedance change kept by the V-I loss (docs/reports/WP5.md)",
+   "test_note": "tests/test_taper.py::test_uniform_limit_straight_lossless, ::test_uniform_limit_straight_lossy, ::test_uniform_limit_smooth_bend; benchmarks/taper/checks.py"
+  },
+  {
+   "id": "wp5-airy-bessel",
+   "component": "VariableGuide, single TE1,0 mode through cutoff and in a linear H-plane taper",
+   "card": "WP5 acceptance",
+   "reference_type": "closed form",
+   "reference": "exact solutions Ai/Bi (a = pi / sqrt(k^2 - g (z - z_c))) and sqrt(a) J_nu, Y_nu (T2 section 10, as docs/theory/T2/check_solver.py)",
+   "data_file": [
+    "benchmarks/taper/data/checks.npz"
+   ],
+   "test": [
+    "tests/test_taper.py::test_single_mode_through_cutoff_airy",
+    "tests/test_taper.py::test_single_mode_linear_taper_bessel"
+   ],
+   "script": [],
+   "tolerance": "1e-8",
+   "status": "pass",
+   "note": "passes (5.0e-12 Airy, 9.9e-12 Bessel at atol 1e-11; 5.8e-7, 6.3e-7 at the default atol 1e-6)",
+   "test_note": "tests/test_taper.py::test_single_mode_through_cutoff_airy, ::test_single_mode_linear_taper_bessel"
+  },
+  {
+   "id": "wp5-total-reflection",
+   "component": "Taper, TE3,0 totally reflected at its cutoff plane (linear H-plane taper, a' = 0.028, 20 GHz)",
+   "card": "WP5 acceptance",
+   "reference_type": "closed form",
+   "reference": "turning-point (Airy) connection S22 = i exp(-2i int beta) (T2 section 8.5)",
+   "data_file": [
+    "benchmarks/taper/data/checks.npz"
+   ],
+   "test": [
+    "tests/test_taper.py::test_total_reflection_at_cutoff_plane"
+   ],
+   "script": [],
+   "tolerance": "1 - |S22| <= 1e-4; phase within 0.02 rad",
+   "status": "pass",
+   "note": "passes (2.1e-5; 0.017 rad, 0.013-0.015 rad without B5')"
+  },
+  {
+   "id": "wp5-t2b-table",
+   "component": "Taper, linear H-plane 22.86 -> 45 mm, b = 10.16 mm, 15 GHz, L = 0.1-0.8 m",
+   "card": "WP5 acceptance",
+   "reference_type": "independent method",
+   "reference": "T2b section 9 table (docs/theory/T2b/t2b_solver.py, M = 10, B5' with m_tail = 500)",
+   "data_file": [
+    "benchmarks/taper/data/t2b_table.npz"
+   ],
+   "test": [
+    "tests/test_taper.py::test_t2b_small_slope_table"
+   ],
+   "script": [
+    "benchmarks/taper/t2b_table.py"
+   ],
+   "tolerance": "1e-4 absolute on S21(TE3,0 <- TE1,0) and |S11(TE1,0)|",
+   "status": "pass",
+   "note": "passes (max 4.8e-6 and 8.5e-6 at the default settings)"
+  },
+  {
+   "id": "wp5-t2-prototype",
+   "component": "VariableGuide, a', b', u0', kappa together, families 0 and 2 with evanescent modes, 20 GHz",
+   "card": "WP5 (cross-check)",
+   "reference_type": "independent method",
+   "reference": "docs/theory/T2/vi_solver.py (T2 prototype, 160 x 2 Magnus slices); coefficients vs t2_coefficients.vi_matrix and t2b_formulas.T_matrix",
+   "data_file": [],
+   "test": [
+    "tests/test_taper.py::test_against_t2_prototype_solver",
+    "tests/test_taper.py::test_vi_system_equals_t2_and_t2b_closed_forms"
+   ],
+   "script": [],
+   "tolerance": "1e-6 (GSM, prototype's slicing error); 1e-12 (coefficients)",
+   "status": "pass",
+   "note": "passes (7.9e-8; coefficients 5.5e-16)",
+   "test_note": "tests/test_taper.py::test_against_t2_prototype_solver (slow), ::test_vi_system_equals_t2_and_t2b_closed_forms"
+  },
+  {
+   "id": "wp5-staircase",
+   "component": "Taper (H-plane 22.86 -> 45 mm at 15 GHz; b 10.16 -> 5.08 mm at 35 GHz; L = 0.1 m)",
+   "card": "WP5 acceptance",
+   "reference_type": "independent method",
+   "reference": "staircase of WP4 Steps (parity-reduced mode matching) with uniform sections, extrapolated in the step count",
+   "data_file": [
+    "benchmarks/taper/data/staircase.npz",
+    "benchmarks/taper/data/staircase_b_long.npz",
+    "benchmarks/taper/data/staircase_b_1280.npz",
+    "benchmarks/taper/data/staircase_h_640.npz",
+    "benchmarks/taper/data/staircase_h_1280.npz"
+   ],
+   "test": [
+    "tests/test_taper.py::test_staircase_of_steps_approaches_taper"
+   ],
+   "script": [
+    "benchmarks/taper/staircase.py"
+   ],
+   "tolerance": "extrapolated difference <= 1e-4 in every propagating entry",
+   "status": "pass",
+   "note": "passes: H-plane 4.7e-4 raw at n = 1280, 2.4e-5 extrapolated (order 1.01); b-taper 8.6e-5 raw at n = 1280, 5.6e-5 extrapolated (docs/reports/WP5.md)",
+   "files_note": "benchmarks/taper/data/staircase.npz, staircase_b_long.npz, staircase_b_1280.npz, staircase_h_640.npz, staircase_h_1280.npz",
+   "test_note": "benchmarks/taper/staircase.py; tests/test_taper.py::test_staircase_of_steps_approaches_taper (slow)"
+  },
+  {
+   "id": "wp5-butterweck-bottle",
+   "component": "VariableGuide, 140 mm taper 3.10 x 1.55 -> 22.86 x 10.16 mm, 75 GHz, bottle (fitted) and linear width, linear height",
+   "card": "WP5 acceptance (L1 items P5, P6)",
+   "reference_type": "literature",
+   "reference": "Butterweck & de Ronde, Philips Tech. Rev. 29 (1968) p. 96: H10 -> H30 < -40 dB (bottle), about -18 dB (linear), measured, no uncertainty",
+   "data_file": [
+    "benchmarks/taper/data/butterweck_bottle.npz",
+    "benchmarks/taper/data/fit_bottle.npz"
+   ],
+   "test": [
+    "tests/test_taper.py::test_butterweck_bottle_vs_linear_family_zero"
+   ],
+   "script": [
+    "benchmarks/taper/butterweck_bottle.py"
+   ],
+   "tolerance": "bottle below -40 dB; linear reported",
+   "status": "qualitative",
+   "note": "WF4: the bottle profile is a fit to Butterweck's sketch, so the -40 dB check is not independent (R1 known limits). Before WF4: bottle -40.6 dB (fitted profile: not an independent check, see wrmodes.profiles.BottleProfile); linear -20.5 dB vs about -18 dB measured",
+   "files_note": "benchmarks/taper/data/butterweck_bottle.npz, fit_bottle.npz"
+  },
+  {
+   "id": "wp5-butterweck-fig15",
+   "component": "VariableGuide (E plane), strangled 90 deg E-plane bend 22.86 x 10.13 mm, b1 = 2 mm, r = 420 mm",
+   "card": "WP5 acceptance (L1 items P8, P9)",
+   "reference_type": "literature",
+   "reference": "Butterweck & de Ronde (1968) pp. 97-98, fig. 15: 'a few tenths of a decibel, mainly due to the wall losses in the flat guide'",
+   "data_file": [
+    "benchmarks/taper/data/butterweck_fig15.npz"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/taper/butterweck_fig15.py"
+   ],
+   "tolerance": "none (reported, not pass/fail)",
+   "status": "qualitative",
+   "note": "WF4: geometry read from a sketch; reported, not pass/fail. Before WF4: reported: 0.15-0.33 dB (aluminium, symmetric arc tapers, 40-75 GHz), 0.06-0.17 dB with a raised-cosine taper (mainly ohmic, as the paper says); asymmetric reading 0.5-1.5 dB (offset axis, rejected); geometry read from a sketch"
+  },
+  {
+   "id": "wp5-comsol-e2",
+   "component": "Taper, linear H-plane 22.86 -> 45 mm, L = 0.1 and 0.2 m, 15 GHz",
+   "card": "CC2 / WP5",
+   "reference_type": "COMSOL",
+   "reference": "COMSOL campaign 2 case E2 (benchmarks/comsol/CAMPAIGN_2.md)",
+   "data_file": [
+    "benchmarks/taper/data/e2_predictions.npz"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/comsol/campaign_2/compare_campaign_2.py"
+   ],
+   "tolerance": "COMSOL mesh-check error + 0.02 dB (CONVENTIONS.md section 8)",
+   "status": "superseded",
+   "note": "superseded by gateb-comsol-e2 (COMSOL campaign 2 ran; pass); the predictions stay as WP5's record. Before WF4: predictions ready; waiting for data (Daniel runs COMSOL); post-processing compare_campaign_2.py ready",
+   "files_note": "benchmarks/taper/data/e2_predictions.npz (predictions)",
+   "test_note": "WP7b benchmarks/comsol/campaign_2/compare_campaign_2.py"
+  },
+  {
+   "id": "wp5-comsol-e3",
+   "component": "StrangledBend(90, 0.05, 1.6e-3, 0.05, 'raised_cosine') in WR-90, 18 and 40 GHz, PEC and aluminium 3.774e7 S/m",
+   "card": "CC2 / WP5",
+   "reference_type": "COMSOL",
+   "reference": "COMSOL campaign 2 case E3 (benchmarks/comsol/CAMPAIGN_2.md)",
+   "data_file": [
+    "benchmarks/taper/data/e3_predictions.npz"
+   ],
+   "test": [
+    "tests/test_taper.py::test_e3_predictions_regression"
+   ],
+   "script": [],
+   "tolerance": "COMSOL mesh-check error + 0.02 dB; 1e-4 of the input power per converted mode",
+   "status": "superseded",
+   "note": "superseded by gateb-comsol-e3 (COMSOL campaign 2 ran; pass); the predictions stay as WP5's record and a regression test. Before WF4: predictions ready; waiting for data (Daniel runs COMSOL); post-processing compare_campaign_2.py ready",
+   "files_note": "benchmarks/taper/data/e3_predictions.npz (predictions)",
+   "test_note": "WP7b; tests/test_taper.py::test_e3_predictions_regression (slow, regression)"
+  },
+  {
+   "id": "l1-butterweck1968-numbers",
+   "component": "mode filters (lossy wall, resistive sheet, coupled-mode), tapers, strangled E-plane bend",
+   "card": "L1 (D5); used by WP2, WP3b, WP5",
+   "reference_type": "literature",
+   "reference": "Butterweck, IEEE MTT-16 (1968) 274-281 (items B1-B11); Butterweck & de Ronde, Philips Tech. Rev. 29 (1968) 86-101 (items P1-P9): quoted numbers with sentence and page",
+   "data_file": [
+    "benchmarks/literature/butterweck1968_numbers.csv"
+   ],
+   "test": [
+    "tests/test_literature_data.py",
+    "tests/test_loss.py"
+   ],
+   "script": [],
+   "tolerance": "as quoted (no stated uncertainty); the cards set the targets (WP2: 10 %, WP3b: 5 % of WP2)",
+   "status": "reference",
+   "note": "data ready (L1); items B8, B9, P3 (lossy-wall filter) used by WP2, WP3b and WP7b; P5, P6, P8, P9 by WP5",
+   "test_note": "tests/test_literature_data.py (format); WP2: tests/test_loss.py filters; entries wp3b-butterweck-fem, wp5-butterweck-bottle, wp5-butterweck-fig15, wp7b-filter-impedance-walls"
+  },
+  {
+   "id": "l1-ma1997-table1-csv",
+   "component": "H-plane mitered bend, Ma et al. staircase geometry",
+   "card": "L1 (D3); WP3, WP3b, WP4b",
+   "reference_type": "literature",
+   "reference": "Ma, Yamane & Yamashita (1997) Table 1, transcribed",
+   "data_file": [
+    "benchmarks/literature/ma1997_table1.csv"
+   ],
+   "test": [
+    "tests/test_literature_data.py"
+   ],
+   "script": [],
+   "tolerance": "qualitative (Daniel, 11 Nov 2026): see entry wp3-ma1997-table1",
+   "status": "reference",
+   "note": "data ready (L1); qualitative",
+   "test_note": "tests/test_literature_data.py (format)"
+  },
+  {
+   "id": "l1-doane1989-transcription",
+   "component": "Twist (eqs. 17-18, design rules)",
+   "card": "L1 (D7); used by T3, T3b, WP6",
+   "reference_type": "literature",
+   "reference": "Doane & Anderson, Microwave J. 32(3) (1989) 153-160, eqs. and text transcribed",
+   "data_file": [
+    "docs/literature/doane1989.md"
+   ],
+   "test": [],
+   "script": [],
+   "tolerance": "formulas (exact transcription)",
+   "status": "reference",
+   "note": "data ready (L1)",
+   "test_note": "docs/theory/T3-twist-coupling.md section 6 (checks); entry wp6-doane-fig9 for the figure"
+  },
+  {
+   "id": "wp7b-taper-fem",
+   "component": "Taper (H-plane linear 22.86 -> 45 mm, 15 GHz, L = 0.1, 0.2 m; E-plane raised cosine WR-90 -> 1.6 mm, 50 mm, 18-90 GHz) and StrangledBend (E3 geometry, 18-90 GHz)",
+   "card": "WP7b item 1 (verifies WP5)",
+   "reference_type": "independent method",
+   "reference": "2D modal-port FEM (fem2d.Coplanar2D, wave 1) on WP7b polygon outlines with circular-arc walls (benchmarks/validation_v2/ref_taper_fem.py)",
+   "data_file": [
+    "benchmarks/validation_v2/data/taper_fem_<case>.npz"
+   ],
+   "test": [
+    "tests/adversarial/test_wp7b_references.py"
+   ],
+   "script": [
+    "benchmarks/validation_v2/compare_v2.py"
+   ],
+   "tolerance": "0.01 dB on the main transmission; 1e-4 of the input power per converted mode (CONVENTIONS 8)",
+   "status": "pass",
+   "note": "passes: WP5 within 2.3e-5 of the input power per converted mode and 2.2e-4 dB on TE1,0 (worst: 90 GHz); FEM reference errors <= 3e-5 in S (benchmarks/validation_v2/REPORT.md)",
+   "test_note": "benchmarks/validation_v2/compare_v2.py tapers; tests/adversarial/test_wp7b_references.py"
+  },
+  {
+   "id": "wp7b-taper-staircase",
+   "component": "tapers of a and b, 3.10 x 1.55 -> 22.86 x 10.16 mm, 140 mm, 75 GHz: linear; bottle a(z) (lambda 3.5) with linear b(z)",
+   "card": "WP7b item 1 (verifies WP5)",
+   "reference_type": "independent method",
+   "reference": "staircase of WP4 mode-matching Steps (parity class), Richardson in 1/n (n = 400, 800), cutoff factors 2-4 (ref_taper_staircase.py)",
+   "data_file": [
+    "benchmarks/validation_v2/data/taper_staircase_<profile>.npz"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/validation_v2/compare_v2.py"
+   ],
+   "tolerance": "0.01 dB on TE1,0; 1e-4 of the input power per converted mode",
+   "status": "pass",
+   "note": "passes: linear dP 8e-6, bottle dP 2.2e-5, dTE1,0 <= 4e-5 dB; staircase error 1.8e-5 / 4.6e-5",
+   "test_note": "benchmarks/validation_v2/compare_v2.py staircase"
+  },
+  {
+   "id": "wp7b-twist-helical-fem",
+   "component": "Twist: Doane & Anderson's 20-inch 90 deg twists in WR187 tall (constant, cosine, triangular; 15, 16.5, 18 GHz), 30 mm square guide (2a/lambda = 2.5, L = 5 and 20 lambda), strong twists in WR-90 (tau a = 0.1 at 15, 30 GHz; tau a = 0.5 at 30 GHz)",
+   "card": "WP7b item 2 (verifies WP6)",
+   "reference_type": "independent method",
+   "reference": "2D FEM eigenmodes in helical coordinates (Nedelec/Lagrange order 3), mode matching at the end planes, cascade of constant-rate sections for variable rates with Richardson in 1/n^2 (helical_fem.py, ref_twist.py); no T3/T3b coupled-mode matrix",
+   "data_file": [
+    "benchmarks/validation_v2/data/twist_<case>.npz"
+   ],
+   "test": [
+    "tests/adversarial/test_wp7b_references.py",
+    "tests/test_twist.py::test_default_against_helical_fem_reference"
+   ],
+   "script": [
+    "benchmarks/validation_v2/compare_v2.py",
+    "benchmarks/validation_v2/compare_wf2.py"
+   ],
+   "tolerance": "0.01 dB on TE1,0; 1e-4 of the input power per spurious mode",
+   "status": "pass",
+   "note": "WF4: the faster twist solver changes these powers by <= 8.2e-10 (docs/reports/WF4.md). Before WF4: met after WF2 (Twist internal list + quasi-static tail, defaults mode_factor 3 / 2): worst dP 9.0e-6 (constant), 1.2e-5 (cosine), 2.3e-5 (triangular), 6.1e-5 / 2.6e-6 (square 5 / 20 lambda), <= 1e-6 (tau a = 0.1); tau a = 0.5: 1.9e-4 at the default, 8e-5 / 2e-5 with mode_factor 4 / 6. Before WF2: docs/discrepancies/2026-11-15-wp7b-twist-truncation.md (Resolution)",
+   "test_note": "benchmarks/validation_v2/compare_v2.py twists; benchmarks/validation_v2/compare_wf2.py twists; tests/adversarial/test_wp7b_references.py; tests/test_twist.py::test_default_against_helical_fem_reference"
+  },
+  {
+   "id": "wp7b-miter-fem-sweep",
+   "component": "MiterMM and fem2d.Miter, 90 deg, H and E plane, d/a = 0.707, 0.8, 0.9, 1.0, WR-90, 10-90 GHz every 2 GHz plus 26.3, 52.5, 53, 53.5 GHz",
+   "card": "WP7b item 3 (verifies WP4b; FEM side WP3/WP3b)",
+   "reference_type": "independent method",
+   "reference": "2D FEM (fem2d.Coplanar2D) on WP7b miter outlines from CONVENTIONS 6, symmetric mesh, density 10 (mesh check 16) (ref_miter_fem.py)",
+   "data_file": [
+    "benchmarks/validation_v2/data/miter_fem_<plane>_d<d>.npz"
+   ],
+   "test": [
+    "tests/adversarial/test_wp7b_references.py"
+   ],
+   "script": [
+    "benchmarks/validation_v2/compare_v2.py"
+   ],
+   "tolerance": "0.01 dB on TE1,0 transmission; 1e-4 of the input power in every propagating entry (card WP4b)",
+   "status": "pass",
+   "note": "passes the card criterion at all 360 points (dTE1,0 <= 0.0018 dB, converted modes <= 9.9e-5); all-entries differences up to 7e-4 at chamfered E-plane points limited by the FEM reference's own accuracy (REPORT.md)",
+   "test_note": "benchmarks/validation_v2/compare_v2.py miters; tests/adversarial/test_wp7b_references.py"
+  },
+  {
+   "id": "wp7b-filter-impedance-walls",
+   "component": "Coplanar2D(straight_outline, wall_impedance=250 ohm), Butterweck lossy-wall filter, 75 GHz, 15 cm",
+   "card": "WP7b item 4 (verifies WP3b with WP2)",
+   "reference_type": "independent method",
+   "reference": "WP2 LossyWallFilter (exact LS^u modes), M = 160 (ref_filter.py)",
+   "data_file": [
+    "benchmarks/validation_v2/data/filter_lossywall_wp2.npz"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/validation_v2/compare_v2.py"
+   ],
+   "tolerance": "5 % of the attenuation (dB) of every attenuated propagating mode (plan; card WP3b)",
+   "status": "pass",
+   "note": "passes: -0.05 % on TE1,0-TE3,0, worst -1.07 % (TE1,5) over 94 attenuated modes (target 5 %)",
+   "test_note": "benchmarks/validation_v2/compare_v2.py filter"
+  },
+  {
+   "id": "wp7b-evanescent-bend-miter",
+   "component": "Line [SmoothBend (R = 2a, 10a; L = 0-2a), fem2d.Miter(90)] in WR-90, 20/40/60 GHz",
+   "card": "WP7b item 5 (WP1 open issue)",
+   "reference_type": "independent method",
+   "reference": "one Coplanar2D domain containing arc and miter (ref_evanescent_bends.py); decomposition into bend-model and zero-distance cascade errors",
+   "data_file": [
+    "benchmarks/validation_v2/data/evanescent_bend_miter.npz"
+   ],
+   "test": [
+    "tests/test_bend_evanescent_fem.py"
+   ],
+   "script": [
+    "benchmarks/validation_v2/summarize_refs.py",
+    "benchmarks/validation_v2/compare_wf2.py"
+   ],
+   "tolerance": "WF2: 2e-4 (R = 2a) and 3e-5 (R = 10a) of the input power over the propagating block, at cutoff_factor 3",
+   "status": "pass",
+   "note": "met after WF2 (SmoothBend couples evanescent modes through VariableGuide): <= 1.7e-4 (R = 2a), <= 2.5e-5 (R = 10a) at cutoff_factor 3; before WF2 2-4e-2 / 4-6e-3",
+   "test_note": "benchmarks/validation_v2/summarize_refs.py; benchmarks/validation_v2/compare_wf2.py bends; tests/test_bend_evanescent_fem.py (fem job)"
+  },
+  {
+   "id": "wp7b-marcuvitz-524a",
+   "component": "Marcuvitz Sec. 5.24a symmetric H-plane step, eqs. (1a)-(3a)",
+   "card": "WP7b item 5 (WP4 open issue 2, L1 open issue 1)",
+   "reference_type": "independent method",
+   "reference": "WP4 mode-matching Step converted to Marcuvitz's equivalent circuit; required N12 from the X11 and X22 equations (marcuvitz_n12.py)",
+   "data_file": [
+    "benchmarks/validation_v2/data/marcuvitz_524a.npz"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/validation_v2/summarize_refs.py"
+   ],
+   "tolerance": "Marcuvitz's stated 1 % (5 % at a/lambda = 1.5)",
+   "status": "pass",
+   "note": "misprint located: N12 brace -R1 - alpha^2 R2 (printed + alpha^2 R2); (1a) then within 0.2 % for a/lambda <= 1; (2a) within 1.1 % with lambda_g' in its denominator as well"
+  },
+  {
+   "id": "wp7b-campaign2-postprocess",
+   "component": "COMSOL campaign 2 post-processing, cases E1-E5",
+   "card": "WP7b item 6 (CC2)",
+   "reference_type": "COMSOL",
+   "reference": "benchmarks/comsol/CAMPAIGN_2.md",
+   "data_file": [
+    "benchmarks/comsol/campaign_2/raw/"
+   ],
+   "test": [
+    "tests/adversarial/test_wp7b_campaign2.py"
+   ],
+   "script": [],
+   "tolerance": "COMSOL mesh-check change + 0.02 dB; E4: + 1e-4 of the input power per output mode",
+   "status": "pass",
+   "note": "WF4 final: the script ran on Daniel's exports (126 comparisons, all within the criterion; benchmarks/comsol/campaign_2/RESULTS.md); the synthetic-export tests pass. Before WF4: script ready and tested; waiting for data",
+   "files_note": "benchmarks/comsol/campaign_2/raw/ (Daniel's exports, not yet run)",
+   "test_note": "tests/adversarial/test_wp7b_campaign2.py (synthetic exports)"
+  },
+  {
+   "id": "wf2-smoothbend-propagating-bitwise",
+   "component": "SmoothBend with propagating-mode bases (perfect and aluminium walls, H and E plane, sech and constant curvature, families separate and coupled; alone and in a Line)",
+   "card": "WF2 item 2",
+   "reference_type": "closed form",
+   "reference": "frozen outputs of origin/main 7cb7cf1 (before WF2), tests/data/make_smoothbend_propagating.py",
+   "data_file": [
+    "tests/data/smoothbend_propagating.npz"
+   ],
+   "test": [
+    "tests/test_components.py::test_propagating_path_is_bitwise_unchanged"
+   ],
+   "script": [],
+   "tolerance": "bitwise equality",
+   "status": "pass",
+   "note": "met (14 GSMs bitwise equal)"
+  },
+  {
+   "id": "wf2-strangled-bend-port-bases",
+   "component": "StrangledBend in WR-90 at 60 GHz, 200 flat heights 1.5-2.6 mm; Taper port 2",
+   "card": "WF2 item 3 (WP7b adversarial, WP5)",
+   "reference_type": "closed form",
+   "reference": "CONVENTIONS.md section 3: both ports are the same guide, so basis2 == basis1 (same ordered modes)",
+   "data_file": [
+    "benchmarks/validation_v2/data/compare_wf2_ports.json"
+   ],
+   "test": [
+    "tests/adversarial/test_wp7b_adversarial.py::test_strangled_bend_port_bases_are_equal",
+    "tests/test_taper.py::test_port_bases_built_from_the_given_end_guides"
+   ],
+   "script": [],
+   "tolerance": "exact equality of the bases",
+   "status": "pass",
+   "note": "met after WF2 (0 of 200 differ; 25 before): docs/discrepancies/2026-11-15-wp7b-strangled-bend-port-basis-order.md (Resolution)"
+  },
+  {
+   "id": "gateb-comsol-e1",
+   "component": "WP3b fem2d.Miter and WP4b MiterMM, WR-90 E-plane 90 deg miters, plain and d/h = 0.87, 8-12.4, 24, 36 GHz",
+   "card": "Gate B, COMSOL campaign 2 (benchmarks/comsol/CAMPAIGN_2.md)",
+   "reference_type": "COMSOL",
+   "reference": "benchmarks/comsol/campaign_2/java/ (GUI models by Daniel), raw/ exports",
+   "data_file": [
+    "benchmarks/comsol/campaign_2/raw/"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/comsol/campaign_2/compare_campaign_2.py"
+   ],
+   "tolerance": "COMSOL mesh-check change + 0.02 dB (main transmission); mesh-check change + COMSOL power-balance error + 1e-4 per converted mode (E4)",
+   "status": "pass",
+   "note": "pass: 28 points, FEM and MM within 0.0001-0.0078 dB of the fine mesh (0.019 dB at 24 GHz, d/h = 0.87, allowed 0.047) (16 Nov 2026)"
+  },
+  {
+   "id": "gateb-comsol-e2",
+   "component": "WP5 Taper, linear H-plane 22.86 -> 45 mm, L = 0.1 and 0.2 m, 15 GHz (TE30 through cutoff)",
+   "card": "Gate B, COMSOL campaign 2 (benchmarks/comsol/CAMPAIGN_2.md)",
+   "reference_type": "COMSOL",
+   "reference": "benchmarks/comsol/campaign_2/java/ (GUI models by Daniel), raw/ exports",
+   "data_file": [
+    "benchmarks/comsol/campaign_2/raw/"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/comsol/campaign_2/compare_campaign_2.py"
+   ],
+   "tolerance": "COMSOL mesh-check change + 0.02 dB (main transmission); mesh-check change + COMSOL power-balance error + 1e-4 per converted mode (E4)",
+   "status": "pass",
+   "note": "pass: TE10 within 0.0000 dB, TE30 power within 1.2e-6 (16 Nov 2026)"
+  },
+  {
+   "id": "gateb-comsol-e3",
+   "component": "WP5 StrangledBend, WR-90 -> 1.6 mm raised-cosine 50 mm tapers, 90 deg E-plane arc R = 50 mm, PEC and aluminium 3.774e7 S/m, 18 and 40 GHz",
+   "card": "Gate B, COMSOL campaign 2 (benchmarks/comsol/CAMPAIGN_2.md)",
+   "reference_type": "COMSOL",
+   "reference": "benchmarks/comsol/campaign_2/java/ (GUI models by Daniel), raw/ exports",
+   "data_file": [
+    "benchmarks/comsol/campaign_2/raw/"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/comsol/campaign_2/compare_campaign_2.py"
+   ],
+   "tolerance": "COMSOL mesh-check change + 0.02 dB (main transmission); mesh-check change + COMSOL power-balance error + 1e-4 per converted mode (E4)",
+   "status": "pass",
+   "note": "pass: within 0.0007 dB (PEC) and 0.0033 dB (aluminium) (16 Nov 2026)"
+  },
+  {
+   "id": "gateb-comsol-e4",
+   "component": "WP6/WF2 Twist, Doane & Anderson 20-inch 90 deg twists in tall WR187, triangular (15-18 GHz, mesh check) and cosine, every propagating mode ported",
+   "card": "Gate B, COMSOL campaign 2 (benchmarks/comsol/CAMPAIGN_2.md)",
+   "reference_type": "COMSOL",
+   "reference": "benchmarks/comsol/campaign_2/java/ (GUI models by Daniel), raw/ exports",
+   "data_file": [
+    "benchmarks/comsol/campaign_2/raw/"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/comsol/campaign_2/compare_campaign_2.py"
+   ],
+   "tolerance": "COMSOL mesh-check change + 0.02 dB (main transmission); mesh-check change + COMSOL power-balance error + 1e-4 per converted mode (E4)",
+   "status": "pass",
+   "note": "pass: every spurious mode within 2.3e-5 of the input power (triangular, 18 GHz: TE1,2 0.3764 % COMSOL fine vs 0.3741 % wrmodes vs 0.3761 % WP7b); main mode within COMSOL's power-balance error (16 Nov 2026)"
+  },
+  {
+   "id": "gateb-comsol-e5",
+   "component": "WP3b chained_miter_outline and Line cascade, two 45 deg optical H-plane miters, s = 2a and 3a, 30 and 56 GHz",
+   "card": "Gate B, COMSOL campaign 2 (benchmarks/comsol/CAMPAIGN_2.md)",
+   "reference_type": "COMSOL",
+   "reference": "benchmarks/comsol/campaign_2/java/ (GUI models by Daniel), raw/ exports",
+   "data_file": [
+    "benchmarks/comsol/campaign_2/raw/"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/comsol/campaign_2/compare_campaign_2.py"
+   ],
+   "tolerance": "COMSOL mesh-check change + 0.02 dB (main transmission); mesh-check change + COMSOL power-balance error + 1e-4 per converted mode (E4)",
+   "status": "pass",
+   "note": "pass: single domain within 0.0008 dB; cascade within 0.0012 dB at cf 1.5 and 0.0002 dB at cf 3 after WF3 (the pre-WF3 cascade with evanescent modes failed: docs/discrepancies/2026-11-15-gateb-45deg-miter-cascade-evanescent.md, resolved by WF3) (16 Nov 2026)"
+  },
+  {
+   "id": "wf3-buried-planes",
+   "component": "Line cascade [Miter(45), Straight(s), Miter(45)] (reference planes a inside the optical mirrors), WR-90, s = 2a, 3a, 30 and 56 GHz, cutoff factor 1-3",
+   "card": "WF3 acceptance",
+   "reference_type": "independent method",
+   "reference": "single FEM domain of the same geometry (fem2d.chained_miter_outline, COMSOL campaign 2 case E5)",
+   "data_file": [
+    "benchmarks/fem2d/data/buried_planes_d6_absorb.npz"
+   ],
+   "test": [
+    "tests/test_fem2d.py::test_45_degree_optical_miters_cascade_like_the_single_domain",
+    "tests/test_fem2d.py::test_45_degree_optical_miters_cascade_at_cutoff_factor_3",
+    "tests/test_fem2d.py::test_passivity_check_fires_on_the_cascade_before_wf3"
+   ],
+   "script": [
+    "benchmarks/fem2d/buried_planes.py"
+   ],
+   "tolerance": "1e-4 of the input power for every output mode of the TE1,0 column; no LinAlgError; passive",
+   "status": "pass",
+   "note": "WF4 final: pass; s = 2a needs evanescent modes, cf >= 1.5 (30 GHz) / 2 (56 GHz), as CONVENTIONS.md section 8 now states (the cf 1.0/1.2 rows are the truncation of a zero-length junction). Before WF4: s = 3a: pass at every cf (<= 1.2e-5 at 12/lambda); s = 2a: pass from cf 1.5 (30 GHz) / 2 (56 GHz), not met at cf 1.0 and 1.2 (truncation of a zero-length junction, mesh independent); see docs/reports/WF3.md",
+   "files_note": "benchmarks/fem2d/data/buried_planes_d6_absorb.npz (also _d6_keep, _d12_30GHz_absorb, _d16_30GHz_absorb, _d12_56GHz_absorb)",
+   "test_note": "tests/test_fem2d.py::test_45_degree_optical_miters_cascade_like_the_single_domain, ::test_45_degree_optical_miters_cascade_at_cutoff_factor_3 (slow), ::test_passivity_check_fires_on_the_cascade_before_wf3; benchmarks/fem2d/buried_planes.py"
+  },
+  {
+   "id": "gatea-comsol-c1",
+   "component": "fem2d.Miter 90 deg plain (optical-mirror) H-plane miter, WR-90, 2D",
+   "card": "Gate A (COMSOL campaign 1, benchmarks/comsol/CAMPAIGN_1.md)",
+   "reference_type": "COMSOL",
+   "reference": "COMSOL 6.2 (GUI), Daniel, 10-11 Nov 2026, case C1; benchmarks/validation_v1/REPORT.md, \"COMSOL campaign 1 - Gate A\"",
+   "data_file": [
+    "benchmarks/comsol/campaign_1/raw/C1_miter90.txt",
+    "benchmarks/comsol/campaign_1/raw/C1_miter90_fine.txt",
+    "benchmarks/comsol/campaign_1/raw/C1_miter90_fine_long_pml.txt",
+    "benchmarks/comsol/campaign_1/raw/C1_miter90_long_pml_user_mesh.txt",
+    "benchmarks/comsol/campaign_1/raw/C1_miter90_more_ports.txt"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/comsol/campaign_1/compare_campaign_1.py",
+    "benchmarks/timings.py"
+   ],
+   "tolerance": "within the COMSOL error (mesh check where available) + 0.02 dB in |S21| (CONVENTIONS.md section 8, Gate A)",
+   "status": "pass",
+   "note": "pass (Gate A, 11 Nov 2026): 19 of 23 points within 0.02 dB (15 within 0.009); at 30 and 90 GHz <= 0.0012 dB against the fine mesh; 26.3 GHz 0.0087 dB with ports for all four propagating modes (0.12 dB with PMLs). 4 points left at 0.022-0.046 dB (46, 52.5, 53, 66 GHz), each < 0.45 GHz above a TE_m0 cutoff: COMSOL's PML reflecting the near-cutoff mode, the same mechanism as at 26.3 GHz, not separately confirmed (campaign_1/RESULTS.md)."
+  },
+  {
+   "id": "gatea-comsol-c1b",
+   "component": "fem2d.Miter 60 and 120 deg optical-mirror H-plane miters, WR-90, 2D",
+   "card": "Gate A (COMSOL campaign 1, benchmarks/comsol/CAMPAIGN_1.md)",
+   "reference_type": "COMSOL",
+   "reference": "COMSOL 6.2 (GUI), Daniel, 10-11 Nov 2026, case C1b; benchmarks/validation_v1/REPORT.md, \"COMSOL campaign 1 - Gate A\"",
+   "data_file": [
+    "benchmarks/comsol/campaign_1/raw/C1b_60miter.txt",
+    "benchmarks/comsol/campaign_1/raw/C1b_60miter_fine.txt",
+    "benchmarks/comsol/campaign_1/raw/C1b_120miter.txt",
+    "benchmarks/comsol/campaign_1/raw/C1b_120miter_fine.txt"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/comsol/campaign_1/compare_campaign_1.py",
+    "benchmarks/timings.py"
+   ],
+   "tolerance": "within the COMSOL error (mesh check where available) + 0.02 dB in |S21| (CONVENTIONS.md section 8, Gate A)",
+   "status": "pass",
+   "note": "pass (Gate A): <= 0.005 dB against the fine mesh at 6 points; confirms the optical-mirror definition of CONVENTIONS.md section 6."
+  },
+  {
+   "id": "gatea-comsol-c2",
+   "component": "SmoothBend E-plane 60 deg 15 cm bends (sech and constant curvature), WR-90, aluminium 3.774e7 S/m",
+   "card": "Gate A (COMSOL campaign 1, benchmarks/comsol/CAMPAIGN_1.md)",
+   "reference_type": "COMSOL",
+   "reference": "COMSOL 6.2 (GUI), Daniel, 10-11 Nov 2026, case C2; benchmarks/validation_v1/REPORT.md, \"COMSOL campaign 1 - Gate A\"",
+   "data_file": [
+    "benchmarks/comsol/campaign_1/raw/C2_sech_aluminum.txt",
+    "benchmarks/comsol/campaign_1/raw/C2_constant_aluminum_user_mesh.txt",
+    "benchmarks/comsol/campaign_1/raw/C2_constant_PEC_tol1eminus4_user_mesh.txt",
+    "benchmarks/comsol/campaign_1/raw/C2_constant_aluminum_tol1eminus4.txt",
+    "benchmarks/comsol/campaign_1/raw/C2_constant_PEC_tol1eminus4.txt"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/comsol/campaign_1/compare_campaign_1.py",
+    "benchmarks/timings.py"
+   ],
+   "tolerance": "within the COMSOL error (mesh check where available) + 0.02 dB in |S21| (CONVENTIONS.md section 8, Gate A)",
+   "status": "pass",
+   "note": "pass (Gate A): sech total <= 0.0074 dB, ohmic part (Al - PEC) <= 0.0004 dB (22 points); constant curvature on the paper's user-defined mesh: Al within 0.0005 / 0.0011 / 0.0051 dB at 18 / 40 / 60 GHz, ohmic part 0.0178 / 0.0274 / 0.0415 dB vs wrmodes 0.0178 / 0.0272 / 0.0412 dB. COMSOL's physics-controlled mesh shifts the lossless result by 0.021-0.026 dB (the reason for the user-defined mesh recipe of CONVENTIONS.md section 8)."
+  },
+  {
+   "id": "gatea-comsol-c3a",
+   "component": "modematch.Step WR-90 -> 22.86 x 2.0 and 22.86 x 1.6 mm centred E-plane height steps, 3D",
+   "card": "Gate A (COMSOL campaign 1, benchmarks/comsol/CAMPAIGN_1.md)",
+   "reference_type": "COMSOL",
+   "reference": "COMSOL 6.2 (GUI), Daniel, 10-11 Nov 2026, case C3a; benchmarks/validation_v1/REPORT.md, \"COMSOL campaign 1 - Gate A\"",
+   "data_file": [
+    "benchmarks/comsol/campaign_1/raw/C3a_step_h2_0.txt",
+    "benchmarks/comsol/campaign_1/raw/C3a_step_h2_0_fine.txt",
+    "benchmarks/comsol/campaign_1/raw/C3a_step_h2_0_fine_tol1eminus4.txt",
+    "benchmarks/comsol/campaign_1/raw/C3a_step_h1_6.txt",
+    "benchmarks/comsol/campaign_1/raw/C3a_step_h1_6_fine.txt"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/comsol/campaign_1/compare_campaign_1.py",
+    "benchmarks/timings.py"
+   ],
+   "tolerance": "within the COMSOL error (mesh check where available) + 0.02 dB in |S21| (CONVENTIONS.md section 8, Gate A)",
+   "status": "pass",
+   "note": "pass (Gate A): |S21| <= 0.005 dB, |S11| 0.010-0.023 dB against the fine mesh, which moves COMSOL towards wrmodes; COMSOL's power sum |S11|^2 + |S21|^2 = 1.001-1.003 (fine)."
+  },
+  {
+   "id": "gatea-comsol-c3b",
+   "component": "Line [Step, Straight 100 mm, Step]: 22.86 x 1.6 mm strangled section in WR-90, 3D",
+   "card": "Gate A (COMSOL campaign 1, benchmarks/comsol/CAMPAIGN_1.md)",
+   "reference_type": "COMSOL",
+   "reference": "COMSOL 6.2 (GUI), Daniel, 10-11 Nov 2026, case C3b; benchmarks/validation_v1/REPORT.md, \"COMSOL campaign 1 - Gate A\"",
+   "data_file": [
+    "benchmarks/comsol/campaign_1/raw/C3b_strangled_100mm.txt",
+    "benchmarks/comsol/campaign_1/raw/C3b_strangled_100mm_tol1eminus4.txt"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/comsol/campaign_1/compare_campaign_1.py",
+    "benchmarks/timings.py"
+   ],
+   "tolerance": "within the COMSOL error (mesh check where available) + 0.02 dB in |S21| (CONVENTIONS.md section 8, Gate A)",
+   "status": "qualitative",
+   "note": "qualitative (Gate A: explained, not pass/fail): |S11| 0.06-0.11 dB off; the section is a resonator with |Gamma| ~ 0.73 at each step, and a 1 deg round-trip phase error (wrmodes with the length changed by 55 um) reproduces COMSOL at 10 GHz exactly (0.7527 / 0.6584 vs COMSOL 0.7548 / 0.6586); C3a shows 0.3-0.4 deg per reflection; COMSOL's power sum is 1.0034 (10 GHz) and 1.014 (30 GHz, unphysical)."
+  },
+  {
+   "id": "fem2d-marcuvitz-529b-corners",
+   "component": "fem2d.Miter sharp (unmitered) H-plane corners of arbitrary angle, WR-90",
+   "card": "WP3b (cross-check)",
+   "reference_type": "literature",
+   "reference": "N. Marcuvitz, Waveguide Handbook (1951), sec. 5.29b: measured T-network parameters of arbitrary-angle H-plane corners, WR-90, lambda = 3.0-3.4 cm (docs/literature/marcuvitz-steps-and-bends.md); also sec. 5.28b (static E-plane corner)",
+   "data_file": [
+    "benchmarks/fem2d/data/marcuvitz_corners.npz",
+    "docs/literature/marcuvitz-steps-and-bends.md"
+   ],
+   "test": [],
+   "script": [
+    "benchmarks/fem2d/marcuvitz_corners.py"
+   ],
+   "tolerance": "reported (the accuracy of the measured values is not stated by Marcuvitz); used to decide between the FEM and Reiter & Arndt (1995) at gamma = 150",
+   "status": "qualitative",
+   "note": "qualitative (WF4 entry for WP3b's cross-check, docs/reports/WP3b.md): complex S11 at the inner-corner planes within 0.002 at 30 and 45 deg, 0.004-0.007 at 50-75 deg, 0.008-0.015 at 90 deg, i.e. within 0.6 dB everywhere (30 deg at 3.4 cm: -27.83 dB FEM vs -27.58 dB measured), while Reiter's gamma = 150 curve is 3 dB higher than the FEM."
+  },
+  {
+   "id": "wp4-review-fd-hplane-step",
+   "component": "modematch.Step symmetric H-plane step a'/a = 0.8",
+   "card": "WP4 (review of PR #4); stored by WF4",
+   "reference_type": "independent method",
+   "reference": "2D finite differences (scalar E_y, Dirichlet walls, discrete modal ports, Richardson extrapolation in the grid step) by the reviewer of PR #4 (script not in the repository): X/Z0 = 11.07 +- 0.05 at a/lambda = 0.85, 2aZ0/(lambda_g X) = 0.1077 +- 0.0003 at a/lambda = 1.4",
+   "data_file": [
+    "benchmarks/modematch/data/fd_hplane_step_review.npz"
+   ],
+   "test": [
+    "tests/test_steps.py::test_hplane_symmetric_step_against_fd_reference"
+   ],
+   "script": [
+    "benchmarks/modematch/fd_hplane_step_review.py"
+   ],
+   "tolerance": "2 sigma of the FD values",
+   "status": "pass",
+   "note": "pass: mode matching 11.019 (converged) vs 11.07 +- 0.05, 0.10767 vs 0.1077 +- 0.0003 (docs/reports/WP4.md); Marcuvitz (2c) is 6.4 % above the FD value."
+  },
+  {
+   "id": "wf4-doane-fig9-five-modes",
+   "component": "Twist on Doane's five-mode basis (TE1,0, TE0,1, TE0,3, TE1,2, TM1,2), 20-inch 90 deg twists in tall WR187",
+   "card": "WF4 item 7",
+   "reference_type": "literature",
+   "reference": "J. L. Doane and T. N. Anderson, Microwave Journal 32(3), 153-160 (1989), Fig. 9 (digitized, benchmarks/literature/doane1989_fig9.csv); basis of J. L. Doane, IEEE Trans. MTT 36, 1033 (1988), Table I",
+   "data_file": [
+    "benchmarks/twist/data/doane_fig9_five_modes.npz",
+    "benchmarks/literature/doane1989_fig9.csv"
+   ],
+   "test": [
+    "tests/test_twist.py::test_doane_fig9_with_doanes_five_modes"
+   ],
+   "script": [
+    "benchmarks/twist/doane_fig9_five_modes.py"
+   ],
+   "tolerance": "the digitizing uncertainty of the curves (z-scores on the 119-point grid)",
+   "status": "pass",
+   "note": "pass: five modes, rms z 1.17 / 1.04 / 0.52 (constant / cosine / triangular; 58.8 / 75.6 / 100 % of the 119 points within 1 sigma, max |z| 2.2 / 2.3 / 1.0); with TE2,1 (Doane's TE12) added, rms z 37 / 5.0 / 17 (the full solution's level, COMSOL E4). docs/discrepancies/2026-11-12-doane-fig9-twists.md (Addendum, WF4)."
+  },
+  {
+   "id": "wf4-twist-speed",
+   "component": "Twist (variable rates): parity groups, grouped slice products, adaptive acceptance",
+   "card": "WF4 item 1",
+   "reference_type": "independent method",
+   "reference": "the Twist defaults before WF4 (commit a1943b4), stored GSMs",
+   "data_file": [
+    "benchmarks/twist/data/wf4_twist_baseline.npz",
+    "benchmarks/twist/data/wf4_twist_compare.npz"
+   ],
+   "test": [
+    "tests/test_twist.py::test_wf4_defaults_agree_with_wf2_defaults_15GHz",
+    "tests/test_twist.py::test_wf4_defaults_agree_with_wf2_defaults",
+    "tests/test_twist.py::test_coupled_groups_are_the_parity_classes"
+   ],
+   "script": [
+    "benchmarks/twist/wf4_speed.py"
+   ],
+   "tolerance": "every power per mode within 2e-6 of the WF2 defaults; at least 3x faster on Doane's cosine and triangular twists",
+   "status": "pass",
+   "note": "pass: see docs/reports/WF4.md (speed-up and worst power change per case)."
+  },
+  {
+   "id": "wf4-fem-determinism",
+   "component": "fem2d (Miter, Coplanar2D): dependence on the gmsh version, platform and node order",
+   "card": "WF4 item 6",
+   "reference_type": "closed form",
+   "reference": "the same GSMs computed with gmsh 4.10.5, 4.12.2, 4.13.1 and 4.15.2, with the mesh nodes renumbered, and repeated",
+   "data_file": [
+    "benchmarks/fem2d/data/determinism_4.15.2.npz",
+    "benchmarks/fem2d/data/determinism_4.13.1.npz",
+    "benchmarks/fem2d/data/determinism_4.12.2.npz",
+    "benchmarks/fem2d/data/determinism_4.10.5.npz"
+   ],
+   "test": [
+    "tests/test_fem2d.py::test_gsm_is_reproducible_across_gmsh_versions"
+   ],
+   "script": [
+    "benchmarks/fem2d/determinism.py"
+   ],
+   "tolerance": "1e-10 in every entry of S (the bound figure scripts may promise)",
+   "status": "pass",
+   "note": "pass: gmsh 4.10.5-4.15.2 bitwise identical (Linux x86-64); node renumbering <= 4e-14; repeated solve bitwise equal. Not measured: macOS and Windows (CI runs the fem job on Linux only)."
+  }
+ ]
 }
