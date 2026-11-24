@@ -344,23 +344,31 @@ class MiterMM(Component):
                           RuntimeWarning, stacklevel=3)
         return sol, M, est
 
-    def convergence_study(self, f, n_modes_list, basis=None):
+    def convergence_study(self, f, n_modes_list, basis=None, input_mode=None):
         """Convergence of the propagating block with the truncation n_modes (arm modes per scalar problem).
 
-        Returns a dict like `wrmodes.modematch.convergence_study`: 'n_modes' (K,), 'modes' (propagating mode names),
-        'S' (K, P, P) propagating block (ports 1 then 2), 'change' max ||S_k| - |S_k-1||, 'change_complex'
-        max |S_k - S_k-1|, 'unitarity', 'reciprocity'.
+        Returns a `wrmodes.convergence.ConvergenceRecord` (WF4): one row per truncation, parameter 'n_modes',
+        powers of the column of `input_mode` (default TE1,0, else the first propagating mode), max_change against
+        the largest truncation, no Richardson extrapolation (the series converges faster than any fixed power,
+        docs/reports/WP4b.md). Earlier keys, kept as aliases for one release (as `wrmodes.modematch.convergence_study`):
+        'n_modes' (K,) (also the record's n_modes), 'modes' (propagating mode names), 'S' (K, P, P) propagating block
+        (ports 1 then 2), 'change' max ||S_k| - |S_k-1||, 'change_complex' max |S_k - S_k-1|, 'unitarity',
+        'reciprocity'.
         """
+        from ..convergence import build_record, column_powers, default_input_mode, timed
         if basis is None:
             basis = self.default_basis(f)[0]
-        S_list, uni, rec = [], [], []
+        mode = default_input_mode(basis, f, input_mode)
+        S_list, uni, rec, rows = [], [], [], []
         for nm in n_modes_list:
-            g = self.gsm(f, basis, basis, n_modes=nm)
+            g, dt = timed(self.gsm, f, basis, basis, n_modes=nm)
             m1, m2 = g.propagating()
             keep = np.concatenate([m1, m2])
             S_list.append(g.S[np.ix_(keep, keep)])
             uni.append(g.unitarity_defect())
             rec.append(g.reciprocity_defect() / np.max(np.abs(g.S)))
+            rows.append(dict(parameter="n_modes", value=int(nm), variant={}, n_modes=int(nm),
+                             powers=column_powers(g, mode, f), wall_time=dt))
         S = np.array(S_list)
         K = len(n_modes_list)
         change, change_c = np.full(K, np.nan), np.full(K, np.nan)
@@ -368,5 +376,8 @@ class MiterMM(Component):
             change[i] = np.max(np.abs(np.abs(S[i]) - np.abs(S[i - 1])))
             change_c[i] = np.max(np.abs(S[i] - S[i - 1]))
         names = [m.name for m, p in zip(basis.modes, basis.propagating_mask(f)) if p]
-        return {"n_modes": np.asarray(n_modes_list), "modes": names, "S": S, "change": change,
-                "change_complex": change_c, "unitarity": np.array(uni), "reciprocity": np.array(rec)}
+        out = build_record(self, f, mode, rows, None, "the largest truncation n_modes",
+                           aliases={"modes": names, "S": S, "change": change, "change_complex": change_c,
+                                    "unitarity": np.array(uni), "reciprocity": np.array(rec)})
+        out["n_modes"] = np.asarray(n_modes_list)
+        return out

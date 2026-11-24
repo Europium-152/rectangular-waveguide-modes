@@ -835,24 +835,27 @@ class Twist(Component):
                           cutoff_factors=None):
         """Convergence of the twist at f (Hz) in the internal mode count, the tail elimination and the slicing.
 
+        Returns a `wrmodes.convergence.ConvergenceRecord` (the common record of WF4): rows with parameter
+        'mode_factor' (variant {'tail': ...}) for every tail setting in `tails` and every mode factor, then rows
+        with parameter 'slices' (fixed slicings of slice_factors times the adaptive count, at the first mode factor
+        and tail setting; constant rates are exact and give one row). 'richardson': the extrapolation of the plain
+        truncated series (tail=False) in 1/chi_max of the internal list (order 1, T3b section 5) from the last two
+        mode factors, applied to the complex columns, or None if tails has no False. The port basis is the
+        propagating basis; evanescent modes enter only inside the solve.
+
         mode_factors: internal cutoff factors (default: the component's own m0 and 1.5 m0); `cutoff_factors` is an
-        older name for the same argument. For every tail setting in `tails` and every mode factor a GSM is computed
-        on the propagating port basis. Returns a dict with
+        older name for the same argument. Earlier keys, kept as aliases for one release:
 
         * 'modes': list of rows dict(mode_factor, tail, n_modes, n_slices, chi_max, powers), where powers is a dict
           mode name -> |S21[p, in]|^2 for the propagating output modes, plus 'reflected' (sum of |S11[p, in]|^2) and
           'spurious' (sum over p != in);
-        * 'extrapolated': powers of the Richardson extrapolation in 1/chi_max of the plain truncated series
-          (tail=False) from the last two mode factors, S = (c2 S(c2) - c1 S(c1)) / (c2 - c1) with c = chi_max of
-          the internal list, applied to the complex column of the input mode (T3b section 5: the plain series
-          converges like 1/chi_max), or None if tails has no False;
+        * 'extrapolated': those powers for the Richardson extrapolation, or None;
         * 'best': powers of the last row with tail=True (the largest mode factor), or of the extrapolation;
         * 'change': max |delta P| over the output modes between 'best' and the extrapolation (an estimate of the
           truncation error), or between the last two tail=True rows when there is no extrapolation;
-        * 'slices': rows (n_slices, powers) at the first mode factor and tail setting, for fixed slicings of
-          slice_factors times the adaptive count (constant rates are exact and give one row).
-        The port basis is the propagating basis; evanescent modes enter only inside the solve.
+        * 'slices': rows (n_slices, powers) of the slice refinement.
         """
+        from ..convergence import build_record, column_powers, powers_from_column, timed
         if self.guide is None:
             raise ValueError("convergence_study needs a guide")
         if mode_factors is None:
@@ -860,6 +863,7 @@ class Twist(Component):
         port = self.guide.basis(f, 1.0)
         mode = Mode.parse(input_mode)
         j = port.index(mode)
+        names = [m.name for m in port.modes]
 
         def powers_of(t, r):
             col = np.abs(t) ** 2
@@ -868,31 +872,44 @@ class Twist(Component):
             out["spurious"] = float(np.sum(col) - col[j])
             return out
 
-        rows, cols = [], {}
+        rows, cols, rec_rows = [], {}, []
         for tl in tails:
             for mf in mode_factors:
-                g = self.replace(mode_factor=mf, tail=tl).gsm(f, port)
+                g, dt = timed(self.replace(mode_factor=mf, tail=tl).gsm, f, port)
                 cols[(tl, float(mf))] = (g.S21[:, j].copy(), g.S11[:, j].copy(), g.info["chi_max"])
                 rows.append(dict(mode_factor=float(mf), tail=bool(tl), n_modes=g.info["n_modes"],
                                  n_slices=g.info["n_slices"], chi_max=g.info["chi_max"],
                                  powers=powers_of(g.S21[:, j], g.S11[:, j])))
-        extrap = None
+                rec_rows.append(dict(parameter="mode_factor", value=float(mf), variant={"tail": bool(tl)},
+                                     n_modes=g.info["n_modes"], powers=column_powers(g, mode, f), wall_time=dt))
+        extrap, richardson = None, None
         if False in tails and len(mode_factors) >= 2:
             (t1, r1, c1), (t2, r2, c2) = (cols[(False, float(mode_factors[-2]))], cols[(False, float(mode_factors[-1]))])
-            extrap = powers_of((c2 * t2 - c1 * t1) / (c2 - c1), (c2 * r2 - c1 * r1) / (c2 - c1))
+            te, re_ = (c2 * t2 - c1 * t1) / (c2 - c1), (c2 * r2 - c1 * r1) / (c2 - c1)
+            extrap = powers_of(te, re_)
+            richardson = dict(parameter="mode_factor", variant={"tail": False}, order=1,
+                              variable="1/chi_max of the internal list",
+                              values=[float(mode_factors[-2]), float(mode_factors[-1])],
+                              powers=powers_from_column(te, re_, names, names))
         tail_rows = [r for r in rows if r["tail"]]
         best = tail_rows[-1]["powers"] if tail_rows else extrap
-        names = [m.name for m in port.modes if m != mode] + ["reflected"]
+        onames = [m.name for m in port.modes if m != mode] + ["reflected"]
         if extrap is not None and best is not extrap:
-            change = max(abs(best[n] - extrap[n]) for n in names)
+            change = max(abs(best[n] - extrap[n]) for n in onames)
         elif len(tail_rows) >= 2:
-            change = max(abs(tail_rows[-1]["powers"][n] - tail_rows[-2]["powers"][n]) for n in names)
+            change = max(abs(tail_rows[-1]["powers"][n] - tail_rows[-2]["powers"][n]) for n in onames)
         else:
             change = None
         srows = []
         tw = self.replace(mode_factor=mode_factors[0], tail=tails[0])
         n0 = rows[0]["n_slices"]
         for sfac in (slice_factors if not self.rate.is_constant else (1,)):
-            g = tw.replace(slices=n0 * sfac).gsm(f, port) if not self.rate.is_constant else tw.gsm(f, port)
+            t_ = tw.replace(slices=n0 * sfac) if not self.rate.is_constant else tw
+            g, dt = timed(t_.gsm, f, port)
             srows.append((g.info["n_slices"], powers_of(g.S21[:, j], g.S11[:, j])))
-        return dict(modes=rows, extrapolated=extrap, best=best, change=change, slices=srows)
+            rec_rows.append(dict(parameter="slices", value=int(g.info["n_slices"]),
+                                 variant={"tail": bool(tails[0]), "mode_factor": float(mode_factors[0])},
+                                 n_modes=g.info["n_modes"], powers=column_powers(g, mode, f), wall_time=dt))
+        return build_record(self, f, mode, rec_rows, richardson,
+                            "the finest row (largest mode factor, finest slicing) of each parameter and variant",
+                            aliases=dict(modes=rows, extrapolated=extrap, best=best, change=change, slices=srows))

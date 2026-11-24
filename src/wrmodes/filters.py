@@ -42,7 +42,7 @@ from .modematch.junction import junction_gsm
 from .components.base import Component
 from .components.guide import Guide, map_basis, _check_plane
 
-__all__ = ["LossyWallFilter", "ResistiveSheetFilter", "impedance_wall_modes", "sheet_modes"]
+__all__ = ["LossyWallFilter", "ResistiveSheetFilter", "impedance_wall_modes", "sheet_modes", "lsu_quadrature_points"]
 
 DB = 20 / np.log(10)
 
@@ -571,6 +571,20 @@ def _assemble(basis, f, blocks, name):
     return GSM(*S, basis, basis, f, name)
 
 
+def lsu_quadrature_points(M):
+    """Gauss-Legendre points across the guide (u) for the loaded-guide modes of `LossyWallFilter` with M modes per
+    family (WF4).
+
+    The reaction and overlap integrands are products of two profiles with up to M half-periods each, i.e.
+    oscillations of up to 2M half-periods across [0, a], a wavenumber kappa = pi M on the reference interval
+    [-1, 1]. An n-point Gauss rule resolves such an integrand once n exceeds kappa / 2 by a margin of order
+    kappa^(1/3); n = ceil(pi M / 2 + 4 (pi M)^(1/3)) + 32. Before WF4 the rule was 1.5 M + 48, which falls short of
+    pi M / 2 + O(M^(1/3)) above M of about 250: at M = 320 the loaded modes failed the orthogonality check
+    (1.1e-6 > ORTHO_TOL, a RootFindingError, WP7b open issue 5). Up to M = 160 both rules give the same filter to
+    2e-11 dB."""
+    return int(np.ceil(np.pi * M / 2 + 4 * np.cbrt(np.pi * M))) + 32
+
+
 class _Filter(Component):
     def _init_common(self, length, plane, guide, name):
         length = float(length)
@@ -621,7 +635,11 @@ class LossyWallFilter(_Filter):
     modes_per_family : int, optional
         Internal truncation M: per family n, the empty guide keeps TE_mn and TM_mn with m <= M and the lossy guide
         the same number of LS modes. Default: max(80, 2 m_max + 20), m_max the largest m of the port basis. The
-        result converges as M grows (TE_m0 to about 1e-3 dB between 80 and 160 modes, T1 section 7).
+        result converges as M grows (TE_m0 to about 1e-3 dB between 80 and 160 modes, T1 section 7; at 75 GHz in
+        WR-90 with 250 ohm walls the attenuation of every port mode changes by at most 0.24 dB, 0.33 %, from 160 to
+        320). Tested up to M = 320 (WF4): WR-90, 75 GHz, 15 cm, about 9 min and 2 GB on one core for the propagating
+        basis (cost and memory grow like M^3 and M^2 per family); before WF4 the u quadrature was too coarse above
+        M of about 250 (`lsu_quadrature_points`).
     guide : Guide, optional
         Cross-section; needed for `default_basis` only. A `Line` attaches its own guide. A conductivity of the
         guide is not applied to the filter's other walls (they are treated as perfect; the metal loss of a 15 cm
@@ -684,7 +702,7 @@ class LossyWallFilter(_Filter):
         M = self.modes_per_family or max(80, 2 * m_max + 20)
         if M < m_max:
             raise ValueError(f"modes_per_family = {M} is below the largest m of the port basis ({m_max})")
-        x, w = leggauss(int(1.5 * M) + 48)
+        x, w = leggauss(lsu_quadrature_points(M))
         up, wu = 0.5 * a * (x + 1), 0.5 * a * w
         blocks = []
         for n in basis.families():

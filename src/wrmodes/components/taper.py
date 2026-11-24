@@ -888,11 +888,18 @@ def convergence_study(component, f, input_mode=None, mode_factors=None, slice_fa
     the slice refinement is reported too: fixed slicings at each of `slice_factors` times the density that the
     adaptive slicing ended with (largest over the classes).
 
-    Returns a dict with 'modes1', 'modes2' (propagating port modes), 'rows': list of dicts (tail, mode_factor,
-    slice_factor (None: adaptive), n_modes, n_slices, error_estimate, S), 'richardson': {tail: S_inf}, and, if
-    input_mode is given, 'column': the same rows reduced to the column of that mode (S11 of the input mode and
-    S21 per output mode).
+    Returns a `wrmodes.convergence.ConvergenceRecord` (WF4): rows with parameter 'mode_factor' (variant
+    {'tail': ...}), then 'slices' (value: the number of slices, summed over the classes; variant: tail,
+    mode_factor, slice_factor); powers of
+    the column of `input_mode` (default TE1,0, else the first propagating mode); 'richardson' (order 1 in 1/M) of
+    the last tail setting with two mode factors, from the extrapolated S, with the extrapolated propagating blocks
+    of every tail setting under the keys True / False as before. Earlier keys, kept as aliases for one release:
+    'modes1', 'modes2' (propagating port modes), 'rows': list of dicts (tail, mode_factor, slice_factor (None:
+    adaptive), n_modes, n_slices, error_estimate, S), and 'column' (the rows reduced to the column of the input
+    mode: S11 and S21 per output mode).
     """
+    from ..convergence import build_record, default_input_mode, powers_from_column
+    import time
     comp = component
     if mode_factors is None:
         mode_factors = (comp.mode_factor, 2.0 * comp.mode_factor)
@@ -905,10 +912,12 @@ def convergence_study(component, f, input_mode=None, mode_factors=None, slice_fa
     rows = []
 
     def run(t, mf, sf):
+        t0 = time.perf_counter()
         g = comp.gsm(f, basis1, basis2, mode_factor=mf, tail=t, slice_factor=sf)
         rows.append(dict(tail=t, mode_factor=mf, slice_factor=sf, n_modes=g.info["n_modes"],
                          n_slices=g.info["n_slices"], error_estimate=g.info["error_estimate"],
-                         final_slice_factor=g.info["slice_factor"], S=g.S[np.ix_(keep, keep)]))
+                         final_slice_factor=g.info["slice_factor"], S=g.S[np.ix_(keep, keep)],
+                         wall_time=time.perf_counter() - t0))
 
     for t in tails:
         for mf in mode_factors:
@@ -922,16 +931,40 @@ def convergence_study(component, f, input_mode=None, mode_factors=None, slice_fa
         if len(rr) >= 2:
             (f1, S1), (f2, S2) = (rr[-2]["mode_factor"], rr[-2]["S"]), (rr[-1]["mode_factor"], rr[-1]["S"])
             rich[t] = (f2 * S2 - f1 * S1) / (f2 - f1)
-    out = dict(modes1=[m.name for m, p in zip(basis1.modes, p1) if p],
-               modes2=[m.name for m, p in zip(basis2.modes, p2) if p], rows=rows, richardson=rich)
+    modes1 = [m.name for m, p in zip(basis1.modes, p1) if p]
+    modes2 = [m.name for m, p in zip(basis2.modes, p2) if p]
+    out = dict(modes1=modes1, modes2=modes2, rows=rows)
+    mode = default_input_mode(basis1, f, input_mode)
+    j, n1 = modes1.index(mode.name), len(modes1)
+
+    def powers(S):
+        return powers_from_column(S[n1:, j], S[:n1, j], modes2, modes1)
+
     if input_mode is not None:
-        mode = Mode.parse(input_mode)
-        j = out["modes1"].index(mode.name)
-        n1 = len(out["modes1"])
         out["column"] = [dict(tail=r["tail"], mode_factor=r["mode_factor"], slice_factor=r["slice_factor"],
-                              S11=r["S"][j, j], S21={nm: r["S"][n1 + i, j] for i, nm in enumerate(out["modes2"])})
+                              S11=r["S"][j, j], S21={nm: r["S"][n1 + i, j] for i, nm in enumerate(modes2)})
                          for r in rows]
-    return out
+    rec_rows = []
+    for r in rows:
+        if r["slice_factor"] is None:
+            rec_rows.append(dict(parameter="mode_factor", value=float(r["mode_factor"]), variant={"tail": bool(r["tail"])},
+                                 n_modes=r["n_modes"], powers=powers(r["S"]), wall_time=r["wall_time"]))
+        else:
+            ns = r["n_slices"]
+            rec_rows.append(dict(parameter="slices", value=int(sum(ns.values()) if isinstance(ns, dict) else ns),
+                                 variant={"tail": bool(r["tail"]), "mode_factor": float(r["mode_factor"]),
+                                          "slice_factor": float(r["slice_factor"])},
+                                 n_modes=r["n_modes"], powers=powers(r["S"]), wall_time=r["wall_time"]))
+    richardson = None
+    if rich:
+        t_last = [t for t in tails if t in rich][-1]
+        richardson = dict(parameter="mode_factor", variant={"tail": bool(t_last)}, order=1,
+                          variable="1/M (M proportional to the mode factor, T2 section 8.4)",
+                          values=[float(mode_factors[-2]), float(mode_factors[-1])], powers=powers(rich[t_last]))
+        richardson.update(rich)                     # the earlier 'richardson' {tail: S_inf} (alias)
+    return build_record(comp, f, mode, rec_rows, richardson,
+                        "the finest row (largest mode factor, finest slicing) of each parameter and variant",
+                        aliases=out)
 
 
 # ============================================================================================ Taper
